@@ -35,7 +35,7 @@ class SelfiesPropertyValTokenizer:
         "returns a dictionary from assay token to its tokenizer index"
         assays = [x for x in range(self.num_assays)]
         idxs = [self.assay_id_to_token_idx(x) for x in assays]
-        return {f"assay_{x}": i for x, i in zip(assays, idxs)}
+        return {f"assay_{assay_id}": token_id for assay_id, token_id in zip(assays, idxs)}
     
     def assay_id_to_token_idx(self, assay_id):
         return self.selfies_offset + assay_id

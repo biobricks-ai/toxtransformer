@@ -1,17 +1,29 @@
 import matplotlib.pyplot as plt, pandas as pd, seaborn as sns, pathlib
 import random
+import logging
 
 # SETUP =================================================================================
 outdir = pathlib.Path("cache/build_figures")
 outdir.mkdir(exist_ok=True, parents=True)
+logging.basicConfig(level=logging.INFO, filename=outdir / 'build_figures.log', filemode='w')
+
 df = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')
-df.aggregate({'AUC': 'median', 'ACC': 'median', 'BAC': 'median', "cross_entropy_loss": 'median'})
-df.groupby('nprops').aggregate({'AUC': 'median', 'ACC': 'median', 'BAC': 'median', "cross_entropy_loss": 'median', 'assay': 'nunique'})
-df[(df['NUM_POS'] > 100) & (df['NUM_NEG'] > 100)].groupby('nprops').aggregate({'AUC': 'median', 'ACC': 'median', 'BAC': 'median', "cross_entropy_loss": 'median', 'assay': 'nunique'})
+df = df[(df['NUM_POS'] > 100) & (df['NUM_NEG'] > 100)]
+res1 = df.aggregate({'AUC': 'median', 'ACC': 'median', 'BAC': 'median', "cross_entropy_loss": 'median'})
+res2 = df.groupby('nprops').aggregate({'AUC': 'median', 'ACC': 'median', 'BAC': 'median', "cross_entropy_loss": 'median', 'assay': 'nunique'})
+
+logging.info(f"Overall metrics (median values):\n{res1}\n")
+logging.info(f"Metrics by number of prior properties (nprops):\n{res2}")
+logging.info(f"Total number of assays in analysis: {df['assay'].nunique()}")
+logging.info(f"Data filtered to assays with >100 positive and >100 negative examples")
 
 # how many assays?
-df['assay'].nunique()
+assays = df['assay'].nunique()
+logging.info(f"Number of assays: {assays}")
+
+# auc median
 auc = df['AUC'].median()
+logging.info(f"AUC median: {auc}")
 
 # AUC HISTOGRAM =========================================================================
 def auc_histogram(df,nprops):
@@ -31,7 +43,7 @@ def auc_histogram(df,nprops):
         ax.set_xlabel('AUC', color='white', fontsize=14)
         ax.set_ylabel('Number of Properties', color='white', fontsize=14)
         ax.tick_params(colors='white', labelsize=12)
-
+    
     g.figure.suptitle('Histogram of AUC per Property', color='white', fontsize=22, fontweight='bold', y=0.98)
     plt.subplots_adjust(top=0.9)  # Adjust this value as needed to make room for the title
     g.figure.tight_layout(rect=[0, 0.03, 1, 0.9])  # Adjust the rect to ensure title is visible

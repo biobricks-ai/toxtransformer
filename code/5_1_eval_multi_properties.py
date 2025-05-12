@@ -1,6 +1,9 @@
+# spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/5_1_eval_multi_properties.py
+
 import itertools, uuid, pathlib
 import pandas as pd, tqdm, sklearn.metrics, torch, numpy as np, os
 import cvae.tokenizer, cvae.models.multitask_transformer as mt, cvae.utils, cvae.models.mixture_experts as me
+import logging
 from cvae.tokenizer import SelfiesPropertyValTokenizer
 from pyspark.sql.functions import col, when, countDistinct
 from pyspark.sql import functions as F
@@ -8,22 +11,39 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import split, col, when
 from sklearn.metrics import roc_auc_score, accuracy_score, balanced_accuracy_score, log_loss
 
-# Create all necessary directories
+# Setup logging
+logdir = pathlib.Path("cache/eval_multi_properties/logs")   
+logdir.mkdir(exist_ok=True, parents=True)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename=logdir / 'eval_multi_properties.log')
+
+# Output directories
 outdir = pathlib.Path("cache/eval_multi_properties")
 outdir.mkdir(exist_ok=True, parents=True)
 
 tqdm.tqdm.pandas()
 
+# Load tokenizer and Spark session
 tokenizer : SelfiesPropertyValTokenizer = me.MoE.load("brick/moe").tokenizer
 spark = cvae.utils.get_spark_session()
 
-# GENERATE STRATIFIED EVALUATIONS FOR POSITION 0-5 ===============================
-outdf = spark.read.parquet("cache/generate_evaluations/multitask_predictions.parquet")
+# Read predictions
+outdf = spark.read.parquet("cache/consolidate_evaluations/multitask_predictions.parquet")
+original_count = outdf.count()
+logging.info(f"Total rows: {original_count}")
 
+# Find (chemical_id, assay) pairs with only one distinct value
+# excdf = outdf.groupBy('chemical_id', 'assay') \
+#     .agg(F.countDistinct('value').alias('count')) \
+#     .filter(col('count') == 1) \
+#     .select('chemical_id', 'assay')
 
-# drop chemical_id + assay with multiple values
-excdf = outdf.groupBy('chemical_id', 'assay').agg(F.countDistinct('value').alias('count')).filter(col('count') == 1).select('chemical_id', 'assay')
-outdf = excdf.join(outdf, on=['chemical_id', 'assay'], how='inner')
+# # Join back to get filtered dataset
+# outdf = excdf.join(outdf, on=['chemical_id', 'assay'], how='inner')
+# final_count = outdf.count()
+
+# Log results
+# logging.info(f"Total rows after dropping: {final_count}")
+# logging.info(f"Rows dropped: {original_count - final_count}")
 
 # Calculate metrics
 value_indexes = list(tokenizer.value_indexes().values())
@@ -46,25 +66,20 @@ calculate_metrics_udf = F.udf(calculate_metrics, "struct<AUC:double, ACC:double,
 
 from pyspark.sql.window import Window
 
-confpred = outdf.withColumn("dist", F.abs(F.col("probs") - 0.5))\
-    .withColumn("r", F.row_number().over(Window.partitionBy("nprops", "assay", "chemical_id", "value").orderBy(F.desc("dist"))))\
-    .filter("r = 1")\
-    .drop("r", "dist")\
+meanpred = outdf.groupBy("nprops", "assay", "chemical_id", "value")\
+    .agg(F.mean("probs").alias("probs"))\
     .cache()
 
-large_properties_df = confpred.groupBy('nprops', 'assay').agg(
+large_properties_df = meanpred.groupBy('nprops', 'assay').agg(
     F.collect_list('value').alias('y_true'),
     F.collect_list('probs').alias('y_pred'),
     countDistinct('chemical_id').alias('nchem'),
     F.sum(when(col('value') == val1_index, 1).otherwise(0)).alias('NUM_POS'),
-    F.sum(when(col('value') == val0_index, 1).otherwise(0)).alias('NUM_NEG')) \
+    F.sum(when(col('value') == val0_index, 1).otherwise(0)).alias('NUM_NEG')).cache()\
     .filter((col('NUM_POS') >= 10) & (col('NUM_NEG') >= 10) & (col('nchem') >= 20)).cache()
 
 metrics_df = large_properties_df.repartition(800) \
     .withColumn('metrics', calculate_metrics_udf(F.col('y_true'), F.col('y_pred'))) \
     .select('nprops', 'assay', col('metrics.AUC').alias('AUC'), col('metrics.ACC').alias('ACC'), col('metrics.BAC').alias('BAC'), col('metrics.cross_entropy_loss').alias('cross_entropy_loss'), 'NUM_POS', 'NUM_NEG')
 
-df = metrics_df.toPandas()
-df['AUC'].median()
-df.groupby('nprops').apply(lambda x: x['AUC'].median())
 metrics_df.write.parquet((outdir / "multitask_metrics.parquet").as_posix(), mode="overwrite")

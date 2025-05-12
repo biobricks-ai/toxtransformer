@@ -79,9 +79,10 @@ def main(rank, world_size):
     # 2025-05-06 13:02:38 - INFO - Epoch: 8, Step: 37000, Train Loss (last cycle): 0.9009, Eval Loss: 0.8615, BAC: 0.7482, AUC: 0.9135, LR: 0.000210
     # model = me.MoE(tokenizer, num_experts=24, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
 
-    model = me.MoE(tokenizer, num_experts=24, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
+    # model = me.MoE(tokenizer, num_experts=24, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
+    model = me.MoE.load("brick/moe")
     batch_size = 64
-    # model = me.MoE.load("brick/moe")
+    
 
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     

@@ -1,9 +1,41 @@
 import pandas as pd, sqlite3, seaborn as sns, matplotlib.pyplot as plt, pathlib
+import cvae.tokenizer
 from matplotlib.colors import ListedColormap
 
 #%% SETUP =================================================================================
 outdir = pathlib.Path("cache/benchmarks")
 outdir.mkdir(exist_ok=True, parents=True)
+
+tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer.load('brick/selfies_property_val_tokenizer/')
+
+#%% SOURCE ASSERTIONS =======================================================================
+# conn = sqlite3.connect('brick/cvae.sqlite')
+
+# # # # check that every source in conn is also in evaldf
+# prop_src = pd.read_sql("SELECT property_token,title,source FROM property p INNER JOIN source s on p.source_id = s.source_id", conn)
+# prop_src['source'].value_counts()
+
+# evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')
+# evaldf = evaldf.rename(columns={'assay': 'property_token'})
+
+# # are all evaldf 'assay' in prop_src?
+# assert evaldf['property_token'].isin(prop_src['property_token']).all()
+
+# # get min and max of each tables 'property_token'
+# print(evaldf['property_token'].min(), evaldf['property_token'].max())
+# print(prop_src['property_token'].min(), prop_src['property_token'].max())
+
+# tokassays = list(tokenizer.assay_indexes().values())
+# print(f"Tokenizer assay indexes min: {min(tokassays)}, max: {max(tokassays)}")
+
+# evaldf['property_token'].nunique()
+# assert prop_src['property_token'].isin(evaldf['property_token']).all()
+# badprops2 = prop_src[~prop_src['property_token'].isin(evaldf['property_token'])].reset_index(drop=True)
+# badprops2.shape
+# badprops2['source'].value_counts()
+
+# goodprops = prop_src[prop_src['property_token'].isin(evaldf['property_token'])].reset_index(drop=True)
+# goodprops['source'].value_counts()
 
 #%% TOXCAST BENCHMARK ===========================================================
 conn = sqlite3.connect('brick/cvae.sqlite')
@@ -16,14 +48,15 @@ prop_src = pd.read_sql("SELECT property_token,title,source FROM property p INNER
 assert prop_src.groupby('property_token').size().max() == 1
 
 # pull in multitask_metrics
-evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')\
-    .merge(prop_src, left_on='assay', right_on='property_token', how='inner')
+evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')
+evaldf = evaldf.rename(columns={'assay': 'property_token'})
+evaldf = evaldf.merge(prop_src, left_on='property_token', right_on='property_token', how='inner')
 
 # get the median AUC for each property
-evaldf.aggregate({'AUC': 'median','cross_entropy_loss':'median','assay':'count'}) # 89% median auc, .482 median cross entropy loss
-res = evaldf.groupby(['source','nprops']).aggregate({'AUC': 'median','assay':'count'}).sort_values(by='AUC',ascending=False)
+evaldf.aggregate({'AUC': 'median','cross_entropy_loss':'median','property_token':'count'}) # 89% median auc, .482 median cross entropy loss
+res = evaldf.groupby(['source','nprops']).aggregate({'AUC': 'median','property_token':'count'}).sort_values(by='AUC',ascending=False)
 tox21 = evaldf[evaldf['source'] == 'Tox21'].groupby(['nprops'])\
-    .aggregate({'AUC': 'median','assay':'count'})\
+    .aggregate({'AUC': 'median','property_token':'count'})\
     .sort_values(by='AUC',ascending=False)\
     .reset_index()
 tox21.to_csv(outdir / 'tox21_auc_by_nprops.csv', index=False)
@@ -36,8 +69,9 @@ tox21.to_csv(outdir / 'tox21_auc_by_nprops.csv', index=False)
 # 1       0.871136     66
 # 0       0.829932     18
 
-# region source evaluations ================================
-res = evaldf.groupby(['source','nprops']).aggregate({'AUC': 'median','assay':'count'}).reset_index()
+# region SOURCE EVALUATIONS ================================
+source_eval = evaldf.groupby('property_token').filter(lambda x: len(x['nprops'].unique()) == 5)
+res = source_eval.groupby(['source','nprops']).aggregate({'AUC': 'median','property_token':'count'}).reset_index()
 
 # add 'meanauc' column
 res['meanauc'] = res.groupby('source')['AUC'].transform('median')
@@ -69,8 +103,7 @@ pcat = pd.read_sql("""SELECT s.source, property_token,title,category,strength FR
                        INNER JOIN source s on p.source_id = s.source_id """, 
                        conn)
     
-evalcat = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')\
-    .merge(pcat, left_on='assay', right_on='property_token', how='inner')\
+evalcat = evaldf.merge(pcat, left_on=['property_token', 'source', 'title'], right_on=['property_token', 'source', 'title'], how='inner')\
     .query('strength > 8.0')
 
 # query the nephrotoxicity category and read titles and AUCs
@@ -86,8 +119,8 @@ for i, row in res.iterrows():
     print(f'{row["strength"]}\t{row["AUC"]:.2f}\t{row["NUM_POS"]+row["NUM_NEG"]}\t{row["source"]}\t{row["title"]}')
 
 # get the median AUC for each property
-evalcat.aggregate({'AUC': 'median','assay':'count'})
-pdf = evalcat.groupby(['category','nprops']).aggregate({'AUC': 'median','assay':'count'}).reset_index().sort_values(by=['category','AUC'],ascending=False)
+evalcat.aggregate({'AUC': 'median','property_token':'count'})
+pdf = evalcat.groupby(['category','nprops']).aggregate({'AUC': 'median','property_token':'count'}).reset_index().sort_values(by=['category','AUC'],ascending=False)
 
 # create a 'category_order' column with a numeric sorting categories by median AUC
 pdf['category_order'] = pdf.groupby('category')['AUC'].transform('median')

@@ -1,3 +1,5 @@
+# spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/6_build_sqlite.py
+
 import os, sys, biobricks as bb, pandas as pd, shutil, sqlite3, pathlib
 import pyspark.sql, pyspark.sql.functions as F
 
@@ -12,7 +14,7 @@ ch = bb.assets('chemharmony')
 outdir = pathlib.Path('cache/build_sqlite')
 outdir.mkdir(parents=True, exist_ok=True)
 
-tokenizer = spt.SelfiesPropertyValTokenizer.load('brick/selfies_property_val_tokenizer')
+tokenizer = spt.SelfiesPropertyValTokenizer.load('brick/moe/spvt_tokenizer')
 
 #%% BUILD PROPERTY TABLES =================================================================
 pytorch_id_to_property_token = lambda x : tokenizer.assay_id_to_token_idx(x)
@@ -22,7 +24,7 @@ property_tokens = spark.read.parquet("cache/preprocess_activities/activities.par
     .withColumnRenamed('assay_index','property_pytorch_index')\
     .withColumn("property_pytorch_index", F.col("property_pytorch_index").cast("int"))\
     .withColumn("property_token", pytorch_id_to_property_token_udf("property_pytorch_index"))\
-    .select("property_id","property_token").distinct()
+    .select("property_id","property_token").distinct().cache()
 
 binval_to_value_token = lambda x : tokenizer.value_id_to_token_idx(int(x))
 binval_to_value_token_udf = F.udf(binval_to_value_token, pyspark.sql.types.LongType())
@@ -32,16 +34,17 @@ raw_activities = spark.read.parquet(ch.activities_parquet)\
     .withColumnRenamed('pid', 'property_id')\
     .join(property_tokens, on='property_id')\
     .withColumn('value_token',binval_to_value_token_udf('binary_value'))\
-    .select('source','activity_id','property_id','property_token','substance_id','inchi','smiles','value','binary_value','value_token')
+    .select('source','activity_id','property_id','property_token','substance_id','inchi','smiles','value','binary_value','value_token')\
+    .cache()
 
 raw_prop_title = spark.read.parquet(ch.property_titles_parquet).withColumnRenamed('pid', 'property_id')
 
 prop = spark.read.parquet(ch.properties_parquet)
 prop = prop.withColumnRenamed('pid', 'property_id')
-prop = prop.join(property_tokens, on='property_id').join(raw_prop_title, on='property_id')
+prop = property_tokens.join(prop, on='property_id', how='left').join(raw_prop_title, on='property_id', how='left').cache()
 
 raw_prop_cat = spark.read.parquet(ch.property_categories_parquet)
-raw_prop_cat = raw_prop_cat.withColumnRenamed('pid', 'property_id')
+raw_prop_cat = raw_prop_cat.withColumnRenamed('pid', 'property_id').cache()
 
 ## categories and property_category
 cat = raw_prop_cat.select('category').distinct()
@@ -56,12 +59,26 @@ prop = prop.join(src, on='source').select('property_id','title','property_token'
 ## activities and activity_source 
 activities = raw_activities\
     .join(src, on='source')\
-    .select('source_id','activity_id','property_id','property_token','substance_id','inchi','smiles','value','binary_value','value_token')
+    .select('source_id','activity_id','property_id','property_token','substance_id','inchi','smiles','value','binary_value','value_token')\
+    .cache()
 
 # WRITE TABLE TO SQLITE =============================================================
 conn = sqlite3.connect((outdir / 'cvae.sqlite').as_posix())
 
 prop.toPandas().to_sql('property', conn, if_exists='replace', index=False)
+
+evaldf = spark.read.parquet('cache/eval_multi_properties/multitask_metrics.parquet')
+evaldf = evaldf.withColumnRenamed('assay', 'property_token').cache()
+
+# assert that all property_tokens in evaldf are in property_tokens
+# Check if all property tokens in evaldf are in property_tokens
+evaldf_tokens_not_in_property_tokens = evaldf.join(
+    prop.select("property_token"),
+    on="property_token",
+    how="left_anti"
+).count()
+assert evaldf_tokens_not_in_property_tokens == 0, "Some property tokens in evaldf are not in prop"
+
 
 cat.toPandas().to_sql('category', conn, if_exists='replace', index=False)
 prop_cat.toPandas().to_sql('property_category', conn, if_exists='replace', index=False)
