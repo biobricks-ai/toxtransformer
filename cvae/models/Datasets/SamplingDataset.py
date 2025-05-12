@@ -1,91 +1,131 @@
-import torch
 from torch.utils.data import Dataset
-from torch.nn import functional as F
-from typing import Tuple, List, Dict
-import pathlib, bisect, tqdm, random
-from collections import defaultdict, Counter
-
-@torch.jit.script
-def process_assay_vals(raw_assay_vals: torch.Tensor, pad_idx: int, sep_idx: int, end_idx: int, nprops: int) -> Tuple[torch.Tensor, torch.Tensor]:
-    mask = raw_assay_vals != pad_idx
-    assay_vals = raw_assay_vals[mask][1:-1]
-    reshaped = assay_vals.view(-1, 2).contiguous()
-
-    assert reshaped.numel() > 0, "No assay values found."
-
-    perm = torch.randperm(reshaped.size(0))
-    shuffled = reshaped[perm].flatten()
-    av_truncate = shuffled[: nprops * 2]
-
-    device = raw_assay_vals.device
-    av_sos_eos = torch.cat([
-        torch.tensor([sep_idx], device=device),
-        av_truncate,
-        torch.tensor([end_idx], device=device)
-    ])
-    pad_value = float(pad_idx)
-    out = F.pad(av_sos_eos, (0, nprops * 2 + 2 - av_sos_eos.size(0)), value=pad_value)
-    tch = torch.cat([torch.tensor([1]), out[:-1]])
-    
-    return tch, out
+from collections import deque
+import torch
+import pathlib, bisect, random, tqdm
+import torch.nn.functional as F
+import pickle
 
 
 class SamplingDataset(Dataset):
-    def __init__(self, path, tokenizer, nprops=5, assay_filter: List[int] = [], min_freq=100):
+    """
+    A PyTorch Dataset that dynamically samples compounds for training,
+    favoring examples and properties that have not been seen recently.
+
+    Key Features:
+    - Tracks recency of sampled properties and dataset indices.
+    - Penalizes candidates in the sampling pool based on recency rank.
+    - Encourages uniform training coverage of both rare properties and datapoints.
+
+    Args:
+        path (str or Path): Directory with .pt files containing 'selfies' and 'assay_vals'.
+        tokenizer: Tokenizer with PAD_IDX, SEP_IDX, END_IDX.
+        nprops (int): Number of property-value pairs per sample.
+        sample_pool (int): Number of candidates to score on each sample.
+        recent_prop_cap (int): Capacity of the recent property queue.
+        recent_idx_cap (int): Capacity of the recent index queue.
+    """
+
+    def __init__(self, path, tokenizer, nprops=5, sample_pool=512, recent_prop_cap=1000, recent_idx_cap=10000):
         self.nprops = nprops
-        self.tokenizer = tokenizer
+        self.sample_pool = int(sample_pool)
         self.pad_idx, self.sep_idx, self.end_idx = tokenizer.PAD_IDX, tokenizer.SEP_IDX, tokenizer.END_IDX
 
-        self.samples = []  # list of (selfies, assay_vals)
-        self.assay_to_indices: Dict[int, List[int]] = defaultdict(list)
-        self.assay_counts = Counter()
+        self.recent_props = deque(maxlen=recent_prop_cap)
+        self.recent_prop_set = set()
+        self.recency_rank = {}  # updated whenever recent_props changes
 
-        # Load data
-        for file_path in tqdm.tqdm(pathlib.Path(path).glob("*.pt")):
-            file_data = torch.load(file_path, map_location="cpu")
-            for i in range(file_data["selfies"].size(0)):
-                selfies = file_data["selfies"][i]
-                assay_vals = file_data["assay_vals"][i]
-                idx = len(self.samples)
+        self.recent_idxs = deque(maxlen=recent_idx_cap)
+        self.idx_recency_rank = {}  # updated whenever recent_idxs changes
 
-                # Skip empty values
-                if (assay_vals != self.pad_idx).sum().item() <= 2:
-                    continue
+        self.propval_data = []  # List of List[(prop_id, val_id)]
+        self.data = []
+        self.cumulative_lengths = [0]
+        self.path = str(path)
 
-                self.samples.append((selfies, assay_vals))
+        total = 0
+        files = list(pathlib.Path(path).glob("*.pt"))
+        for file_path in tqdm.tqdm(files, total=len(files)):
+            obj = torch.load(file_path, map_location="cpu")
+            selfies, assay_vals = obj["selfies"], obj["assay_vals"]
+            self.data.append((selfies, assay_vals))
 
-                # Track assays
-                assay_ids = assay_vals[1:-1:2]  # every second item (i.e., assay ID)
-                for aid in assay_ids.tolist():
-                    if not assay_filter or aid in assay_filter:
-                        self.assay_to_indices[aid].append(idx)
-                        self.assay_counts[aid] += 1
+            for row in assay_vals:
+                mask = row != self.pad_idx
+                items = row[mask][1:-1].view(-1, 2).tolist()
+                self.propval_data.append([(int(p), int(v)) for p, v in items])
 
-        # Create sampling weights for each assay (inverse freq or uniform if desired)
-        self.min_freq = min_freq
-        self.assay_sampling_weights = self._compute_sampling_weights()
-
-    def _compute_sampling_weights(self):
-        total = sum(self.assay_counts.values())
-        weights = {
-            aid: max(1.0, self.min_freq / count)
-            for aid, count in self.assay_counts.items()
-        }
-        return weights
+            total += selfies.size(0)
+            self.cumulative_lengths.append(total)
 
     def __len__(self):
-        return len(self.samples)
+        return self.cumulative_lengths[-1]
 
-    def __getitem__(self, idx):
-        # Choose an assay to emphasize
-        assay_ids = list(self.assay_sampling_weights.keys())
-        assay_probs = torch.tensor([self.assay_sampling_weights[aid] for aid in assay_ids])
-        assay_probs = assay_probs / assay_probs.sum()
+    def _update_recent_props(self, selected_props):
+        for p in selected_props:
+            if p in self.recent_prop_set:
+                self.recent_props.remove(p)
+            self.recent_props.append(p)
+        self.recent_prop_set = set(self.recent_props)
 
-        selected_assay = random.choices(assay_ids, weights=assay_probs.tolist(), k=1)[0]
-        candidate_idxs = self.assay_to_indices[selected_assay]
-        sampled_idx = random.choice(candidate_idxs)
+        if len(self.recent_props) == self.recent_props.maxlen:
+            denom = len(self.recent_props) - 1
+            self.recency_rank = {pid: i / denom for i, pid in enumerate(reversed(self.recent_props))}
+        else:
+            self.recency_rank = {pid: 1.0 for pid in self.recent_props}
 
-        selfies_raw, raw_assay_vals = self.samples[sampled_idx]
-        tch, out = process_assay_vals(raw_assay_vals, self.pad_idx, self.sep_idx, self.end_idx, self.nprops)
-        return selfies_raw, tch, out
+    def _update_recent_idxs(self, idx):
+        if idx in self.idx_recency_rank:
+            self.recent_idxs.remove(idx)
+        self.recent_idxs.append(idx)
+
+        if len(self.recent_idxs) == self.recent_idxs.maxlen:
+            denom = len(self.recent_idxs) - 1
+            self.idx_recency_rank = {ix: i / denom for i, ix in enumerate(reversed(self.recent_idxs))}
+        else:
+            self.idx_recency_rank = {ix: 1.0 for ix in self.recent_idxs}
+
+    def _sample_index(self):
+        candidates = random.sample(range(len(self)), min(self.sample_pool, len(self)))
+        if len(self.recent_props) < self.recent_props.maxlen:
+            return random.choice(candidates)
+
+        best_score = float("inf")
+        best_idx = candidates[0]
+
+        for idx in candidates:
+            props = [p for p, _ in self.propval_data[idx]]
+            prop_score = sum(self.recency_rank.get(p, 0.0) for p in props)
+            idx_penalty = self.idx_recency_rank.get(idx, 0.0)
+            score = prop_score + idx_penalty + random.uniform(0, 0.1)
+            if score < best_score:
+                best_score = score
+                best_idx = idx
+
+        return best_idx
+
+    def __getitem__(self, _):
+        idx = self._sample_index()
+        self._update_recent_idxs(idx)
+
+        file_idx = bisect.bisect_right(self.cumulative_lengths, idx) - 1
+        local_idx = idx - self.cumulative_lengths[file_idx]
+        selfies = self.data[file_idx][0][local_idx]
+        pairs = self.propval_data[idx]
+
+        # Choose nprops, preferring those less recently seen
+        if len(self.recent_props) < self.recent_props.maxlen:
+            selected = random.sample(pairs, min(len(pairs), self.nprops))
+        else:
+            scored = sorted(pairs, key=lambda x: self.recency_rank.get(x[0], 0.0))
+            selected = scored[:self.nprops]
+
+        random.shuffle(selected)
+        self._update_recent_props([p for p, _ in selected])
+
+        flat = [i for pair in selected for i in pair]
+        device = selfies.device
+        out = torch.tensor([self.sep_idx] + flat + [self.end_idx], device=device)
+        out = F.pad(out, (0, self.nprops * 2 + 2 - out.size(0)), value=self.pad_idx)
+        tch = torch.cat([torch.tensor([1], device=device), out[:-1]])
+
+        return selfies, tch, out

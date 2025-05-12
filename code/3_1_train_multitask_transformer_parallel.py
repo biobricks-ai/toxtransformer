@@ -17,6 +17,7 @@ import torch.distributed as dist
 import cvae.tokenizer
 import cvae.utils
 import cvae.models.multitask_transformer as mt
+import cvae.models.Datasets.SamplingDataset as sd
 import cvae.models.mixture_experts as me
 from helper.trainer import Trainer
 
@@ -79,9 +80,9 @@ def main(rank, world_size):
     # 2025-05-06 13:02:38 - INFO - Epoch: 8, Step: 37000, Train Loss (last cycle): 0.9009, Eval Loss: 0.8615, BAC: 0.7482, AUC: 0.9135, LR: 0.000210
     # model = me.MoE(tokenizer, num_experts=24, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
 
-    # model = me.MoE(tokenizer, num_experts=24, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
-    model = me.MoE.load("brick/moe")
-    batch_size = 64
+    model = me.MoE(tokenizer, num_experts=24, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
+    # model = me.MoE.load("brick/moe")
+    batch_size = 32
     
 
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -90,25 +91,27 @@ def main(rank, world_size):
     train_workers = max(2, min(4, cpus_per_rank))
     val_workers = max(1, min(2, cpus_per_rank))
 
+    trnds = sd.SamplingDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=5, sample_pool=int(5e4), recent_prop_cap=4000, recent_idx_cap=int(1e6))
+    valds = sd.SamplingDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=5, sample_pool=int(5e4), recent_prop_cap=4000, recent_idx_cap=int(1e6))
     # trnds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=5)
     # valds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=5)
 
    # Create rank-aware datasets using setup_distributed
-    trnds = mt.RotatingModuloSequenceShiftDataset.setup_distributed(
-        path="cache/build_tensordataset/multitask_tensors/trn", 
-        tokenizer=tokenizer, 
-        nprops=5,
-        local_rank=rank,
-        world_size=world_size
-    )
+    # trnds = mt.RotatingModuloSequenceShiftDataset.setup_distributed(
+    #     path="cache/build_tensordataset/multitask_tensors/trn", 
+    #     tokenizer=tokenizer, 
+    #     nprops=5,
+    #     local_rank=rank,
+    #     world_size=world_size
+    # )
     
-    valds = mt.RotatingModuloSequenceShiftDataset.setup_distributed(
-        path="cache/build_tensordataset/multitask_tensors/tst", 
-        tokenizer=tokenizer, 
-        nprops=5,
-        local_rank=rank,
-        world_size=world_size
-    )
+    # valds = mt.RotatingModuloSequenceShiftDataset.setup_distributed(
+    #     path="cache/build_tensordataset/multitask_tensors/tst", 
+    #     tokenizer=tokenizer, 
+    #     nprops=5,
+    #     local_rank=rank,
+    #     world_size=world_size
+    # )
 
     trndl = torch.utils.data.DataLoader(
         trnds, batch_size=batch_size, shuffle=False, num_workers=train_workers,

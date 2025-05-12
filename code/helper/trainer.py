@@ -95,7 +95,7 @@ class Trainer():
 
         # Reduce evaluation frequency but evaluate quickly to trigger model saving
         self.first_eval = 100
-        self.eval_every = 1000
+        self.eval_every = 10000
         self.eval_samples = 400 # Number of batches to use for evaluation
 
         # Ensure loss functions were built
