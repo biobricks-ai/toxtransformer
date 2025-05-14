@@ -93,9 +93,9 @@ def parquet_to_sqlite(parquet_path, table_name):
     
     # Write batches with progress bar
     cursor = conn.cursor()
-    total_rows = sum(batch.num_rows for batch in batches)
+    total_rows = sum(batch.num_rows for batch in dataset.to_batches())
     with tqdm(total=total_rows, desc=f"Writing {table_name}") as pbar:
-        for batch in batches:
+        for batch in dataset.to_batches():
             df = batch.to_pandas()
             placeholders = ','.join(['?' for _ in df.columns])
             insert_sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
@@ -117,6 +117,9 @@ for table, name in zip(tables, tablename):
     logger.info(f"Creating {name} table")
     table.write.parquet((tmpdir / f'{name}.parquet').as_posix(), mode='overwrite')
     parquet_to_sqlite((tmpdir / f'{name}.parquet').as_posix(), name)
+    # test that there are at least 3 rows in the table
+    with sqlite3.connect((outdir / 'cvae.sqlite').as_posix()) as conn:
+        assert pd.read_sql_query(f"SELECT COUNT(*) FROM {name}", conn).iloc[0]['COUNT(*)'] >= 3, f"Table {name} has less than 3 rows"
 
 shutil.rmtree(tmpdir)
 
@@ -140,7 +143,7 @@ conn.close()
 
 # MOVE RESULT TO BRICK/cvae.sqlite =============================================================
 logger.info("Moving SQLite database to final location")
-shutil.move((outdir / 'cvae.sqlite').as_posix(), 'brick/cvae.sqlite')
+shutil.copy((outdir / 'cvae.sqlite').as_posix(), 'brick/cvae.sqlite')
 
 # DO A SIMPLE TEST QUERY =============================================================
 logger.info("Running test queries")

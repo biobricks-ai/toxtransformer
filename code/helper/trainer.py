@@ -80,7 +80,7 @@ class Trainer():
 
         self.log(f"Rank {rank}: Initializing scheduler.")
         max_lr = 3e-4
-        min_lr = 5e-7
+        min_lr = 1e-6
         self.scheduler = linear_warmup_and_decay_scheduler(self.optimizer, max_lr=max_lr, min_lr=min_lr, warmup_steps=scheduler_warmup_steps, total_steps=scheduler_max_steps)
         self.scheduler.step()
         self.log(f"Rank {rank}: Scheduler initialized. max_lr is {max_lr}, min_lr is {min_lr}, lr is {self.optimizer.param_groups[0]['lr']}, warmup_steps={scheduler_warmup_steps}, total_steps={scheduler_max_steps}, gradient_accumulation_steps={self.gradient_accumulation_steps}, effective_batch_size={effective_batch_size_per_gpu * world_size}")

@@ -1,10 +1,5 @@
 # cmd:
-# spark-submit \
-#   --master local[240] \
-#   --driver-memory 512g \
-#   --conf spark.eventLog.enabled=true \
-#   --conf spark.eventLog.dir=file:///tmp/spark-events \
-#   code/2_build_tensordataset.py
+# spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/2_build_tensordataset.py
 import uuid, torch, torch.nn.utils.rnn
 import pyspark.sql, pyspark.sql.functions as F
 import cvae.utils, cvae.tokenizer.selfies_tokenizer, cvae.tokenizer.selfies_property_val_tokenizer
@@ -20,7 +15,7 @@ from pyspark.sql.functions import pandas_udf
 
 logpath = pathlib.Path('cache/build_tensordataset/log')
 logpath.mkdir(parents=True, exist_ok=True)
-logging.basicConfig(filename=logpath / 'build_tensordataset.log', level=logging.INFO)
+logging.basicConfig(filename=logpath / 'build_tensordataset.log', level=logging.INFO, filemode='w')
 
 spark = cvae.utils.get_spark_session()
 
@@ -117,6 +112,11 @@ distribution = grouped_data.withColumn("seq_length", F.size("assay_val_pairs")) 
         .count() \
         .orderBy("seq_length") \
         .collect()
-    
+
+total = sum(row['count'] for row in distribution)
+cumsum = 0
+
 for row in distribution:
-    logging.info(f"  Sequence length {row['seq_length']}: {row['count']} examples")
+    cumsum += row['count']
+    pct = (cumsum / total) * 100
+    logging.info(f"  Sequence length {row['seq_length']}: {row['count']} examples ({pct:.1f}% cumulative)")
