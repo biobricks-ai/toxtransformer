@@ -19,36 +19,32 @@ outdir = pathlib.Path('cache/build_sqlite')
 outdir.mkdir(parents=True, exist_ok=True)
 
 logger.info("Loading tokenizer")
-tokenizer = spt.SelfiesPropertyValTokenizer.load('brick/moe/spvt_tokenizer')
+tokenizer = spt.SelfiesPropertyValTokenizer.load('brick/selfies_property_val_tokenizer')
 broadcast_tokenizer = spark.sparkContext.broadcast(tokenizer)
 
 #%% BUILD PROPERTY TABLES =================================================================
 logger.info("Building property tables")
-pytorch_id_to_property_token = lambda x : broadcast_tokenizer.value.assay_id_to_token_idx(x)
+pytorch_id_to_property_token = lambda x : broadcast_tokenizer.value.assay_id_to_token_idx(int(x))
 pytorch_id_to_property_token_udf = F.udf(pytorch_id_to_property_token, pyspark.sql.types.LongType())
-property_tokens = spark.read.parquet("cache/preprocess_activities/activities.parquet")\
-    .withColumnRenamed('assay','property_id')\
-    .withColumnRenamed('assay_index','property_pytorch_index')\
-    .withColumn("property_pytorch_index", F.col("property_pytorch_index").cast("int"))\
-    .withColumn("property_token", pytorch_id_to_property_token_udf("property_pytorch_index"))\
-    .select("property_id","property_token").distinct().cache()
 
 binval_to_value_token = lambda x : broadcast_tokenizer.value.value_id_to_token_idx(int(x))
 binval_to_value_token_udf = F.udf(binval_to_value_token, pyspark.sql.types.LongType())
-logger.info("Loading and processing activities")
-raw_activities = spark.read.parquet(ch.activities_parquet)\
-    .withColumnRenamed('sid', 'substance_id')\
-    .withColumnRenamed('aid', 'activity_id')\
-    .withColumnRenamed('pid', 'property_id')\
-    .join(property_tokens, on='property_id')\
-    .withColumn('value_token',binval_to_value_token_udf('binary_value'))\
-    .select('source','activity_id','property_id','property_token','substance_id','inchi','smiles','value','binary_value','value_token')
 
+raw_activities = spark.read.parquet("cache/preprocess_activities/activities.parquet")\
+    .withColumnRenamed('assay','property_id')\
+    .withColumnRenamed('sid','substance_id')\
+    .withColumn("property_token", pytorch_id_to_property_token_udf("assay_index"))\
+    .withColumn('value_token',binval_to_value_token_udf('value'))\
+    .filter(F.col("property_token").isNotNull())\
+    .select("property_id","source","property_token",'substance_id','smiles','selfies','value','value_token')
+
+
+raw_property_tokens = raw_activities.select('property_id','property_token').distinct()
 raw_prop_title = spark.read.parquet(ch.property_titles_parquet).withColumnRenamed('pid', 'property_id')
 
 prop = spark.read.parquet(ch.properties_parquet)
 prop = prop.withColumnRenamed('pid', 'property_id')
-prop = property_tokens.join(prop, on='property_id', how='left').join(raw_prop_title, on='property_id', how='left').cache()
+prop = raw_property_tokens.join(prop, on='property_id', how='left').join(raw_prop_title, on='property_id', how='left').cache()
 
 raw_prop_cat = spark.read.parquet(ch.property_categories_parquet)
 raw_prop_cat = raw_prop_cat.withColumnRenamed('pid', 'property_id').cache()
@@ -64,15 +60,20 @@ src = prop.select('source').distinct()
 src = src.withColumn('source_id', F.monotonically_increasing_id())
 prop = prop.join(src, on='source').select('property_id','title','property_token','source_id','data')
 
+## substances
+substances = spark.read.parquet("cache/preprocess/substances2.parquet").select('sid','inchi').distinct()
+substances = substances.withColumnRenamed('sid','substance_id')
+
 ## activities and activity_source 
 activities = raw_activities\
     .join(src, on='source')\
-    .select('source_id','activity_id','property_id','property_token','substance_id','inchi','smiles','value','binary_value','value_token')
+    .join(substances, on='substance_id')\
+    .select('source_id','property_id','property_token','substance_id','inchi','smiles','value','value_token')
 
 property_summary_statistics = raw_activities.groupBy('property_id')\
     .agg(
-        F.sum(F.when(F.col('binary_value') == 1, 1).otherwise(0)).alias('positive_count'),
-        F.sum(F.when(F.col('binary_value') == 0, 1).otherwise(0)).alias('negative_count')
+        F.sum(F.when(F.col('value') == 1, 1).otherwise(0)).alias('positive_count'),
+        F.sum(F.when(F.col('value') == 0, 1).otherwise(0)).alias('negative_count')
     )
 
 

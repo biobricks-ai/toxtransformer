@@ -13,9 +13,8 @@ import traceback # Import traceback to log full error info
 import datetime
 from cvae.models.multitask_transformer import linear_warmup_and_decay_scheduler
 
-# Assuming modeldir is defined in the main script and accessible
-# from trainer if needed for periodic saving.
-# For now, we'll rely on the savepath set in the Trainer.
+class RestrictedEvalMixin():
+    def _eval_all(self, max_eval_batches=None):
 
 class Trainer():
 
