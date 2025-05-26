@@ -13,11 +13,16 @@ batch_skip = int(args[0]) if len(args) > 0 else 0
 sched_interval = int(args[1]) if len(args) > 1 else 20
 
 # metrics_file = 'cache/train_multitask_transformer/metrics/multitask_loss.tsv'
-metrics_file = 'cache/train_multitask_transformer_parallel/metrics/multitask_loss.tsv'
+# metrics_file = 'cache/train_multitask_transformer_parallel/metrics/multitask_loss.tsv'
+metrics_file = 'cache/finetune_benchmarks/metrics/finetune_benchmarks_loss.tsv'
 
 def draw_plot(last_scheduler_length=0):
     # Read the first three columns of the metrics file type, batch, loss, lr
     data = pd.read_csv(metrics_file, sep='\t')
+    
+    if data.columns[0] != 'type':
+        data.columns = ['type', 'batch', 'loss', 'lr',"tmp","tmp2"]
+    
     scheduler_length = len(data[data['type'] == 'train']['loss'])
     
     # data['batch'] = data.index + 1

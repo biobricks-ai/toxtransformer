@@ -6,6 +6,7 @@ from collections import defaultdict
 import logging
 import threading
 import torch.distributed as dist
+import logging
 
 # USAGE EXAMPLE
 # Initialize with specific property tokens and positions
@@ -102,13 +103,15 @@ class PropertyGuaranteeDataset(Dataset):
         world_size (int): Total number of processes for distributed training.
     """
 
-    def __init__(self, path, tokenizer, target_props, target_positions, 
+    def __init__(self, path, tokenizer, nprops, target_props, target_positions, 
                  sampling_weights=None, distributed=False, rank=0, world_size=1):
         self.path = str(path)
         self.pad_idx, self.sep_idx, self.end_idx = tokenizer.PAD_IDX, tokenizer.SEP_IDX, tokenizer.END_IDX
         self.target_props = set(target_props)  # Set of property tokens to target
         self.target_positions = target_positions  # List of positions where properties should be placed
-        
+        self.tokenizer = tokenizer
+        self.nprops = nprops
+
         # Initialize index structures - mapping property tokens to dataset indices
         self.property_index = defaultdict(list)  # Maps prop_token to list of dataset indices
         self.data = []
@@ -185,7 +188,7 @@ class PropertyGuaranteeDataset(Dataset):
                 missing_targets.append(prop)
                 
         if missing_targets:
-            logging.warning(f"No examples found for property tokens: {missing_targets}")
+            logging.warning(f"No examples found for {len(missing_targets)} out of {len(self.target_props)} missing property tokens: {missing_targets}")
             # Remove missing targets from sampling weights
             for missing in missing_targets:
                 if missing in self.sampling_weights:
@@ -207,9 +210,9 @@ class PropertyGuaranteeDataset(Dataset):
         props = list(self.sampling_weights.keys())
         weights = list(self.sampling_weights.values())
         return random.choices(props, weights=weights, k=1)[0]
-    
-    def _sample_index(self):
-        """Sample an index that has the target property, accounting for frequency."""
+        
+    def _sample_index_and_property(self):
+        """Sample an index and return both the index and the property it was sampled for."""
         prop = self._sample_property()
         candidates = self.property_index[prop]
         
@@ -222,15 +225,17 @@ class PropertyGuaranteeDataset(Dataset):
         
         if min_count == max_count:
             # All candidates seen equally often, choose randomly
-            return random.choice(candidates)
+            idx = random.choice(candidates)
         else:
             # Weight by inverse frequency (plus small constant to avoid zeros)
             inv_weights = [1.0/(count - min_count + 1) for count in counts]
             total = sum(inv_weights)
             norm_weights = [w/total for w in inv_weights]
             
-            return random.choices(candidates, weights=norm_weights, k=1)[0]
-    
+            idx = random.choices(candidates, weights=norm_weights, k=1)[0]
+        
+        return idx, prop
+
     def _extract_property_values(self, assay_vals):
         """Extract property-value pairs from assay values tensor."""
         mask = assay_vals != self.pad_idx
@@ -242,6 +247,8 @@ class PropertyGuaranteeDataset(Dataset):
         Rearrange properties to ensure target_prop is at target_pos,
         and other properties are shuffled.
         """
+        assert target_prop in [p for p, _ in properties], "Target property missing from selected example"
+
         # Filter out the target prop if it exists in the list
         other_props = [(p, v) for p, v in properties if p != target_prop]
         
@@ -255,7 +262,9 @@ class PropertyGuaranteeDataset(Dataset):
         for pos in range(max(len(other_props) + 1, max(self.target_positions) + 1)):
             if pos == target_pos:
                 # Insert our target property at the target position
-                target_val = next((v for p, v in properties if p == target_prop), 0)
+                target_val = next((v for p, v in properties if p == target_prop), None)
+                if target_val is None:
+                    raise ValueError(f"Target property {target_prop} not found in properties list")
                 result.append((target_prop, target_val))
             elif pos_counter < len(other_props):
                 # Insert other properties
@@ -265,8 +274,8 @@ class PropertyGuaranteeDataset(Dataset):
         return result
     
     def __getitem__(self, _):
-        # Sample based on targeted property
-        idx = self._sample_index()
+        # Sample based on targeted property - get both index and the property used
+        idx, target_prop = self._sample_index_and_property()
         
         # Update sample frequency
         self.sample_tracker.increment(idx)
@@ -280,8 +289,7 @@ class PropertyGuaranteeDataset(Dataset):
         # Extract property-value pairs
         properties = self._extract_property_values(assay_vals)
         
-        # Sample a target property and position
-        target_prop = self._sample_property()
+        # Use the property that was used for sampling (guaranteed to be in properties)
         target_pos = random.choice(self.target_positions)
         
         # Rearrange properties to ensure target property is at target position
@@ -290,12 +298,15 @@ class PropertyGuaranteeDataset(Dataset):
         # Flatten property-value pairs
         flat = [item for pair in rearranged for item in pair]
         
+        # Truncate according to nprops
+        flat = flat[:self.nprops*2]
+
         # Create output tensor
         device = selfies.device
         out = torch.tensor([self.sep_idx] + flat + [self.end_idx], device=device)
         
         # Pad if necessary
-        max_len = max(len(self.target_positions), len(properties)) * 2 + 2
+        max_len = self.nprops * 2 + 2
         if out.size(0) < max_len:
             out = F.pad(out, (0, max_len - out.size(0)), value=self.pad_idx)
             

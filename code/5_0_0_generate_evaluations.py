@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# torchrun --standalone --nproc-per-node=8 --master-port=29500 code/5_0_generate_evaluations.py 2> cache/generate_evaluations/logs/err.log
+# PYTHONPATH=./ torchrun --standalone --nproc-per-node=8 --master-port=29500 code/5_0_0_generate_evaluations.py 2> cache/generate_evaluations/logs/err.log
 
 import sys
-import argparse
-import math
-import os, itertools, uuid, pathlib, shutil, logging
+import os, uuid, pathlib, shutil, logging
 import pandas as pd, torch, numpy as np, tqdm
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -19,81 +17,79 @@ faulthandler.enable()
 import cvae.tokenizer
 import cvae.models.multitask_transformer as mt
 import cvae.models.mixture_experts as me
+import cvae.models.datasets.restricted_dataset as rd
+
 import cvae.utils
 from cvae.tokenizer import SelfiesPropertyValTokenizer
 
 import glob
 import pyarrow.parquet as pq
 import pyarrow.dataset as ds
-
-# Suppress the specific nested tensor warning if it's too noisy (optional)
-# import warnings
-# warnings.filterwarnings("ignore", message="The PyTorch API of nested tensors is in prototype stage*", category=UserWarning)
+import hashlib
+import random
 
 torch._nested_tensor_from_mask_left = None
 
 class EvalContext:
-    def __init__(self, rank, local_rank, model, tokenizer, device, perm_indices, perm_count, nprops, batch_size):
+    def __init__(self, rank, local_rank, model, tokenizer, device, nprops, batch_size):
         self.rank = rank
         self.local_rank = local_rank
         self.model = model
         self.tokenizer = tokenizer
         self.device = device
-        self.perm_indices = perm_indices
-        self.perm_count = perm_count
         self.nprops = nprops
         self.batch_size = batch_size
 
-import hashlib
+def hash_input(tensor, pad_idx):
+    trimmed = tensor[tensor != pad_idx].tolist()
+    return "_".join(map(str, trimmed))
 
-def run_eval(i, raw_inp, raw_out, context: EvalContext):
-    inp, raw_out = raw_inp.to(context.device), raw_out.to(context.device)
+def run_eval(i, raw_inp, raw_teach, raw_out, context: EvalContext):
+    inp, teach, out = raw_inp.to(context.device), raw_teach.to(context.device), raw_out.to(context.device)
 
-    x = torch.sum(torch.isin(raw_out, context.tokenizer.value_indexes_tensor), dim=1) >= context.nprops
-    inp = inp[x]
-    trunc_out = raw_out[x, 1:(2 * context.nprops + 1)].reshape(-1, context.nprops, 2)
+    # Filter: keep only rows with enough property-value pairs
+    valid = torch.sum(torch.isin(out, context.tokenizer.value_indexes_tensor), dim=1) >= context.nprops
+    inp = inp[valid]
+    out = out[valid, 1:(2 * context.nprops + 1)]
+    teach = teach[valid, :]
 
     if inp.shape[0] == 0:
         return pd.DataFrame()
 
-    # Generate hashes as IDs
-    def hash_row(tensor):
-        byte_data = tensor.cpu().numpy().tobytes()
-        return hashlib.sha1(byte_data).hexdigest()
-
-    input_hashes = [hash_row(row) for row in inp]
-
-    perm_out = torch.cat([trunc_out[:, list(perm), :] for perm in context.perm_indices], dim=0).reshape(-1, context.nprops * 2)
-    sep_tensor = torch.full((perm_out.size(0), 1), context.tokenizer.SEP_IDX, device=context.device)
-    out = torch.cat([sep_tensor, perm_out, torch.zeros_like(sep_tensor)], dim=1)
-    teach = torch.cat([torch.ones_like(sep_tensor), out[:, :-1]], dim=1)
-    rep_inp = inp.repeat(context.perm_count, 1)
+    input_hashes = [hash_input(row, context.tokenizer.PAD_IDX) for row in inp]
 
     with torch.no_grad():
-        prob = context.model(rep_inp, teach)
+        prob = context.model(inp, teach)
         if prob is None or torch.isnan(prob).any() or torch.isinf(prob).any():
             return pd.DataFrame()
-        prob = torch.softmax(prob, dim=2)
+        prob = torch.softmax(prob, dim=2)  # shape: [B, T, V]
 
-    assays_mask = torch.isin(out, context.tokenizer.assay_indexes_tensor)
-    assays = out[assays_mask]
+    # Define positions
+    assay_pos = torch.arange(0, context.nprops * 2, 2, device=out.device)
+    value_pos = assay_pos + 1
 
-    values_mask = torch.isin(out, context.tokenizer.value_indexes_tensor)
-    values = out[values_mask]
-    prob_vals = torch.argmax(prob, dim=2)[values_mask]
-    rawprobs = prob[values_mask][:, context.tokenizer.value_indexes_tensor]
-    probs = (rawprobs / rawprobs.sum(dim=1, keepdim=True))[:, 1]
+    # Extract tokens
+    assays = out[:, assay_pos]             # shape: [B, nprops]
+    values = out[:, value_pos]             # shape: [B, nprops]
 
-    assays_np, values_np, prob_vals_np, probs_np = map(lambda x: x.cpu().numpy(), [assays, values, prob_vals, probs])
+    # Extract predictions
+    prob_vals = torch.argmax(prob, dim=2)[:, value_pos]  # shape: [B, nprops]
+    rawprobs = prob[:, value_pos, :][:, :, context.tokenizer.value_indexes_tensor]  # shape: [B, nprops, 2]
+    probs = (rawprobs / rawprobs.sum(dim=2, keepdim=True))[:, :, 1]  # shape: [B, nprops]
 
-    position = np.tile(np.arange(context.nprops), len(input_hashes) * context.perm_count)
-    chemical_id_np = np.repeat(input_hashes, context.perm_count * context.nprops)
+    # Flatten
+    assays_np       = assays.cpu().numpy().astype(str).flatten()
+    values_np       = values.cpu().numpy().astype(str).flatten()
+    prob_vals_np    = prob_vals.cpu().numpy().flatten()
+    probs_np        = probs.cpu().numpy().flatten()
+    chemical_id_np  = np.repeat(input_hashes, context.nprops)
+    position        = np.tile(np.arange(context.nprops), len(input_hashes))
 
-    assays_reshaped = assays_np.reshape(-1, context.nprops).astype(str)
-    prior_assays = [' + '.join(assays_reshaped[k, :j + 1]) for k in range(len(assays_reshaped)) for j in range(context.nprops)]
-
-    values_reshaped = values_np.reshape(-1, context.nprops).astype(str)
-    prior_values = [' + '.join(values_reshaped[k, :j + 1]) for k in range(len(values_reshaped)) for j in range(context.nprops)]
+    # Prior context strings
+    assays_str = assays.cpu().numpy().astype(str)
+    values_str = values.cpu().numpy().astype(str)
+    prior_assays = [' + '.join(row[:j+1]) for row in assays_str for j in range(context.nprops)]
+    prior_values = [' + '.join(row[:j+1]) for row in values_str for j in range(context.nprops)]
 
     return pd.DataFrame({
         'batch': i,
@@ -107,8 +103,6 @@ def run_eval(i, raw_inp, raw_out, context: EvalContext):
         'prob_assays': assays_np,
         'prob_vals': prob_vals_np
     })
-
-
 
 def setup(rank): # Pass rank for logging before dist init maybe
     # Basic logging setup first
@@ -127,43 +121,61 @@ def setup(rank): # Pass rank for logging before dist init maybe
     if rank == 0:
         logging.info("Rank 0 performing initial setup")
         outdir.mkdir(exist_ok=True, parents=True)
-        shutil.rmtree(tmpdir, ignore_errors=True)
+        # shutil.rmtree(tmpdir, ignore_errors=True)
         tmpdir.mkdir(exist_ok=True, parents=True)
     
     return outdir, tmpdir
 
-def cleanup():
-    if dist.is_initialized():
-        logging.info(f"Rank {dist.get_rank()} - Destroying process group.")
-        dist.destroy_process_group()
-
 def main_worker(context: EvalContext, repetitions, outdir, tmpdir):
-    rank = context.rank
-    tokenizer = context.tokenizer
-    logging.info(f"Rank {rank} - Starting main_worker.")
-    logging.info(f"Rank {rank} - Initializing Dataset.")
-    dataset = mt.SequenceShiftDataset(
-        path="cache/build_tensordataset/multitask_tensors/hld", 
-        tokenizer=tokenizer, 
-        nprops=5
-    )
-    sampler = DistributedSampler(dataset, num_replicas=dist.get_world_size(), rank=rank, shuffle=False)
-    dataloader = DataLoader(dataset, batch_size=context.batch_size, sampler=sampler,
-        num_workers=4, pin_memory=True, prefetch_factor=5, persistent_workers=True, pin_memory_device=f"cuda:{context.local_rank}") # Specify pin_memory_device
+    logging.info(f"Rank {context.rank} - Starting main_worker.")
+    logging.info(f"Rank {context.rank} - Initializing Dataset.")
+    
+    bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
+    sources = list(set(bp['source'].tolist()))
 
-    logging.info(f"Rank {rank} - Initialized DataLoader with {len(dataloader)} batches per epoch.")
-    logging.info(f"Rank {rank} - Using batch size: {context.batch_size}, num_workers=4")
-
-    seen_inputs = set() # Consider if this is needed or causing issues
+    random.seed(context.rank)
+    repeat_sources = sources * repetitions
+    random.shuffle(repeat_sources)
+    seen_inputs = set()
     batch_accum = []
     total_processed_count = 0
 
-    for repeat in range(repetitions):
-        logging.info(f"Rank {rank} - Starting repeat {repeat+1}/{repetitions}")
-        sampler.set_epoch(repeat) # Important for shuffling with DistributedSampler if shuffle=True
-        for i, batch_data in tqdm.tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Rank {rank} Repeat {repeat+1}"):
+    for repeat in range(len(repeat_sources)):
+        
+        source = repeat_sources[repeat]
+        logging.info(f"Rank {context.rank} - Processing source: {source} on repeat {repeat+1} out of {len(repeat_sources)}")
 
-                raw_inp, _, raw_out = batch_data
+        bpsource = bp[bp['source'] == source].copy()
+        target_props = bpsource['property_token'].tolist()
+        target_positions = [0,4]  # Positions to focus evaluation on
+        sampling_weights = {prop: weight for prop, weight in zip(target_props, bpsource['weight'].tolist())}
+
+        dataset = rd.PropertyGuaranteeDataset(
+            path="cache/build_tensordataset/multitask_tensors/hld",
+            tokenizer=context.tokenizer,
+            nprops=context.nprops,
+            target_props=target_props,
+            target_positions=target_positions,
+            sampling_weights=sampling_weights,
+            distributed=True,
+            rank=context.rank,
+            world_size=dist.get_world_size()
+        )
+
+        sampler = DistributedSampler(dataset, num_replicas=dist.get_world_size(), rank=context.rank, shuffle=False)
+        dataloader = DataLoader(dataset, batch_size=context.batch_size, sampler=sampler,
+            num_workers=4, pin_memory=True, prefetch_factor=5, persistent_workers=True, pin_memory_device=f"cuda:{context.local_rank}")
+
+        logging.info(f"Rank {context.rank} - Initialized DataLoader with {len(dataloader)} batches per epoch.")
+        logging.info(f"Rank {context.rank} - Using batch size: {context.batch_size}, num_workers=4")
+    
+        logging.info(f"Rank {context.rank} - Starting repeat {repeat+1}/{repetitions}")
+        sampler.set_epoch(repeat) # Important for shuffling with DistributedSampler if shuffle=True
+        
+        # i, batch_data = next(enumerate(dataloader))
+        for i, batch_data in tqdm.tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Rank {context.rank} Repeat {repeat+1}", leave=False):
+
+                raw_inp, raw_teach, raw_out = batch_data
 
                 batch_tuples = tuple(map(lambda x, y: (tuple(x.tolist()), tuple(y.tolist())), raw_inp, raw_out))
                 new_inputs_mask = [t not in seen_inputs for t in batch_tuples]
@@ -171,8 +183,9 @@ def main_worker(context: EvalContext, repetitions, outdir, tmpdir):
 
                 if any(new_inputs_mask):
                     new_raw_inp = raw_inp[new_inputs_mask]
+                    new_raw_teach = raw_teach[new_inputs_mask]
                     new_raw_out = raw_out[new_inputs_mask]
-                    batch_df = run_eval(i, new_raw_inp, new_raw_out, context)
+                    batch_df = run_eval(i, new_raw_inp, new_raw_teach, new_raw_out, context)
                     if not batch_df.empty:
                             batch_accum.append(batch_df)
                             total_processed_count += new_raw_inp.shape[0] # Count processed items
@@ -180,24 +193,24 @@ def main_worker(context: EvalContext, repetitions, outdir, tmpdir):
                 # Check accumulation size and save periodically
                 current_accum_rows = sum(len(df) for df in batch_accum)
                 if batch_accum and current_accum_rows > 1_000_000: # Save threshold
-                    logging.info(f"Rank {rank} - Saving batch accumulation at step {i}, repeat {repeat}. Accumulated rows: {current_accum_rows}")
-                    pd.concat(batch_accum).to_parquet(tmpdir / f"multitask_predictions_{rank}_{repeat}_{i}_{uuid.uuid4()}.parquet", index=False)
+                    logging.info(f"Rank {context.rank} - Saving batch accumulation at step {i}, repeat {repeat}. Accumulated rows: {current_accum_rows}")
+                    pd.concat(batch_accum).to_parquet(tmpdir / f"multitask_predictions_{context.rank}_{repeat}_{i}_{uuid.uuid4()}.parquet", index=False)
                     batch_accum = [] # Clear after saving
 
         # End of repeat loop
-        logging.info(f"Rank {rank} - Finished repeat {repeat+1}/{repetitions}. Total items processed in this worker so far: {total_processed_count}")
+        logging.info(f"Rank {context.rank} - Finished repeat {repeat+1}/{repetitions}. Total items processed in this worker so far: {total_processed_count}")
 
     # Save any remaining accumulated data after all repetitions
     if batch_accum:
-        logging.info(f"Rank {rank} - Saving final batch accumulation. Rows: {sum(len(df) for df in batch_accum)}")
-        pd.concat(batch_accum).to_parquet(tmpdir / f"multitask_predictions_{rank}_final_{uuid.uuid4()}.parquet", index=False)
+        logging.info(f"Rank {context.rank} - Saving final batch accumulation. Rows: {sum(len(df) for df in batch_accum)}")
+        pd.concat(batch_accum).to_parquet(tmpdir / f"multitask_predictions_{context.rank}_final_{uuid.uuid4()}.parquet", index=False)
         
-    logging.info(f"Rank {rank} - Finished main_worker loop.")
+    logging.info(f"Rank {context.rank} - Finished main_worker loop.")
 
 
 if __name__ == "__main__":
     
-    repetitions = 10
+    repetitions = 10000
     logging.info(f"Running with {repetitions} repetitions")
 
     # --- Early setup for rank info ---
@@ -222,7 +235,8 @@ if __name__ == "__main__":
 
         # --- Load Model ---
         logging.info("Loading model...")
-        model_load_path = "cache/train_multitask_transformer_parallel/models/moe"
+        # model_load_path = "cache/train_multitask_transformer_parallel/models/moe"
+        model_load_path = "cache/finetune_benchmarks/models/step_20000"
         model: me.MoE = me.MoE.load(model_load_path).to(device)
         logging.info(f"Model loaded successfully from {model_load_path} and moved to {device}")
 
@@ -238,26 +252,21 @@ if __name__ == "__main__":
         logging.info("Tokenizer setup complete.")
 
         # --- Configuration ---
-        batch_size = 5 
-        nprops = 5
+        batch_size = 1024
+        nprops = 10
         logging.info(f"Configuration: batch_size={batch_size}, nprops={nprops}, repetitions={repetitions}")
 
         # --- Create Context ---
         logging.info("Creating EvalContext...")
-        perm_indices=list(itertools.permutations(range(nprops)))
-        perm_count=math.factorial(nprops)
         context = EvalContext(
             rank=rank,
             local_rank=local_rank,
             model=model,
             tokenizer=tokenizer,
             device=device,
-            perm_indices=perm_indices,
-            perm_count=perm_count,
             nprops=nprops,
             batch_size=batch_size
         )
-        logging.info(f"EvalContext created. Permutation count: {perm_count}")
 
         # --- Barrier before starting worker ---
         logging.info("Waiting at barrier before starting main worker...")
@@ -280,5 +289,7 @@ if __name__ == "__main__":
 
     finally:
         logging.info(f"Rank {rank} entering final cleanup.")
-        cleanup() # Ensure cleanup happens even on error
+        if dist.is_initialized():
+            logging.info(f"Rank {dist.get_rank()} - Destroying process group.")
+            dist.destroy_process_group()
         logging.info(f"Rank {rank} finished cleanup.")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=8 --master-port=29500 code/3_1_train_multitask_transformer_parallel.py 2> cache/train_multitask_transformer_parallel/logs/err.log
+# CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=8 --master-port=29500 code/3_3_finetune_benchmarks.py 2> cache/finetune_benchmarks/logs/err.log
 
 import os
 import sys
@@ -8,6 +8,7 @@ import shutil
 import pathlib
 import logging
 import datetime
+from typing import Tuple
 
 import torch
 import torch.utils.data
@@ -20,7 +21,8 @@ import cvae.models.multitask_transformer as mt
 import cvae.models.datasets.restricted_dataset as rd
 import pandas as pd
 import cvae.models.mixture_experts as me
-from helper.trainer import Trainer
+from helper.trainer.trainer import Trainer
+from helper.trainer.restricted_trainer import RestrictedTrainer, create_restricted_trainer
 
 # Environment variables setup
 os.environ['MKL_THREADING_LAYER'] = 'GNU'
@@ -48,12 +50,11 @@ def cleanup():
         dist.destroy_process_group()
 
 def init_logging(rank):
-    if rank == 0:
-        logdir = pathlib.Path("cache/finetune_benchmarks/logs")
-        logdir.mkdir(exist_ok=True, parents=True)
-        logging.basicConfig(filename=logdir / "finetune_benchmarks.log", level=logging.INFO, 
-                            format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
-        logging.info("Logging initialized.")
+    logdir = pathlib.Path("cache/finetune_benchmarks/logs")
+    logdir.mkdir(exist_ok=True, parents=True)
+    logging.basicConfig(filename=logdir / f"finetune_benchmarks_rank{rank}.log", level=logging.INFO, 
+                        format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
+    logging.info(f"Rank {rank}: Logging initialized.")
 
 def main(rank, world_size):
     setup(rank, world_size)
@@ -62,15 +63,19 @@ def main(rank, world_size):
     outdir = pathlib.Path("cache/finetune_benchmarks")
     modeldir = outdir / "models"
     metricsdir = outdir / "metrics"
+    
+    # Create directories if they don't exist
+    modeldir.mkdir(exist_ok=True, parents=True)
+    metricsdir.mkdir(exist_ok=True, parents=True)
 
     logging.info(f"Rank {rank} starting setup.")
-    tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer.load('brick/selfies_property_val_tokenizer')
 
     # Load from training step
-    model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
-    batch_size = 45
+    # model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
+    model = me.MoE.load(outdir / "models" / "step_20000")
+    tokenizer = model.tokenizer
+    batch_size = 240
     
-
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
     cpus_per_rank = max(2, (os.cpu_count() or 8) // world_size)
@@ -79,13 +84,14 @@ def main(rank, world_size):
     
     bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
     target_props = bp['property_token'].tolist()
-    target_positions = [0,4] # nprops=5 means position 4 has prior props 0,1,2,3
-    sampling_weights = sum(bp['weight'].tolist())
+    target_positions = [0, 4]  # Positions to focus evaluation on
+    sampling_weights = {prop: weight for prop, weight in zip(target_props, bp['weight'].tolist())}
+    nprops = 5
 
     trnds = rd.PropertyGuaranteeDataset(
         path="cache/build_tensordataset/multitask_tensors/trn",
         tokenizer=tokenizer,
-        nprops=5,
+        nprops=nprops,
         target_props=target_props,
         target_positions=target_positions,
         sampling_weights=sampling_weights,
@@ -97,7 +103,7 @@ def main(rank, world_size):
     valds = rd.PropertyGuaranteeDataset(
         path="cache/build_tensordataset/multitask_tensors/tst",
         tokenizer=tokenizer,
-        nprops=5,
+        nprops=nprops,
         target_props=target_props,
         target_positions=target_positions,
         sampling_weights=sampling_weights,
@@ -118,14 +124,33 @@ def main(rank, world_size):
         sampler=torch.utils.data.distributed.DistributedSampler(valds, num_replicas=world_size, rank=rank, drop_last=True)
     )
 
-    trainer = Trainer(model, rank, tokenizer, trndl, batch_size=batch_size, 
-        scheduler_warmup_steps=1e4, scheduler_max_steps=3e5, 
-        max_steps=1e7)
-    
-    trainer.set_validation_dataloader(valdl)
+    # Create a RestrictedTrainer using the updated factory function
+    trainer = create_restricted_trainer(
+        model=model,
+        rank=rank,
+        tokenizer=tokenizer,
+        train_iterator=trndl,
+        batch_size=batch_size,
+        target_properties=target_props,
+        target_positions=target_positions,
+        nprops=nprops,
+        scheduler_min_lr=1e-4,
+        scheduler_max_lr=2e-4,
+        scheduler_warmup_steps=500,
+        scheduler_max_steps=3e5,
+        max_steps=1e7,
+        savepath=modeldir / "moe",
+        validation_dataloader=valdl,
+        first_eval=5,
+        eval_every=10000,
+        eval_samples=400
+    )
+    trainer.set_metrics_file(metricsdir / "finetune_benchmarks_loss.tsv", overwrite=True)
     trainer.set_mask_percent(0.1)
-    trainer.set_model_savepath(modeldir / "moe")
-    trainer.set_metrics_file(metricsdir / "multitask_loss.tsv", overwrite=True)
+    
+    # Set evaluation positions to focus on positions 0 and 4
+    trainer.set_evaluation_positions(eval_positions=[0, 4])
+    trainer.set_mask_percent(0.1)
 
     if rank == 0:
         logging.info(f"trnds samples: {len(trnds)}, valds samples: {len(valds)}")
@@ -134,6 +159,7 @@ def main(rank, world_size):
         trainer.log(f"{len(valdl)} validation batches")
         trainer.log(f"{num_params/1e6:.2f} million parameters")
         trainer.log(f"Gradient accumulation: {trainer.gradient_accumulation_steps}")
+        trainer.log(f"Evaluating on restricted positions: [0, 4]")
 
     trainer.start()
     cleanup()

@@ -12,13 +12,13 @@ from torch.amp import autocast, GradScaler
 import traceback # Import traceback to log full error info
 import datetime
 from cvae.models.multitask_transformer import linear_warmup_and_decay_scheduler
-
-class RestrictedEvalMixin():
-    def _eval_all(self, max_eval_batches=None):
+from typing import Optional, Tuple
 
 class Trainer():
 
-    def __init__(self, model, rank, tokenizer, trn_iterator, batch_size, scheduler_warmup_steps=10000, scheduler_max_steps=100000, max_steps=100000):
+    def __init__(self, model, rank, tokenizer, trn_iterator, batch_size, first_eval=100, eval_every=10000, 
+    eval_samples=400, scheduler_warmup_steps=10000, scheduler_max_steps=100000, max_steps=100000,
+    scheduler_min_lr=1e-6, scheduler_max_lr=3e-4):
         self.rank = rank
         self.global_step = 0
         self.trn_iterator = trn_iterator
@@ -78,8 +78,8 @@ class Trainer():
         self.log(f"Rank {rank}: Optimizer initialized.")
 
         self.log(f"Rank {rank}: Initializing scheduler.")
-        max_lr = 3e-4
-        min_lr = 1e-6
+        max_lr = scheduler_max_lr
+        min_lr = scheduler_min_lr
         self.scheduler = linear_warmup_and_decay_scheduler(self.optimizer, max_lr=max_lr, min_lr=min_lr, warmup_steps=scheduler_warmup_steps, total_steps=scheduler_max_steps)
         self.scheduler.step()
         self.log(f"Rank {rank}: Scheduler initialized. max_lr is {max_lr}, min_lr is {min_lr}, lr is {self.optimizer.param_groups[0]['lr']}, warmup_steps={scheduler_warmup_steps}, total_steps={scheduler_max_steps}, gradient_accumulation_steps={self.gradient_accumulation_steps}, effective_batch_size={effective_batch_size_per_gpu * world_size}")
@@ -93,9 +93,9 @@ class Trainer():
         self.log(f"Rank {rank}: GradScaler initialized.")
 
         # Reduce evaluation frequency but evaluate quickly to trigger model saving
-        self.first_eval = 100
-        self.eval_every = 10000
-        self.eval_samples = 400 # Number of batches to use for evaluation
+        self.first_eval = first_eval
+        self.eval_every = eval_every
+        self.eval_samples = eval_samples # Number of batches to use for evaluation
 
         # Ensure loss functions were built
         if self.lossfn is None or self.eval_loss is None:
@@ -194,7 +194,7 @@ class Trainer():
         # Return the actual loss value for logging (unscaled by accumulation steps)
         return loss.detach().item() * self.gradient_accumulation_steps
 
-    def _eval_all(self, max_eval_batches=None):
+    def _eval_all(self, max_eval_batches: Optional[int] = None) -> Tuple[float, float, float]:
         max_eval_batches = self.eval_samples if max_eval_batches is None else max_eval_batches
 
         self.model.eval()

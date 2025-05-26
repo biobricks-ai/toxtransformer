@@ -1,3 +1,4 @@
+# PYTHONPATH=./ python code/3_2_get_benchmark_properties.py
 import sqlite3
 import pandas as pd
 import pathlib
@@ -12,7 +13,8 @@ logging.basicConfig(level=logging.INFO, filename=outdir / 'benchmark_properties.
 
 BENCHMARK_DATASETS = ["BBBP", "Tox21", "CLINTOX", 
                       "BACE", "sider", "chembl", "ctdbase",
-                      "ice","toxvaldb","reach"]
+                      "ice","toxvaldb","reach", "bindingdb",
+                      "toxrefdb","chembl","toxcast", "pubchem"]
 
 
 # get the data for these benchmark datasets

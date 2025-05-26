@@ -1,5 +1,5 @@
 # cmd:
-# spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/2_build_tensordataset.py
+# spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/2_3_build_tensordataset.py
 import uuid, torch, torch.nn.utils.rnn
 import pyspark.sql, pyspark.sql.functions as F
 import cvae.utils, cvae.tokenizer.selfies_tokenizer, cvae.tokenizer.selfies_property_val_tokenizer
@@ -117,6 +117,14 @@ total = sum(row['count'] for row in distribution)
 cumsum = 0
 
 for row in distribution:
-    cumsum += row['count']
-    pct = (cumsum / total) * 100
-    logging.info(f"  Sequence length {row['seq_length']}: {row['count']} examples ({pct:.1f}% cumulative)")
+    if row['seq_length'] <= 200:
+        cumsum += row['count']
+        pct = (cumsum / total) * 100
+        logging.info(f"  Sequence length {row['seq_length']}: {row['count']} examples ({pct:.1f}% cumulative)")
+    else:
+        # Aggregate all sequences longer than 200
+        remaining = sum(r['count'] for r in distribution if r['seq_length'] > 200)
+        cumsum += remaining
+        pct = (cumsum / total) * 100
+        logging.info(f"  Sequence length 200+: {remaining} examples ({pct:.1f}% cumulative)")
+        break

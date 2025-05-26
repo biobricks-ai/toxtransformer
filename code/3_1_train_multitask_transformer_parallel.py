@@ -19,7 +19,7 @@ import cvae.utils
 import cvae.models.multitask_transformer as mt
 # import cvae.models.datasets.sampling_dataset as sd
 import cvae.models.mixture_experts as me
-from helper.trainer import Trainer
+from helper.trainer.trainer import Trainer
 
 # Environment variables setup
 os.environ['MKL_THREADING_LAYER'] = 'GNU'

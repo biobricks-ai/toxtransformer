@@ -11,7 +11,7 @@ import sklearn.metrics
 outdir = pathlib.Path("cache/consolidate_evaluations")
 tmpdir = pathlib.Path("cache/generate_evaluations") / "temp"
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", filename=outdir / "consolidate_evaluations.log", filemode="w")
 logging.info("Starting finalize_output.")
 
 # Load and concatenate all temp parquet files
@@ -24,18 +24,21 @@ logging.info(f"Concatenated DataFrame shape: {df.shape}")
 # deduplicate
 logging.info(f"Deduplicating DataFrame...")
 df = df.drop_duplicates()
+logging.info(f"Deduplicated DataFrame shape: {df.shape}")
 
 # Save partitioned dataset directly
 logging.info(f"Saving partitioned dataset...")
 partitioned_dir = outdir / "multitask_predictions.parquet"
 shutil.rmtree(partitioned_dir, ignore_errors=True)
+partitioned_dir.mkdir(parents=True, exist_ok=True)
+
 ds.write_dataset(
     data=df,
     base_dir=partitioned_dir,
     format="parquet",
     file_options=ds.ParquetFileFormat().make_write_options(compression="zstd", compression_level=9),
     max_rows_per_file=25_000_000,
-    existing_data_behavior="overwrite",
+    existing_data_behavior="overwrite_or_ignore",
     basename_template="part-{i}.parquet",
 )
 logging.info(f"Saved partitioned dataset to: {partitioned_dir}")

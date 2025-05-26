@@ -8,14 +8,14 @@ outdir.mkdir(exist_ok=True, parents=True)
 logging.basicConfig(level=logging.INFO, filename=outdir / 'build_figures.log', filemode='w')
 
 df = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')
-df = df[(df['NUM_POS'] > 100) & (df['NUM_NEG'] > 100)]
+df = df[(df['NUM_POS'] > 10) & (df['NUM_NEG'] > 10)]
 res1 = df.aggregate({'AUC': 'median', 'ACC': 'median', 'BAC': 'median', "cross_entropy_loss": 'median'})
 res2 = df.groupby('nprops').aggregate({'AUC': 'median', 'ACC': 'median', 'BAC': 'median', "cross_entropy_loss": 'median', 'assay': 'nunique'})
 
 logging.info(f"Overall metrics (median values):\n{res1}\n")
 logging.info(f"Metrics by number of prior properties (nprops):\n{res2}")
 logging.info(f"Total number of assays in analysis: {df['assay'].nunique()}")
-logging.info(f"Data filtered to assays with >100 positive and >100 negative examples")
+logging.info(f"Data filtered to assays with >1000 positive and >1000 negative examples")
 
 # how many assays?
 assays = df['assay'].nunique()

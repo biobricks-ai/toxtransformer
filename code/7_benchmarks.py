@@ -1,3 +1,5 @@
+# PYTHONPATH=./ python code/7_benchmarks.py
+
 import pandas as pd, sqlite3, seaborn as sns, matplotlib.pyplot as plt, pathlib
 import cvae.tokenizer
 from matplotlib.colors import ListedColormap
@@ -41,16 +43,48 @@ tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer.load('brick/selfies_prope
 conn = sqlite3.connect('brick/cvae.sqlite')
 
 # get all the property_tokens for tox21 properties
+# activities = pd.read_sql("""
+#     SELECT s.source, COUNT(DISTINCT a.inchi) as unique_inchi_count 
+#     FROM activity a 
+#     INNER JOIN property p ON a.property_id = p.property_id 
+#     INNER JOIN source s ON p.source_id = s.source_id 
+#     GROUP BY s.source
+# """, conn)
+#        source  unique_inchi_count
+# 8     pubchem             2910787
+# 4   bindingdb              995589
+# 5      chembl              433848
+# 7         ice               18959
+# 13   toxvaldb               15096
+# 12    toxcast                8831
+# 3       Tox21                7829
+# 6     ctdbase                3438
+# 9       reach                2525
+# 1        BBBP                1971
+# 0        BACE                1513
+# 2     CLINTOX                1454
+# 10      sider                1427
+# 11      tox21                   0
+# count the number of unique chemicals in tox21 activities
+
+
 prop_src = pd.read_sql("SELECT property_token,title,source FROM property p INNER JOIN source s on p.source_id = s.source_id", conn)
-# prop_src = prop_src[prop_src['source'] != 'Tox21'] #tox21 is redundant
+prop_src['source'].value_counts()
 
 # assert that each property_token has only one title
 assert prop_src.groupby('property_token').size().max() == 1
 
 # pull in multitask_metrics
-evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')
+evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')[['assay','nprops','AUC','cross_entropy_loss','NUM_POS','NUM_NEG']]
 evaldf = evaldf.rename(columns={'assay': 'property_token'})
 evaldf = evaldf.merge(prop_src, left_on='property_token', right_on='property_token', how='inner')
+
+# remove imbalanced properties
+evaldf[evaldf['source'] == 'Tox21']
+evaldf = evaldf[(evaldf['NUM_POS'] >= 50) & (evaldf['NUM_NEG'] >= 50)]
+
+evaldf.groupby('source').aggregate({'NUM_POS':'max','NUM_NEG':'max'}).sort_values(by='NUM_POS',ascending=False)
+evaldf[evaldf['source'] == 'Tox21'].groupby('property_token').aggregate({'NUM_POS':'max','NUM_NEG':'max'}).sort_values(by='NUM_POS',ascending=False)
 
 # get the median AUC for each property
 evaldf.aggregate({'AUC': 'median','cross_entropy_loss':'median','property_token':'count'}) # 89% median auc, .482 median cross entropy loss
@@ -92,6 +126,8 @@ plt.ylabel('Source')
 plt.tight_layout()
 plt.savefig(outdir / 'source_nprops_heatmap.png')
 plt.close()
+
+# count 
 
 # endregion
 
