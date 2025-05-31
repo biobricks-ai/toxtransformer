@@ -71,8 +71,7 @@ def main(rank, world_size):
     logging.info(f"Rank {rank} starting setup.")
 
     # Load from training step
-    # model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
-    model = me.MoE.load(outdir / "models" / "step_20000")
+    model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
     tokenizer = model.tokenizer
     batch_size = 240
     

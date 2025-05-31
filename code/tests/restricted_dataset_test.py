@@ -39,7 +39,16 @@ valds = rd.PropertyGuaranteeDataset(
     world_size=8
 )
 
+valds.set_sampling_weights({2600:1.0})
 inp, teach, out = valds[0]
+
+# Keep selecting until we get a sequence with token 16369
+found = False
+while not found:
+    inp, teach, out = valds[0]
+    if 16369 in out:
+        found = True
+
 
 model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
 

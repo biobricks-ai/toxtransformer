@@ -330,3 +330,27 @@ class PropertyGuaranteeDataset(Dataset):
                                 for prop, weight in self.sampling_weights.items()}
         }
         return stats
+
+    def set_sampling_weights(self, sampling_weights):
+        """
+        Update sampling weights and implicitly define the active sampling target set.
+
+        Args:
+            sampling_weights (dict): Mapping from property token to weight.
+        """
+        self.sampling_weights = sampling_weights.copy()
+        
+        # Remove any props not in the dataset
+        valid_props = {prop for prop in sampling_weights if prop in self.property_index}
+        if not valid_props:
+            raise ValueError("None of the provided sampling weights correspond to known property tokens in the dataset.")
+        
+        # Re-normalize weights
+        total_weight = sum(self.sampling_weights[prop] for prop in valid_props)
+        self.sampling_weights = {prop: self.sampling_weights[prop] / total_weight for prop in valid_props}
+        
+        # Update target_props to reflect active sampling pool
+        self.target_props = set(self.sampling_weights.keys())
+        
+        logging.info(f"Sampling weights updated. Active properties: {self.target_props}")
+

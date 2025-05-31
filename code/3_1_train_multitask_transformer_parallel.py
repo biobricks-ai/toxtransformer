@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=8 --master-port=29500 code/3_1_train_multitask_transformer_parallel.py 2> cache/train_multitask_transformer_parallel/logs/err.log
+# PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=8 --master-port=29500 code/3_1_train_multitask_transformer_parallel.py 2> cache/train_multitask_transformer_parallel/logs/err.log
 
 import os
 import sys
@@ -13,6 +13,7 @@ import torch
 import torch.utils.data
 import torch.multiprocessing as mp
 import torch.distributed as dist
+import pandas as pd
 
 import cvae.tokenizer
 import cvae.utils
@@ -82,20 +83,25 @@ def main(rank, world_size):
     # model = me.MoE(tokenizer, num_experts=24, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
 
     # model = me.MoE(tokenizer, num_experts=12, k=4, hdim=512, dim_feedforward=1024, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
-    model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
-    batch_size = 45
-    
+    # Epoch: 30, Step: 310000, Train Loss (last cycle): 0.7030, Eval Loss: 0.7256, BAC: 0.7734, AUC: 0.9643, LR: 0.000001
+    # model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
+    model = me.MoE(tokenizer, num_experts=12, k=4, hdim=512, dim_feedforward=1024, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
+    batch_size = 42
 
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
     cpus_per_rank = max(2, (os.cpu_count() or 8) // world_size)
     train_workers = max(2, min(4, cpus_per_rank))
     val_workers = max(1, min(2, cpus_per_rank))
+    nprops = 1
 
     # trnds = sd.SamplingDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=50, sample_pool=int(5e4), recent_prop_cap=4000, recent_idx_cap=int(1e6))
     # valds = sd.SamplingDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=50, sample_pool=int(5e4), recent_prop_cap=4000, recent_idx_cap=int(1e6))
+    bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
+    target_props = list(set(bp['property_token'].tolist()))
+    
     trnds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=100)
-    valds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=100)
+    valds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=100, assay_filter=target_props)
 
    # Create rank-aware datasets using setup_distributed
     # trnds = mt.RotatingModuloSequenceShiftDataset.setup_distributed(
@@ -127,8 +133,8 @@ def main(rank, world_size):
     )
 
     trainer = Trainer(model, rank, tokenizer, trndl, batch_size=batch_size, 
-        scheduler_warmup_steps=1e4, scheduler_max_steps=3e5, 
-        max_steps=1e7)
+        scheduler_warmup_steps=10_000, scheduler_max_steps=300_000, scheduler_min_lr=2e-5, scheduler_max_lr=5e-4,
+        max_steps=1_000_000)
     
     trainer.set_validation_dataloader(valdl)
     trainer.set_mask_percent(0.1)

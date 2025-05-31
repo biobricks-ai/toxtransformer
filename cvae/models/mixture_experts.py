@@ -146,7 +146,7 @@ class MoE(nn.Module):
     
     def build_stratified_lossfn(self):
         ignore_index = self.tokenizer.pad_idx
-        ce_lossfn = mt.LabelSmoothingCrossEntropySequence(epsilon_ls=.05)
+        value_token_ids = torch.tensor(list(self.tokenizer.value_indexes().values()), dtype=torch.long)
         
         def lossfn(parameters, logits, output):
             batch_size, vocab_size, seq_len = logits.size()
@@ -156,17 +156,32 @@ class MoE(nn.Module):
             is_value_position = is_value_position.unsqueeze(0).expand(batch_size, seq_len)
 
             is_not_pad = (output != ignore_index)
-            is_value_position_runtime = is_value_position.to(output.device)
+            final_mask = is_value_position & is_not_pad
             
-            final_mask = is_value_position_runtime & is_not_pad
+            if final_mask.sum() == 0:
+                return torch.tensor(0.0, device=logits.device, requires_grad=True)
             
             logits = logits.transpose(1, 2).contiguous()
             logits_selected = logits[final_mask]
             output_selected = output[final_mask]
-
-            token_losses = ce_lossfn(logits_selected, output_selected)
-
-            return token_losses
+            
+            # Move value token IDs to device
+            value_tokens_device = value_token_ids.to(logits.device)
+            
+            # Extract logits for just the two value tokens
+            value_logits = logits_selected[:, value_tokens_device]
+            
+            # Create binary targets (0 for first value token, 1 for second)
+            binary_targets = (output_selected == value_tokens_device[1]).long()
+            
+            # Standard cross entropy with label smoothing on 2 classes
+            loss = torch.nn.functional.cross_entropy(
+                value_logits, 
+                binary_targets, 
+                label_smoothing=0.005
+            )
+            
+            return loss
 
         return lossfn
 

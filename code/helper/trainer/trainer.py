@@ -56,7 +56,7 @@ class Trainer():
 
         # Add gradient accumulation for effectively larger batch sizes
         # self.gradient_accumulation_steps = 10
-        self.gradient_accumulation_steps = max(1, 2048 // (batch_size * dist.get_world_size()))
+        self.gradient_accumulation_steps = max(1, 4096 // (batch_size * dist.get_world_size()))
         
         # Calculate effective batch size per GPU
         effective_batch_size_per_gpu = batch_size * self.gradient_accumulation_steps

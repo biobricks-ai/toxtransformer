@@ -76,12 +76,24 @@ assert prop_src.groupby('property_token').size().max() == 1
 
 # pull in multitask_metrics
 evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')[['assay','nprops','AUC','cross_entropy_loss','NUM_POS','NUM_NEG']]
-evaldf = evaldf.rename(columns={'assay': 'property_token'})
+evaldf = evaldf.rename(columns={'assay': 'property_token'}).astype({'property_token': 'int64'})
+
+# ── Harmonize dtypes and finish the merge ──────────────────────────────────
+
+# are there any property_tokens in evaldf that are not in prop_src?
+eval_df_tokens = evaldf['property_token'].unique()
+prop_src_tokens = prop_src['property_token'].unique()
+
+# look at outerset
+assert len(set(eval_df_tokens) - set(prop_src_tokens)) == 0
+
+# merge
 evaldf = evaldf.merge(prop_src, left_on='property_token', right_on='property_token', how='inner')
+evaldf['source'].value_counts()
 
 # remove imbalanced properties
 evaldf[evaldf['source'] == 'Tox21']
-evaldf = evaldf[(evaldf['NUM_POS'] >= 50) & (evaldf['NUM_NEG'] >= 50)]
+# evaldf = evaldf[(evaldf['NUM_POS'] >= 50) & (evaldf['NUM_NEG'] >= 50)]
 
 evaldf.groupby('source').aggregate({'NUM_POS':'max','NUM_NEG':'max'}).sort_values(by='NUM_POS',ascending=False)
 evaldf[evaldf['source'] == 'Tox21'].groupby('property_token').aggregate({'NUM_POS':'max','NUM_NEG':'max'}).sort_values(by='NUM_POS',ascending=False)
@@ -104,7 +116,7 @@ tox21.to_csv(outdir / 'tox21_auc_by_nprops.csv', index=False)
 # 0       0.829932     18
 
 # region SOURCE EVALUATIONS ================================
-source_eval = evaldf.groupby('property_token').filter(lambda x: len(x['nprops'].unique()) == 5)
+source_eval = evaldf#.groupby('property_token').filter(lambda x: len(x['nprops'].unique()) == 5)
 res = source_eval.groupby(['source','nprops']).aggregate({'AUC': 'median','property_token':'count'}).reset_index()
 
 # add 'meanauc' column
@@ -192,6 +204,18 @@ ax.tick_params(axis='y', colors='white')
 
 # Improve the appearance of the colorbar
 cbar = ax.collections[0].colorbar
+
+import matplotlib.ticker as mticker
+
+# grab whatever ticks matplotlib has already decided to use
+ticks = cbar.get_ticks()
+
+# 1) tell mpl these are the *only* ticks we want
+cbar.ax.yaxis.set_major_locator(mticker.FixedLocator(ticks))
+
+# 2) now it’s safe to assign the custom labels + colour
+cbar.ax.set_yticklabels([f'{t:.2f}' for t in ticks], color='white')
+
 cbar.set_label('Median AUC', color='white')
 cbar.ax.yaxis.set_tick_params(color='white')
 cbar.ax.yaxis.set_ticklabels([f'{x:.2f}' for x in cbar.get_ticks()], color='white')

@@ -121,7 +121,7 @@ def setup(rank): # Pass rank for logging before dist init maybe
     if rank == 0:
         logging.info("Rank 0 performing initial setup")
         outdir.mkdir(exist_ok=True, parents=True)
-        # shutil.rmtree(tmpdir, ignore_errors=True)
+        shutil.rmtree(tmpdir, ignore_errors=True)
         tmpdir.mkdir(exist_ok=True, parents=True)
     
     return outdir, tmpdir
@@ -129,16 +129,34 @@ def setup(rank): # Pass rank for logging before dist init maybe
 def main_worker(context: EvalContext, repetitions, outdir, tmpdir):
     logging.info(f"Rank {context.rank} - Starting main_worker.")
     logging.info(f"Rank {context.rank} - Initializing Dataset.")
-    
+    random.seed(context.rank)
+
     bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
     sources = list(set(bp['source'].tolist()))
-
-    random.seed(context.rank)
-    repeat_sources = sources * repetitions
+    target_props = list(set(bp['property_token'].tolist()))
+    sampling_weights = {prop: weight for prop, weight in zip(target_props, bp['weight'].tolist())}
+    
+    repeat_properties = repetitions * target_props
     random.shuffle(repeat_sources)
     seen_inputs = set()
     batch_accum = []
     total_processed_count = 0
+    
+    target_positions = [0,4,9]  # Positions to focus evaluation on
+    dataset = rd.PropertyGuaranteeDataset(
+        path="cache/build_tensordataset/multitask_tensors/hld",
+        tokenizer=context.tokenizer,
+        nprops=context.nprops,
+        target_props=target_props,
+        target_positions=target_positions,
+        sampling_weights=sampling_weights,
+        distributed=True,
+        rank=context.rank,
+        world_size=dist.get_world_size()
+    )
+    sampler = DistributedSampler(dataset, num_replicas=dist.get_world_size(), rank=context.rank, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=context.batch_size, sampler=sampler,
+        num_workers=4, pin_memory=True, prefetch_factor=5, persistent_workers=True, pin_memory_device=f"cuda:{context.local_rank}")
 
     for repeat in range(len(repeat_sources)):
         
@@ -147,24 +165,8 @@ def main_worker(context: EvalContext, repetitions, outdir, tmpdir):
 
         bpsource = bp[bp['source'] == source].copy()
         target_props = bpsource['property_token'].tolist()
-        target_positions = [0,4]  # Positions to focus evaluation on
         sampling_weights = {prop: weight for prop, weight in zip(target_props, bpsource['weight'].tolist())}
-
-        dataset = rd.PropertyGuaranteeDataset(
-            path="cache/build_tensordataset/multitask_tensors/hld",
-            tokenizer=context.tokenizer,
-            nprops=context.nprops,
-            target_props=target_props,
-            target_positions=target_positions,
-            sampling_weights=sampling_weights,
-            distributed=True,
-            rank=context.rank,
-            world_size=dist.get_world_size()
-        )
-
-        sampler = DistributedSampler(dataset, num_replicas=dist.get_world_size(), rank=context.rank, shuffle=False)
-        dataloader = DataLoader(dataset, batch_size=context.batch_size, sampler=sampler,
-            num_workers=4, pin_memory=True, prefetch_factor=5, persistent_workers=True, pin_memory_device=f"cuda:{context.local_rank}")
+        dataset.set_sampling_weights(sampling_weights)
 
         logging.info(f"Rank {context.rank} - Initialized DataLoader with {len(dataloader)} batches per epoch.")
         logging.info(f"Rank {context.rank} - Using batch size: {context.batch_size}, num_workers=4")
@@ -235,8 +237,8 @@ if __name__ == "__main__":
 
         # --- Load Model ---
         logging.info("Loading model...")
-        # model_load_path = "cache/train_multitask_transformer_parallel/models/moe"
-        model_load_path = "cache/finetune_benchmarks/models/step_20000"
+        model_load_path = "cache/train_multitask_transformer_parallel/models/moe"
+        # model_load_path = "cache/finetune_benchmarks/models/step_20000"
         model: me.MoE = me.MoE.load(model_load_path).to(device)
         logging.info(f"Model loaded successfully from {model_load_path} and moved to {device}")
 
