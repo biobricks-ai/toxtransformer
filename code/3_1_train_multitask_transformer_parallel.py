@@ -85,7 +85,8 @@ def main(rank, world_size):
     # model = me.MoE(tokenizer, num_experts=12, k=4, hdim=512, dim_feedforward=1024, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
     # Epoch: 30, Step: 310000, Train Loss (last cycle): 0.7030, Eval Loss: 0.7256, BAC: 0.7734, AUC: 0.9643, LR: 0.000001
     # model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
-    model = me.MoE(tokenizer, num_experts=12, k=4, hdim=512, dim_feedforward=1024, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
+    # model = me.MoE(tokenizer, num_experts=12, k=4, hdim=512, dim_feedforward=1024, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
+    model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
     batch_size = 42
 
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
