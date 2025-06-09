@@ -23,14 +23,22 @@ outdir.mkdir(exist_ok=True, parents=True)
 tqdm.tqdm.pandas()
 
 # Load tokenizer and Spark session
-model = me.MoE.load("cache/finetune_benchmarks/models/step_20000")
+model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
 tokenizer : SelfiesPropertyValTokenizer = model.tokenizer
 # tokenizer : SelfiesPropertyValTokenizer = me.MoE.load("brick/moe").tokenizer
 spark = cvae.utils.get_spark_session()
 
 # Read predictions
 outdf = spark.read.parquet("cache/consolidate_evaluations/multitask_predictions.parquet")
+outdf = outdf.filter(F.col('assay') == 3851)
+test = outdf.toPandas()
+test['probval'] = test['probs'].apply(lambda x: x > .5)
 
+test[['value','probval']].value_counts()
+
+test2 = test[test['chemical_id'] == test['chemical_id'].iloc[0]][['chemical_id','probs','value']]
+
+test2[['value','probval']].value_counts()
 # Calculate metrics
 value_indexes = list(tokenizer.value_indexes().values())
 val0_index, val1_index = value_indexes[0], value_indexes[1]

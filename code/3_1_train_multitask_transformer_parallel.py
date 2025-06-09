@@ -21,6 +21,7 @@ import cvae.models.multitask_transformer as mt
 # import cvae.models.datasets.sampling_dataset as sd
 import cvae.models.mixture_experts as me
 from helper.trainer.trainer import Trainer
+from cvae.models.datasets.inmemory_sequence_shift_dataset import InMemorySequenceShiftDataset
 
 # Environment variables setup
 os.environ['MKL_THREADING_LAYER'] = 'GNU'
@@ -57,6 +58,11 @@ def init_logging(rank):
 
 def main(rank, world_size):
     setup(rank, world_size)
+    torch.cuda.set_device(rank)
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+    torch.backends.cudnn.benchmark = True
+
     init_logging(rank)
 
     outdir = pathlib.Path("cache/train_multitask_transformer_parallel")
@@ -87,22 +93,24 @@ def main(rank, world_size):
     # model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
     # model = me.MoE(tokenizer, num_experts=12, k=4, hdim=512, dim_feedforward=1024, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
     model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
-    batch_size = 42
+    batch_size = 52
 
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
-    cpus_per_rank = max(2, (os.cpu_count() or 8) // world_size)
-    train_workers = max(2, min(4, cpus_per_rank))
-    val_workers = max(1, min(2, cpus_per_rank))
-    nprops = 1
+    cpus_per_rank = max(2, os.cpu_count() // world_size)
+    train_workers = max(2, min(32, cpus_per_rank))
+    val_workers = max(1, min(20, cpus_per_rank))
 
     # trnds = sd.SamplingDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=50, sample_pool=int(5e4), recent_prop_cap=4000, recent_idx_cap=int(1e6))
     # valds = sd.SamplingDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=50, sample_pool=int(5e4), recent_prop_cap=4000, recent_idx_cap=int(1e6))
     bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
     target_props = list(set(bp['property_token'].tolist()))
     
-    trnds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=100)
-    valds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=100, assay_filter=target_props)
+    # trnds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=100)
+    # valds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=100, assay_filter=target_props)
+
+    trnds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=100)
+    valds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=100, assay_filter=target_props)
 
    # Create rank-aware datasets using setup_distributed
     # trnds = mt.RotatingModuloSequenceShiftDataset.setup_distributed(
@@ -123,19 +131,19 @@ def main(rank, world_size):
 
     trndl = torch.utils.data.DataLoader(
         trnds, batch_size=batch_size, shuffle=False, num_workers=train_workers,
-        pin_memory=True, persistent_workers=True, prefetch_factor=20,
-        sampler=torch.utils.data.distributed.DistributedSampler(trnds, num_replicas=world_size, rank=rank, drop_last=True)
+        pin_memory=f"cuda:{rank}", persistent_workers=True, prefetch_factor=100,
+        sampler=torch.utils.data.distributed.DistributedSampler(trnds, num_replicas=world_size, rank=rank, drop_last=True, shuffle=True)
     )
 
     valdl = torch.utils.data.DataLoader(
         valds, batch_size=batch_size, shuffle=False, num_workers=val_workers,
-        pin_memory=True, persistent_workers=True, prefetch_factor=20,
-        sampler=torch.utils.data.distributed.DistributedSampler(valds, num_replicas=world_size, rank=rank, drop_last=True)
+        pin_memory=f"cuda:{rank}", persistent_workers=True, prefetch_factor=100,
+        sampler=torch.utils.data.distributed.DistributedSampler(valds, num_replicas=world_size, rank=rank, drop_last=True, shuffle=True)
     )
 
     trainer = Trainer(model, rank, tokenizer, trndl, batch_size=batch_size, 
-        scheduler_warmup_steps=10_000, scheduler_max_steps=300_000, scheduler_min_lr=2e-5, scheduler_max_lr=5e-4,
-        max_steps=1_000_000)
+        scheduler_warmup_steps=10_000, scheduler_max_steps=300_000, scheduler_min_lr=2e-5, scheduler_max_lr=1e-4, effective_accum_batch_size=1024*16,
+        max_steps=1_000_000, eval_samples=2_000, first_eval=10_000)
     
     trainer.set_validation_dataloader(valdl)
     trainer.set_mask_percent(0.1)

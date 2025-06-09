@@ -77,7 +77,7 @@ assert prop_src.groupby('property_token').size().max() == 1
 # pull in multitask_metrics
 evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')[['assay','nprops','AUC','cross_entropy_loss','NUM_POS','NUM_NEG']]
 evaldf = evaldf.rename(columns={'assay': 'property_token'}).astype({'property_token': 'int64'})
-
+evaldf = evaldf[evaldf['AUC'] > 0.0]
 # ── Harmonize dtypes and finish the merge ──────────────────────────────────
 
 # are there any property_tokens in evaldf that are not in prop_src?

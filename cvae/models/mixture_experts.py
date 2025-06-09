@@ -158,15 +158,12 @@ class MoE(nn.Module):
             is_not_pad = (output != ignore_index)
             final_mask = is_value_position & is_not_pad
             
-            if final_mask.sum() == 0:
-                return torch.tensor(0.0, device=logits.device, requires_grad=True)
-            
             logits = logits.transpose(1, 2).contiguous()
             logits_selected = logits[final_mask]
             output_selected = output[final_mask]
             
             # Move value token IDs to device
-            value_tokens_device = value_token_ids.to(logits.device)
+            value_tokens_device = value_token_ids.to(logits.device, non_blocking=True)
             
             # Extract logits for just the two value tokens
             value_logits = logits_selected[:, value_tokens_device]

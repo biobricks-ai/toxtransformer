@@ -18,7 +18,7 @@ class Trainer():
 
     def __init__(self, model, rank, tokenizer, trn_iterator, batch_size, first_eval=100, eval_every=10000, 
     eval_samples=400, scheduler_warmup_steps=10000, scheduler_max_steps=100000, max_steps=100000,
-    scheduler_min_lr=1e-6, scheduler_max_lr=3e-4):
+    scheduler_min_lr=1e-6, scheduler_max_lr=3e-4, effective_accum_batch_size=1024):
         self.rank = rank
         self.global_step = 0
         self.trn_iterator = trn_iterator
@@ -45,18 +45,19 @@ class Trainer():
         dist.barrier()
         self.log(f"Rank {rank}: Barrier passed, proceeding with DDP initialization.")
         self.log(f"Rank {rank}: Wrapping model with DDP.")
+        self.model = torch.compile(self.model)
         self.model = DDP(self.model, device_ids=[rank])
         self.log(f"Rank {rank}: Model DDP wrapped.")
 
         self.log(f"Rank {rank}: Compiling model.")
-        self.model = torch.compile(self.model)
+        
         self.log(f"Rank {rank}: Model compiled successfully.")
 
         self.max_steps = max_steps
 
         # Add gradient accumulation for effectively larger batch sizes
         # self.gradient_accumulation_steps = 10
-        self.gradient_accumulation_steps = max(1, 4096 // (batch_size * dist.get_world_size()))
+        self.gradient_accumulation_steps = max(1, effective_accum_batch_size // (batch_size * dist.get_world_size()))
         
         # Calculate effective batch size per GPU
         effective_batch_size_per_gpu = batch_size * self.gradient_accumulation_steps
@@ -146,49 +147,31 @@ class Trainer():
         # step once per batch
         self.scheduler.step()
 
-        if self.lossfn is None:
-             # This error message should now only appear if __init__ failed to set lossfn
-             self.log(f"Rank {self.rank}: Error: Loss function is None in _train_batch. Initialization likely failed.")
-             return 0.0 # Cannot train without a loss function
-
         # Only zero gradients at the beginning of accumulation cycle
         if self.global_step % self.gradient_accumulation_steps == 0:
             self.optimizer.zero_grad()
-            # self.log(f"Rank {self.rank}: Zeroed gradients for step {self.global_step}")
 
         # Move data to device
         inp, teach, out = inp.to(self.rank), teach.to(self.rank), out.to(self.rank)
-        # self.log(f"Rank {self.rank}: Data moved to device {self.rank}")
 
         # Forward pass and loss calculation with autocast
         # self.log(f"Rank {self.rank}: Starting forward pass for step {self.global_step}")
         with autocast(device_type='cuda', dtype=torch.float16):
             pred = self.model(inp, teach) # [batch_size, seq_len, vocab_size]
-            # self.log(f"Rank {self.rank}: Forward pass complete.")
             pred = pred.permute(0, 2, 1).contiguous() # [batch_size, vocab_size, seq_len]
-            # self.log(f"Rank {self.rank}: Permuted prediction tensor.")
-            # Use the lossfn initialized in __init__
-            # The lossfn closure takes parameters, logits, output.
-            # We pass model.module.parameters() as the first arg.
             loss = self.lossfn(self.model.module.parameters(), pred, out)
-            # self.log(f"Rank {self.rank}: Loss calculated: {loss.item()}")
-            # Scale loss for gradient accumulation
             loss = loss / self.gradient_accumulation_steps
-            # self.log(f"Rank {self.rank}: Scaled loss for accumulation: {loss.item()}")
 
 
         # Scale gradients and accumulate
-        # self.log(f"Rank {self.rank}: Starting backward pass for step {self.global_step}")
         self.scaler.scale(loss).backward()
 
         # Only update weights at the end of accumulation cycle
         if (self.global_step + 1) % self.gradient_accumulation_steps == 0:
-            # self.log(f"Rank {self.rank}: Accumulation step complete, performing optimizer step.")
             self.scaler.unscale_(self.optimizer)
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
             self.scaler.step(self.optimizer)
             self.scaler.update()
-            # self.log(f"Rank {self.rank}: Optimizer step complete.")
 
         self.global_step += 1
         # Return the actual loss value for logging (unscaled by accumulation steps)
@@ -211,7 +194,7 @@ class Trainer():
             if max_eval_batches is not None and i >= max_eval_batches:
                 break
 
-            inp, teach, out = inp.to(self.rank), teach.to(self.rank), out.to(self.rank)
+            inp, teach, out = inp.to(self.rank, non_blocking=True), teach.to(self.rank, non_blocking=True), out.to(self.rank, non_blocking=True)
             with torch.no_grad():
                 with autocast(device_type='cuda', dtype=torch.float16):
                     pred = self.model(inp, teach) # [B, T, V]

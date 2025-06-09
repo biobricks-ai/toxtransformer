@@ -31,12 +31,22 @@ def draw_plot(last_scheduler_length=0):
     data = data[data['batch'] > batch_skip]
 
     # create and append a new dataframe that batches the 'train' type and finds the average loss
-    max_batch = data[data['type'] == 'train']['batch'].max()
-    sched_data = data[data['type'] == 'train'].assign(
-        batch=lambda x: max_batch - ((max_batch - x['batch']) // sched_interval) * sched_interval
-    )
-    sched_data = sched_data.groupby('batch')['loss'].mean().reset_index()
+    train_data = data[data['type'] == 'train']
+    max_batch = train_data['batch'].max()
+
+    # Assign each batch to a sched group
+    train_data = train_data.assign(sched_group=lambda x: (x['batch'] // sched_interval) * sched_interval)
+
+    # Only keep complete groups
+    # sched_counts = train_data['sched_group'].value_counts()
+    # complete_sched_groups = sched_counts[sched_counts == sched_interval].index
+    # complete_sched_data = train_data[train_data['sched_group'].isin(complete_sched_groups)]
+
+    # Group and compute mean
+    sched_data = train_data.groupby('sched_group')['loss'].mean().reset_index()
+    sched_data.rename(columns={'sched_group': 'batch'}, inplace=True)
     sched_data['type'] = 'sched'
+
     data = pd.concat([data, sched_data])
 
     if scheduler_length == last_scheduler_length:

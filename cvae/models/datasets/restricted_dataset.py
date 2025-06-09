@@ -6,7 +6,7 @@ from collections import defaultdict
 import logging
 import threading
 import torch.distributed as dist
-import logging
+import tqdm
 
 # USAGE EXAMPLE
 # Initialize with specific property tokens and positions
@@ -107,7 +107,7 @@ class PropertyGuaranteeDataset(Dataset):
                  sampling_weights=None, distributed=False, rank=0, world_size=1):
         self.path = str(path)
         self.pad_idx, self.sep_idx, self.end_idx = tokenizer.PAD_IDX, tokenizer.SEP_IDX, tokenizer.END_IDX
-        self.target_props = set(target_props)  # Set of property tokens to target
+        self.target_props = set(int(p) for p in target_props)  # Set of property tokens to target
         self.target_positions = target_positions  # List of positions where properties should be placed
         self.tokenizer = tokenizer
         self.nprops = nprops
@@ -124,11 +124,13 @@ class PropertyGuaranteeDataset(Dataset):
         
         # Set up sampling weights (default to uniform if not provided)
         if sampling_weights is None:
-            self.sampling_weights = {prop: 1.0 for prop in target_props}
+            self.sampling_weights = {int(prop): 1.0 for prop in target_props}
         else:
-            self.sampling_weights = sampling_weights
+            # Convert all keys to int
+            self.sampling_weights = {int(k): v for k, v in sampling_weights.items()}
+
             # Ensure all target props have weights
-            for prop in target_props:
+            for prop in self.target_props:
                 if prop not in self.sampling_weights:
                     self.sampling_weights[prop] = 1.0
             
@@ -179,6 +181,7 @@ class PropertyGuaranteeDataset(Dataset):
             self.cumulative_lengths.append(total)
         
         logging.info(f"Loaded {total} examples")
+        logging.info("Property index:\n" + "\n".join(str(k) for k in self.property_index.keys()))
         
     def _validate_targets(self):
         """Verify that we have examples for each targeted property."""
@@ -338,10 +341,10 @@ class PropertyGuaranteeDataset(Dataset):
         Args:
             sampling_weights (dict): Mapping from property token to weight.
         """
-        self.sampling_weights = sampling_weights.copy()
+        self.sampling_weights = {int(k): v for k, v in sampling_weights.items()}
         
         # Remove any props not in the dataset
-        valid_props = {prop for prop in sampling_weights if prop in self.property_index}
+        valid_props = {prop for prop in self.sampling_weights if prop in self.property_index}
         if not valid_props:
             raise ValueError("None of the provided sampling weights correspond to known property tokens in the dataset.")
         
@@ -354,3 +357,135 @@ class PropertyGuaranteeDataset(Dataset):
         
         logging.info(f"Sampling weights updated. Active properties: {self.target_props}")
 
+from torch.utils.data import Dataset
+import torch
+import pathlib, bisect, random
+import torch.nn.functional as F
+from collections import defaultdict
+import logging
+import tqdm
+
+class FastPropertyGuaranteeDataset(Dataset):
+    def __init__(self, path, tokenizer, nprops, target_props, target_positions,sampling_weights=None, skip_small_nprops=False):
+        self.path = str(path)
+        self.pad_idx, self.sep_idx, self.end_idx = tokenizer.PAD_IDX, tokenizer.SEP_IDX, tokenizer.END_IDX
+        self.target_props = set(int(p) for p in target_props)
+        self.target_positions = target_positions
+        self.tokenizer = tokenizer
+        self.nprops = nprops
+        self.skip_small_nprops = skip_small_nprops
+        self.property_index = defaultdict(list)
+        self.data = []
+        self.cumulative_lengths = [0]
+
+        self.sampling_weights = {int(k): v for k, v in (sampling_weights or {}).items()}
+        for p in self.target_props:
+            self.sampling_weights.setdefault(p, 1.0)
+
+        self._load_and_index_data()
+        self._validate_targets()
+
+    def _load_and_index_data(self):
+        total = 0
+        files = list(pathlib.Path(self.path).glob("*.pt"))
+        logging.info(f"Loading {len(files)} .pt files")
+
+        for file_path in tqdm.tqdm(files, desc="Loading data"):
+            obj = torch.load(file_path, map_location="cpu")
+            selfies, assay_vals = obj["selfies"], obj["assay_vals"]
+            self.data.append((selfies, assay_vals))
+
+            for local_idx, row in enumerate(assay_vals):
+                global_idx = total + local_idx
+                mask = row != self.pad_idx
+                pv_pairs = row[mask][1:-1].view(-1, 2)
+                props = set(int(p.item()) for p, _ in pv_pairs)
+                
+                if self.skip_small_nprops and len(props) < self.nprops:
+                    continue
+
+                for prop in props:
+                    if prop in self.target_props:
+                        self.property_index[prop].append(global_idx)
+
+            total += selfies.size(0)
+            self.cumulative_lengths.append(total)
+
+    def _validate_targets(self):
+        self.target_props = {p for p in self.target_props if self.property_index[p]}
+        self.sampling_weights = {p: self.sampling_weights[p] for p in self.target_props}
+
+        if not self.target_props:
+            raise ValueError(f"No properties with samples found.")
+
+        total = sum(self.sampling_weights.values())
+        self.sampling_weights = {p: v / total for p, v in self.sampling_weights.items()}
+
+    def __len__(self):
+        return self.cumulative_lengths[-1]
+
+    def _sample_property(self):
+        props, weights = zip(*self.sampling_weights.items())
+        return random.choices(props, weights=weights, k=1)[0]
+
+    def _sample_index_and_property(self):
+        prop = self._sample_property()
+        candidates = self.property_index[prop]
+        if not candidates:
+            raise ValueError(f"Property {prop} has no candidates")
+        return random.choice(candidates), prop
+
+    def _extract_property_values(self, assay_vals):
+        mask = assay_vals != self.pad_idx
+        return assay_vals[mask][1:-1].view(-1, 2)
+
+    def _rearrange_properties(self, pairs, target_prop, target_pos):
+        pairs = [(int(p), int(v)) for p, v in pairs]
+        target_val = next(v for p, v in pairs if p == target_prop)
+        others = [(p, v) for p, v in pairs if p != target_prop]
+        random.shuffle(others)
+
+        result, inserted = [], False
+        for i in range(max(len(others) + 1, max(self.target_positions) + 1)):
+            if i == target_pos:
+                result.append((target_prop, target_val))
+                inserted = True
+            elif others:
+                result.append(others.pop(0))
+        if not inserted:
+            result.append((target_prop, target_val))
+        return result
+
+    def __getitem__(self, _):
+        idx, prop = self._sample_index_and_property()
+        file_idx = bisect.bisect_right(self.cumulative_lengths, idx) - 1
+        local_idx = idx - self.cumulative_lengths[file_idx]
+
+        selfies = self.data[file_idx][0][local_idx]
+        assay_vals = self.data[file_idx][1][local_idx]
+        pv_pairs = self._extract_property_values(assay_vals)
+
+        target_pos = random.choice(self.target_positions)
+        arranged = self._rearrange_properties(pv_pairs, prop, target_pos)
+        flat = [x for pair in arranged for x in pair][:self.nprops * 2]
+
+        out = torch.tensor([self.sep_idx] + flat + [self.end_idx], device=selfies.device)
+        if out.size(0) < self.nprops * 2 + 2:
+            out = F.pad(out, (0, self.nprops * 2 + 2 - out.size(0)), value=self.pad_idx)
+
+        tch = torch.cat([torch.tensor([1], device=out.device), out[:-1]])
+        return selfies, tch, out
+
+    def has_property(self, prop):
+        return prop in self.property_index and len(self.property_index[prop]) > 0
+
+    def set_sampling_weights(self, sampling_weights):
+        self.sampling_weights = {int(k): v for k, v in sampling_weights.items()}
+        self.target_props = {p for p in self.sampling_weights if self.has_property(p)}
+
+        if not self.target_props:
+            raise ValueError("No properties have examples in this dataset.")
+
+        total = sum(self.sampling_weights[p] for p in self.target_props)
+        self.sampling_weights = {p: self.sampling_weights[p] / total for p in self.target_props}
+        logging.info(f"Updated sampling weights for {len(self.target_props)} props")
