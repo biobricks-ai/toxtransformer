@@ -1,3 +1,7 @@
+# PYTHONPATH=./ python code/5_0_2_direct_evaluation.py
+
+
+import time
 import pandas as pd
 import torch
 import torch.nn.functional as F
@@ -11,27 +15,25 @@ import random
 import os
 import pathlib
 import pickle
-
+import logging
+from pathlib import Path
+import gc
 from cvae.tokenizer import SelfiesPropertyValTokenizer
 from cvae.spark_helpers import smiles_to_selfies_safe, is_valid_smiles
 import cvae.models.mixture_experts as me
 import cvae.models.multitask_transformer as mt
+from cvae.models.datasets.inmemory_sequence_shift_dataset import PreloadedSequenceShiftDataset, PreloadedSequenceShiftWrapper
 from cvae.simplecache import simplecache
 
-import selfies
-from rdkit import Chem
-from multiprocessing import Pool
-import os
-from pathlib import Path
+# --- Cache and log directory setup ---
+cachedir = Path("cache/direct_eval")
+cachedir.mkdir(parents=True, exist_ok=True)
+(cachedir / "hldout_eval_tensors").mkdir(parents=True, exist_ok=True)
 
-# Create required logging directory for tracking shard progress
-log_dir = Path("cache/direct_eval/log")
-log_dir.mkdir(parents=True, exist_ok=True)
+logdir = cachedir / "log"
+logdir.mkdir(parents=True, exist_ok=True)
 
-# Show the path for confirmation
-log_dir.resolve()
-
-# --- Setup ---
+# --- Shared setup ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe").to(DEVICE).eval()
 TOKENIZER = MODEL.tokenizer
@@ -39,13 +41,8 @@ VALUE_TOKEN_MAP = TOKENIZER.value_indexes()
 VALUE_TO_LABEL = {v: k for k, v in VALUE_TOKEN_MAP.items()}
 VALUE_TOKENS = [VALUE_TOKEN_MAP[0], VALUE_TOKEN_MAP[1]]
 
-# --- Cache setup ---
-cache_dir = pathlib.Path("cache/direct_eval")
-cache_dir.mkdir(parents=True, exist_ok=True)
-activity_cache_path = cache_dir / "activity_by_inchi.pkl"
-results_path = cache_dir / "records.parquet"
-
-# --- Load or build activity_by_inchi ---
+# --- Load activity_by_inchi before spawning Pool (safe with fork) ---
+activity_cache_path = cachedir / "activity_by_inchi.pkl"
 if activity_cache_path.exists():
     with open(activity_cache_path, "rb") as f:
         activity_by_inchi = pickle.load(f)
@@ -60,13 +57,17 @@ else:
         pickle.dump(activity_by_inchi, f)
 
 # --- Helpers ---
-@simplecache(cache_dir / "inchi_pv_to_ctx_out")
 def inchi_pv_to_ctx_out(inchi, ptok, vtok, nprops=16, nsamples=1):
     pv_pairs = [(p, v) for p, v in activity_by_inchi[inchi] if not (p == ptok and v == vtok)]
+
     max_len = nprops * 2 + 2
 
     def sample_tokens():
-        sampled = sum(random.sample(pv_pairs, min(nprops - 1, len(pv_pairs))), ())
+        k = min(nprops - 1, len(pv_pairs))
+        if k == 0:
+            sampled = []
+        else:
+            sampled = sum(random.sample(pv_pairs, k), ())
         tokens = [TOKENIZER.SEP_IDX] + list(map(int, sampled)) + [ptok, vtok, TOKENIZER.END_IDX]
         tokens += [TOKENIZER.PAD_IDX] * (max_len - len(tokens))
         tokens = torch.tensor(tokens)
@@ -78,45 +79,52 @@ def inchi_pv_to_ctx_out(inchi, ptok, vtok, nprops=16, nsamples=1):
 
     return ctx, out
 
-@simplecache(cache_dir / "selfies_tokens_to_inchi")
+# @simplecache(cachedir / "selfies_tokens_to_inchi")
 def selfies_tokens_to_inchi(selfies_tokens):
     try:
         smiles = selfies.decoder(selfies_tokens)
         mol = Chem.MolFromSmiles(smiles)
         return Chem.MolToInchi(mol)
-    except Exception as e:
+    except Exception:
         return None
 
-# --- BUILD pt FILES ---
-def process_shard_safe(start_idx, end_idx):
+PRELOADED_DATASET = PreloadedSequenceShiftDataset("cache/build_tensordataset/multitask_tensors/hld", tokenizer=TOKENIZER)
+def process_property_nprops_shard(top_outdir, nprops, target_prop):
+    outdir = top_outdir / f"nprops_{nprops}"
+    outdir.mkdir(parents=True, exist_ok=True)
+    outpath = str(outdir / f"property_{target_prop}_nprops_{nprops}.pt")
+    if os.path.exists(outpath):
+        return f"Skipping existing file: {outpath}"
+    
+
+    invalid_inchi_count = 0
+    ds = PreloadedSequenceShiftWrapper(PRELOADED_DATASET, nprops=1, assay_filter=[target_prop])
+
     try:
-        shard_name = f"shard_{start_idx}_{end_idx}"
-        out_path = cache_dir / f"{shard_name}.pt"
-        log_path = cache_dir / "log" / f"{shard_name}.log"
-
-        if out_path.exists() and log_path.exists():
-            return f"🟡 Skipped {shard_name}"
-
-        ds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/hld", tokenizer=TOKENIZER, nprops=1)
         batch_inp, batch_ctx, batch_out, metadata = [], [], [], []
 
-        for i in range(start_idx, end_idx):
+        for i in range(len(ds)):
             r1i, _, r1o = ds[i]
             selfies_tokens = TOKENIZER.selfies_tokenizer.indexes_to_selfies(r1i.tolist())
             inchi = selfies_tokens_to_inchi(selfies_tokens)
             if not inchi or inchi not in activity_by_inchi:
+                invalid_inchi_count += 1
+                print(f"Error in inchi_pv_to_ctx_out: {inchi} {invalid_inchi_count} out of {i}")
                 continue
 
             ptok, vtok = r1o[1].item(), r1o[2].item()
             try:
-                ctx, out = inchi_pv_to_ctx_out(inchi, ptok, vtok)
-            except Exception:
+                # Scale number of samples with nprops to increase context diversity, capped at 32
+                nsamples = min(max(1, nprops // 4), 32)
+                ctx, out = inchi_pv_to_ctx_out(inchi, ptok, vtok, nprops=nprops, nsamples=nsamples)
+            except Exception as e:
+                print(f"Error in inchi_pv_to_ctx_out: {e}")
                 continue
 
             batch_inp.append(r1i)
             batch_ctx.append(ctx)
             batch_out.append(out)
-            metadata.append((inchi, ptok, vtok))
+            metadata.append((inchi, nprops, ptok, vtok))
 
         if batch_inp:
             torch.save({
@@ -124,80 +132,57 @@ def process_shard_safe(start_idx, end_idx):
                 "ctx": torch.stack(batch_ctx),
                 "out": torch.stack(batch_out),
                 "meta": metadata
-            }, out_path)
-            with open(log_path, "w") as f:
-                f.write(f"✅ Saved {len(batch_inp)} examples to {out_path}\n")
+            }, outpath)
 
-        return f"✅ Finished {shard_name} with {len(batch_inp)} examples"
+        return f"✅ Finished property {target_prop} nprops {nprops} with {len(batch_inp)} examples"
 
     except Exception as e:
-        return f"❌ Failed {start_idx}-{end_idx}: {e}"
+        return f"❌ Failed property {target_prop} nprops {nprops}: {e}"
 
-# --- Parallel Shard Execution with Global Progress ---
-from multiprocessing import Pool
+import psutil
+def shard_worker(args):
+    result = process_property_nprops_shard(*args)
+    rss = psutil.Process(os.getpid()).memory_info().rss / 1e9
+    print(f"[PID {os.getpid()}] Memory usage: {rss:.2f} GB")
+    return result
 
-def chunkify(n, chunksize):
-    return [(i, min(i + chunksize, n)) for i in range(0, n, chunksize)]
+def run_worker(args):
+    print(shard_worker(args))
 
+# --- Main ---
+from multiprocessing import Process
 if __name__ == "__main__":
-    total_len = len(mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/hld", tokenizer=TOKENIZER, nprops=1))
-    chunksize = 100_000
-    shards = chunkify(total_len, chunksize)
-
-    with Pool(processes=8) as pool:  # Adjust based on core count
-        for result in tqdm(pool.imap_unordered(lambda args: process_shard_safe(*args), shards), total=len(shards), desc="Processing shards"):
-            print(result)
-
-
-# # EVALUATE =========================================================================================================
-
-# ds = mt.SequenceShiftDataset(path="cache/build_tensordataset/multitask_tensors/hld",tokenizer=TOKENIZER,nprops=1)
-# for i in tqdm(range(len(ds)), desc="Building selfies_tokens_to_inchi"):
-#     r1i, _, r1o = ds[i]
-#     selfies_tokens = TOKENIZER.selfies_tokenizer.indexes_to_selfies(r1i.tolist())
-#     inchi = selfies_tokens_to_inchi(selfies_tokens)
-
-# records = []
-# nsamples = 5
-# nprops = 100
-
-# for i in tqdm(range(len(ds)), desc="Evaluating dataset"):
-#     r1i, _, r1o = ds[i]
     
-#     # Decode SELFIES to InChI
-#     selfies_str = TOKENIZER.selfies_tokenizer.indexes_to_selfies(r1i.tolist())
-#     smiles = selfies.decoder(selfies_str)
-#     if not is_valid_smiles(smiles):
-#         continue
+    MAX_CONCURRENT = 100
 
-#     mol = Chem.MolFromSmiles(smiles)
-#     inchi = Chem.MolToInchi(mol)
+    bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
+    target_props = list(set(bp['property_token'].tolist()))
+    outdir = cachedir / "hldout_eval_tensors"
+    outdir.mkdir(parents=True, exist_ok=True)
+    nprops_list = [1, 5, 10, 20, 50, 100]
 
-#     # Extract property and value
-#     ptok, vtok = r1o[1].item(), r1o[2].item()
+    worker_args = [
+        (outdir, nprops, target_prop)
+        for nprops in nprops_list
+        for target_prop in target_props
+    ]
 
-#     # Generate context/output tokens
-#     ctx, out = inchi_pv_to_ctx_out(inchi, ptok, vtok, nprops=nprops, nsamples=nsamples)
+    active_processes = []
 
-#     # Compute prediction
-#     x = r1i.unsqueeze(0).repeat(nsamples, 1).to(DEVICE)
-#     ctx = ctx.to(DEVICE)
-#     lastidx = (out[0] != TOKENIZER.PAD_IDX).nonzero(as_tuple=True)[0][-2].item()
+    for arg in tqdm(worker_args, desc="Spawning property+nprops shard workers"):
+        # Wait for an available slot
+        while len(active_processes) >= MAX_CONCURRENT:
+            for p in active_processes:
+                if not p.is_alive():
+                    p.join()
+            active_processes = [p for p in active_processes if p.is_alive()]
+            time.sleep(0.5)
 
-#     with torch.no_grad():
-#         logits = MODEL(x, ctx)[:, lastidx, VALUE_TOKENS]
-#         probs = F.softmax(logits, dim=-1)
-#         mean_prob_of_1 = probs[:, 1].mean().item()
+        # Launch next process
+        p = Process(target=run_worker, args=(arg,))
+        p.start()
+        active_processes.append(p)
 
-#     records.append({
-#         "inchi": inchi,
-#         "property_token": ptok,
-#         "value_token": vtok,
-#         "prob_of_1": mean_prob_of_1
-#     })
-
-# df = pd.DataFrame(records)
-# df['value'] = df.apply(lambda row: VALUE_TO_LABEL[row['value_token']], axis=1)
-
-# auc = roc_auc_score(df["value"], df["prob_of_1"])
-# print(f"AUC: {auc:.4f}")
+    # Final cleanup
+    for p in active_processes:
+        p.join()

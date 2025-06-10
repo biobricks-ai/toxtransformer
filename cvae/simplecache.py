@@ -2,6 +2,7 @@ import pathlib
 import pickle
 import hashlib
 import functools
+import inspect
 
 def simplecache(cache_dir):
     cache_dir = pathlib.Path(cache_dir)
@@ -10,7 +11,12 @@ def simplecache(cache_dir):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            key_bytes = pickle.dumps((args, kwargs))
+            try:
+                func_source = inspect.getsource(func)
+            except OSError:
+                func_source = ""  # fallback if source is not available
+
+            key_bytes = pickle.dumps((func_source, args, kwargs))
             key_hash = hashlib.sha1(key_bytes).hexdigest()
             cache_path = cache_dir / f"{func.__name__}_{key_hash}.pkl"
 
