@@ -78,10 +78,11 @@ def create_tensors(partition, outdir):
     assay_vals = torch.nn.utils.rnn.pad_sequence(assay_vals, batch_first=True, padding_value=tokenizer.pad_idx)
     torch.save({'selfies': selfies, 'assay_vals': assay_vals}, (outdir / f"{uuid.uuid4()}.pt").as_posix())
 
+# TODO we need to record which inchi + assay_indexes are in each split
 for split in ['trn', 'tst', 'hld']:
-        logging.info(f'Building {split} multitask supervised training set')
-        output_dir = cvae.utils.mk_empty_directory(f'cache/build_tensordataset/multitask_tensors/{split}', overwrite=True)
-        grouped_data.filter(F.col("split") == split).foreachPartition(lambda part: create_tensors(part, output_dir))
+    logging.info(f'Building {split} multitask supervised training set')
+    output_dir = cvae.utils.mk_empty_directory(f'cache/build_tensordataset/multitask_tensors/{split}', overwrite=True)
+    grouped_data.filter(F.col("split") == split).foreachPartition(lambda part: create_tensors(part, output_dir))
         
 logging.info('Multitask supervised training set built')
 

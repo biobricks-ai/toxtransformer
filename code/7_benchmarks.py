@@ -10,62 +10,8 @@ outdir.mkdir(exist_ok=True, parents=True)
 
 tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer.load('brick/selfies_property_val_tokenizer/')
 
-#%% SOURCE ASSERTIONS =======================================================================
-# conn = sqlite3.connect('brick/cvae.sqlite')
-
-# # # # check that every source in conn is also in evaldf
-# prop_src = pd.read_sql("SELECT property_token,title,source FROM property p INNER JOIN source s on p.source_id = s.source_id", conn)
-# prop_src['source'].value_counts()
-
-# evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')
-# evaldf = evaldf.rename(columns={'assay': 'property_token'})
-
-# # are all evaldf 'assay' in prop_src?
-# assert evaldf['property_token'].isin(prop_src['property_token']).all()
-
-# # get min and max of each tables 'property_token'
-# print(evaldf['property_token'].min(), evaldf['property_token'].max())
-# print(prop_src['property_token'].min(), prop_src['property_token'].max())
-
-# tokassays = list(tokenizer.assay_indexes().values())
-# print(f"Tokenizer assay indexes min: {min(tokassays)}, max: {max(tokassays)}")
-
-# evaldf['property_token'].nunique()
-# assert prop_src['property_token'].isin(evaldf['property_token']).all()
-# badprops2 = prop_src[~prop_src['property_token'].isin(evaldf['property_token'])].reset_index(drop=True)
-# badprops2.shape
-# badprops2['source'].value_counts()
-
-# goodprops = prop_src[prop_src['property_token'].isin(evaldf['property_token'])].reset_index(drop=True)
-# goodprops['source'].value_counts()
-
 #%% TOXCAST BENCHMARK ===========================================================
 conn = sqlite3.connect('brick/cvae.sqlite')
-
-# get all the property_tokens for tox21 properties
-# activities = pd.read_sql("""
-#     SELECT s.source, COUNT(DISTINCT a.inchi) as unique_inchi_count 
-#     FROM activity a 
-#     INNER JOIN property p ON a.property_id = p.property_id 
-#     INNER JOIN source s ON p.source_id = s.source_id 
-#     GROUP BY s.source
-# """, conn)
-#        source  unique_inchi_count
-# 8     pubchem             2910787
-# 4   bindingdb              995589
-# 5      chembl              433848
-# 7         ice               18959
-# 13   toxvaldb               15096
-# 12    toxcast                8831
-# 3       Tox21                7829
-# 6     ctdbase                3438
-# 9       reach                2525
-# 1        BBBP                1971
-# 0        BACE                1513
-# 2     CLINTOX                1454
-# 10      sider                1427
-# 11      tox21                   0
-# count the number of unique chemicals in tox21 activities
 
 
 prop_src = pd.read_sql("SELECT property_token,title,source FROM property p INNER JOIN source s on p.source_id = s.source_id", conn)
@@ -75,10 +21,8 @@ prop_src['source'].value_counts()
 assert prop_src.groupby('property_token').size().max() == 1
 
 # pull in multitask_metrics
-evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')[['assay','nprops','AUC','cross_entropy_loss','NUM_POS','NUM_NEG']]
-evaldf = evaldf.rename(columns={'assay': 'property_token'}).astype({'property_token': 'int64'})
+evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')[['property_token','nprops','AUC','cross_entropy_loss','NUM_POS','NUM_NEG']]
 evaldf = evaldf[evaldf['AUC'] > 0.0]
-# ── Harmonize dtypes and finish the merge ──────────────────────────────────
 
 # are there any property_tokens in evaldf that are not in prop_src?
 eval_df_tokens = evaldf['property_token'].unique()
@@ -92,8 +36,7 @@ evaldf = evaldf.merge(prop_src, left_on='property_token', right_on='property_tok
 evaldf['source'].value_counts()
 
 # remove imbalanced properties
-evaldf[evaldf['source'] == 'Tox21']
-# evaldf = evaldf[(evaldf['NUM_POS'] >= 50) & (evaldf['NUM_NEG'] >= 50)]
+evaldf = evaldf[(evaldf['NUM_POS'] >= 10) & (evaldf['NUM_NEG'] >= 10)]
 
 evaldf.groupby('source').aggregate({'NUM_POS':'max','NUM_NEG':'max'}).sort_values(by='NUM_POS',ascending=False)
 evaldf[evaldf['source'] == 'Tox21'].groupby('property_token').aggregate({'NUM_POS':'max','NUM_NEG':'max'}).sort_values(by='NUM_POS',ascending=False)
@@ -102,7 +45,7 @@ evaldf[evaldf['source'] == 'Tox21'].groupby('property_token').aggregate({'NUM_PO
 evaldf.aggregate({'AUC': 'median','cross_entropy_loss':'median','property_token':'count'}) # 89% median auc, .482 median cross entropy loss
 res = evaldf.groupby(['source','nprops']).aggregate({'AUC': 'median','property_token':'count'}).sort_values(by='AUC',ascending=False)
 tox21 = evaldf[evaldf['source'] == 'Tox21'].groupby(['nprops'])\
-    .aggregate({'AUC': 'median','property_token':'count'})\
+    .aggregate({'AUC': 'median','property_token':'count','NUM_POS':'sum','NUM_NEG':'sum'})\
     .sort_values(by='AUC',ascending=False)\
     .reset_index()
 tox21.to_csv(outdir / 'tox21_auc_by_nprops.csv', index=False)

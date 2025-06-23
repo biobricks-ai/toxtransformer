@@ -1,4 +1,4 @@
-# PYTHONPATH=./ python code/5_0_2_direct_evaluation.py
+# PYTHONPATH=./ python code/5_0_2_0_direct_evaluation.py
 
 
 import time
@@ -24,6 +24,9 @@ import cvae.models.mixture_experts as me
 import cvae.models.multitask_transformer as mt
 from cvae.models.datasets.inmemory_sequence_shift_dataset import PreloadedSequenceShiftDataset, PreloadedSequenceShiftWrapper
 from cvae.simplecache import simplecache
+
+# --- Settings ---
+SKIP_EXISTING = False
 
 # --- Cache and log directory setup ---
 cachedir = Path("cache/direct_eval")
@@ -93,7 +96,7 @@ def process_property_nprops_shard(top_outdir, nprops, target_prop):
     outdir = top_outdir / f"nprops_{nprops}"
     outdir.mkdir(parents=True, exist_ok=True)
     outpath = str(outdir / f"property_{target_prop}_nprops_{nprops}.pt")
-    if os.path.exists(outpath):
+    if os.path.exists(outpath) and SKIP_EXISTING:
         return f"Skipping existing file: {outpath}"
     
 
@@ -159,7 +162,8 @@ if __name__ == "__main__":
     target_props = list(set(bp['property_token'].tolist()))
     outdir = cachedir / "hldout_eval_tensors"
     outdir.mkdir(parents=True, exist_ok=True)
-    nprops_list = [1, 5, 10, 20, 50, 100]
+    nprops_list = [5]
+    # nprops_list = [1, 5, 10, 20, 50, 100]
 
     worker_args = [
         (outdir, nprops, target_prop)

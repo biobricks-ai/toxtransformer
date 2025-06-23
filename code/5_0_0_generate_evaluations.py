@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # PYTHONPATH=./ torchrun --standalone --nproc-per-node=8 --master-port=29500 code/generate_evaluations.py 2> cache/generate_evaluations/logs/err.log
+# TODO this is broken and currently not in use. Either remove or fix.
 
 import os, uuid, pathlib, shutil, logging, random
 import pandas as pd, torch, numpy as np, tqdm
