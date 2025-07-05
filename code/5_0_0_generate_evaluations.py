@@ -1,194 +1,136 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# PYTHONPATH=./ torchrun --standalone --nproc-per-node=8 --master-port=29500 code/generate_evaluations.py 2> cache/generate_evaluations/logs/err.log
-# TODO this is broken and currently not in use. Either remove or fix.
-
-import os, uuid, pathlib, shutil, logging, random
-import pandas as pd, torch, numpy as np, tqdm
+# PYTHONPATH=./ torchrun --nproc_per_node=8 --nnodes=1 --node_rank=0 code/5_0_0_generate_evaluations.py
+import os, uuid
+import torch
+import pandas as pd
+from torch.utils.data import DataLoader, DistributedSampler
+from tqdm import tqdm
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import DataLoader
-from itertools import product
-import faulthandler
-faulthandler.enable()
+import pathlib
 
-from cvae.tokenizer import SelfiesPropertyValTokenizer
 import cvae.models.mixture_experts as me
-import cvae.models.datasets.restricted_dataset as rd
+import shutil
+import logging
+from cvae.tokenizer import SelfiesPropertyValTokenizer
+from cvae.models.datasets.inmemory_sequence_shift_dataset import (
+    PreloadedSequenceShiftDataset, TargetPropertySequenceShiftWrapper
+)
+import time
+import random
+import hashlib
 
-torch._nested_tensor_from_mask_left = None
+outdir = pathlib.Path("cache/generate_evaluations/")
+shutil.rmtree(outdir, ignore_errors=True)  # clear previous results
+outdir.mkdir(parents=True, exist_ok=True)
 
-class EvalContext:
-    def __init__(self, rank, local_rank, model, tokenizer, device, nprops, batch_size):
-        self.rank = rank
-        self.local_rank = local_rank
-        self.model = model
-        self.tokenizer = tokenizer
-        self.device = device
-        self.nprops = nprops
-        self.batch_size = batch_size
+parquetdir = outdir / "evaluations.parquet"
+parquetdir.mkdir(parents=True, exist_ok=True)
 
-def hash_input(tensor, pad_idx):
-    trimmed = tensor[tensor != pad_idx].tolist()
-    return "_".join(map(str, trimmed))
+dist.init_process_group("nccl")
+local_rank = int(os.environ["LOCAL_RANK"])
+torch.cuda.set_device(local_rank)
+device = torch.device(f"cuda:{local_rank}")
+rank = dist.get_rank()
+world_size = dist.get_world_size()
 
-def run_eval(i, raw_inp, raw_teach, raw_out, context):
-    inp, teach, out = raw_inp.to(context.device), raw_teach.to(context.device), raw_out.to(context.device)
-    valid = torch.sum(torch.isin(out, context.tokenizer.value_indexes_tensor), dim=1) >= context.nprops
-    inp, teach, out = inp[valid], teach[valid], out[valid, 1:(2 * context.nprops + 1)]
-    if inp.shape[0] == 0: return pd.DataFrame()
-    input_hashes = [hash_input(row, context.tokenizer.PAD_IDX) for row in inp]
+
+logdir = pathlib.Path("cache/generate_evaluations/logs")
+logdir.mkdir(parents=True, exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    filename=logdir / f"rank_{rank}.log",
+    filemode="w"
+)
+
+logging.info(f"Rank {rank} started evaluation process.")
+model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe").to(device).eval()
+
+tokenizer: SelfiesPropertyValTokenizer = model.tokenizer
+tokenizer.assay_indexes_tensor = torch.tensor(list(tokenizer.assay_indexes().values()), device=device)
+tokenizer.value_indexes_tensor = torch.tensor(list(tokenizer.value_indexes().values()), device=device)
+valueindex = tokenizer.value_indexes()
+valuemap = {v: k for k, v in valueindex.items()}  # inverse map
+
+eval_props = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
+eval_props = eval_props['property_token'].unique()
+eval_props = sorted(eval_props)
+eval_props = eval_props[rank::world_size]  # split work across ranks
+
+logging.info(f"Rank {rank} processing properties: {len(eval_props)}")
+preloaded_dataset = PreloadedSequenceShiftDataset("cache/build_tensordataset/multitask_tensors/hld", tokenizer=tokenizer)
+
+nprops_list = [100, 50, 20, 10, 5, 1]
+batch_accum = []
+
+# Pair and shuffle (nprops, prop) for load balancing
+tasks = [(n, p) for n in nprops_list for p in eval_props]
+random.seed(rank)  # Ensure different shuffle per rank
+random.shuffle(tasks)
+
+total_tasks = len(tasks)
+start_time = time.time()
+logging.info(f"Rank {rank} has {total_tasks} tasks to process.")
+
+value_tensor = torch.tensor(list(valueindex.values()), device=device)
+index_of_1 = list(valueindex.values()).index(valueindex[1])
+
+for task_idx, (nprops, prop) in enumerate(tasks):
+    logging.info(f"Rank {rank} processing property={prop}, nprops={nprops} ({task_idx + 1}/{total_tasks})")
     
-    assert inp.shape[0] == teach.shape[0] == out.shape[0] != 0, f"Rank {context.rank} - {inp.shape[0]} inputs → {valid.sum().item()} valid after token filtering"
-    logging.info(f"[Rank {context.rank}] {inp.shape[0]} inputs → {valid.sum().item()} valid after token filtering")
-    
+    ds = TargetPropertySequenceShiftWrapper(preloaded_dataset, nprops=nprops, target_property_token=prop)
+    batch_size = 3000 // nprops
+    loader = DataLoader(ds, batch_size=batch_size)
+
     with torch.no_grad():
-        prob = context.model(inp, teach)
-        if prob is None or torch.isnan(prob).any() or torch.isinf(prob).any():
-            return pd.DataFrame()
-        prob = torch.softmax(prob, dim=2)
+        for batch in loader:
+            inp, teach, out, numprops = (x.to(device) for x in batch)
 
-    assay_pos = torch.arange(0, context.nprops * 2, 2, device=out.device)
-    value_pos = assay_pos + 1
-    assays, values = out[:, assay_pos], out[:, value_pos]
-    prob_vals = torch.argmax(prob, dim=2)[:, value_pos]
-    rawprobs = prob[:, value_pos, :][:, :, context.tokenizer.value_indexes_tensor]
-    probs = (rawprobs / rawprobs.sum(dim=2, keepdim=True))[:, :, 1]
+            prob = model(inp, teach)
 
-    assays_np = assays.cpu().numpy().astype(str).flatten()
-    values_np = values.cpu().numpy().astype(str).flatten()
-    prob_vals_np = prob_vals.cpu().numpy().flatten()
-    probs_np = probs.cpu().numpy().flatten()
-    chemical_id_np = np.repeat(input_hashes, context.nprops)
-    position = np.tile(np.arange(context.nprops), len(input_hashes))
+            target_val_indices = []
+            for seq in out:
+                end = (seq == tokenizer.END_IDX).nonzero(as_tuple=True)[0].item()
+                target_val_indices.append(end - 1)
 
-    assays_str = assays.cpu().numpy().astype(str)
-    values_str = values.cpu().numpy().astype(str)
-    prior_assays = [' + '.join(row[:j+1]) for row in assays_str for j in range(context.nprops)]
-    prior_values = [' + '.join(row[:j+1]) for row in values_str for j in range(context.nprops)]
+            batch_indices = torch.arange(prob.size(0), device=device)
+            value_probs = prob[batch_indices, target_val_indices][:, value_tensor].softmax(dim=1)
 
-    return pd.DataFrame({
-        'batch': i,
-        'chemical_id': chemical_id_np,
-        'prior_assays': prior_assays,
-        'prior_values': prior_values,
-        'assay': assays_np,
-        'value': values_np,
-        'probs': probs_np,
-        'nprops': position,
-        'prob_assays': assays_np,
-        'prob_vals': prob_vals_np
-    })
+            
+            prob_of_1 = value_probs[:, index_of_1]
 
-def setup(rank):
-    outdir = pathlib.Path("cache/generate_evaluations")
-    tmpdir = outdir / "temp"
-    logdir = outdir / "logs"
-    logdir.mkdir(exist_ok=True, parents=True)
-    logfile = logdir / f"log_{rank}.txt"
-    log_format = '%(asctime)s - RANK {} - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'.format(rank)
-    logging.basicConfig(filename=logfile, level=logging.INFO, format=log_format, datefmt='%Y-%m-%d %H:%M:%S', force=True, filemode='w')
-    logging.info("--- Starting Setup ---")
-    if rank == 0:
-        outdir.mkdir(exist_ok=True, parents=True)
-        shutil.rmtree(tmpdir, ignore_errors=True)
-        tmpdir.mkdir(exist_ok=True, parents=True)
-    return outdir, tmpdir
+            true_token = out[batch_indices, target_val_indices].cpu()
+            true_val = [valuemap[int(tok)] for tok in true_token]
+            
 
-def flush_to_parquet(accum, tmpdir, rank, label):
-    if accum:
-        df = pd.concat(accum, ignore_index=True)
-        path = tmpdir / f"predictions_{label}_r{rank}_{uuid.uuid4().hex[:8]}.parquet"
-        df.to_parquet(path, index=False)
+            df = pd.DataFrame({
+                "chemical_id": inp.view(inp.shape[0], -1).cpu().tolist(),
+                "property_token": [prop] * len(true_val),
+                "prob_of_1": prob_of_1.cpu().tolist(),
+                "true_value": true_val,
+                "numprops": numprops.cpu().tolist(),
+                "nprops": [nprops] * len(true_val)
+            })
+            batch_accum.extend(df.to_dict("records"))
 
-def main_worker(context, repetitions, outdir, tmpdir):
-    bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
-    props = list(set(bp['property_token']))
-    dataset = rd.FastPropertyGuaranteeDataset(
-        path="cache/build_tensordataset/multitask_tensors/hld",
-        tokenizer=context.tokenizer,
-        nprops=context.nprops,
-        target_props=props,
-        target_positions=[0, 4],
-        sampling_weights={},
-        skip_small_nprops=True
-    )
+            if len(batch_accum) > 1_000_000:
+                df = pd.DataFrame(batch_accum)
+                path = f"{parquetdir}/partial_rank{rank}_{uuid.uuid4()}.parquet"
+                df.to_parquet(path, index=False)
+                batch_accum = []
 
-    # sampler = DistributedSampler(dataset, dist.get_world_size(), context.rank, shuffle=False)
-    loader = DataLoader(
-        dataset,
-        batch_size=context.batch_size,
-        num_workers=4,  # or adjust to CPU cores / num ranks
-        pin_memory=True,
-        prefetch_factor=2,
-        persistent_workers=False
-    )
+    # Log estimated remaining time
+    elapsed = time.time() - start_time
+    tasks_done = task_idx + 1
+    tasks_remaining = total_tasks - tasks_done
+    time_per_task = elapsed / tasks_done
+    time_remaining = tasks_remaining * time_per_task
+    logging.info(f"Rank {rank}: {tasks_remaining} tasks remaining, estimated time left: {time_remaining/60:.2f} min")
 
-    accum, row_count = [], 0
-    threshold = 250_000
+if batch_accum:
+    df = pd.DataFrame(batch_accum)
+    path = f"{outdir}/final_rank{rank}_{uuid.uuid4()}.parquet"
+    df.to_parquet(path, index=False)
 
-    for rep in range(repetitions):
-        logging.info(f"Rank {context.rank} - Repeat {rep+1}/{repetitions} - current rows: {row_count // 1000}k")
-        random.shuffle(props)
-
-        for prop in props:
-            logging.info(f"Rank {context.rank} - Setting sampling weights for prop {prop}")
-            if not dataset.has_property(prop):
-                continue
-
-            dataset.set_sampling_weights({prop: 1.0})
-            # sampler.set_epoch(rep)
-            sampled = 0
-
-            for i, (inp, teach, out) in enumerate(loader):
-                df = run_eval(i, inp, teach, out, context)
-                logging.info(f"Rank {context.rank} - Evaluated {i} rows {len(df)} rows, accum {len(accum)} rows")
-                if not df.empty:
-                    accum.append(df)
-                    row_count += len(df)
-                    sampled += inp.size(0)
-
-                if row_count >= threshold:
-                    flush_to_parquet(accum, tmpdir, context.rank, f"rep{rep}_prop{prop}")
-                    accum, row_count = [], 0
-
-                if sampled >= 10_000:
-                    break
-
-        flush_to_parquet(accum, tmpdir, context.rank, "final")
-    flush_to_parquet(accum, tmpdir, context.rank, "final")
-
-
-if __name__ == "__main__":
-    repetitions = 10000
-    rank = int(os.environ.get("RANK", -1))
-    local_rank = int(os.environ.get("LOCAL_RANK", -1))
-    world_size = int(os.environ.get("WORLD_SIZE", -1))
-
-    outdir, tmpdir = setup(rank)
-
-    try:
-        dist.init_process_group("nccl", rank=rank, world_size=world_size)
-        torch.cuda.set_device(local_rank)
-        device = torch.device(f"cuda:{local_rank}")
-        model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe").to(device)
-        model = torch.compile(model,  mode="reduce-overhead", fullgraph=False)
-        model.eval()
-
-        tokenizer: SelfiesPropertyValTokenizer = model.tokenizer
-        tokenizer.assay_indexes_tensor = torch.tensor(list(tokenizer.assay_indexes().values()), device=device)
-        tokenizer.value_indexes_tensor = torch.tensor(list(tokenizer.value_indexes().values()), device=device)
-
-        context = EvalContext(rank, local_rank, model, tokenizer, device, nprops=5, batch_size=128)
-
-        dist.barrier()
-        main_worker(context, repetitions, outdir, tmpdir)
-        dist.barrier()
-
-    except Exception as e:
-        logging.exception(f"Unhandled Exception (Rank {rank})")
-
-    finally:
-        if dist.is_initialized():
-            dist.destroy_process_group()
+dist.barrier()
+dist.destroy_process_group()

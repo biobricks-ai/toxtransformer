@@ -4,58 +4,66 @@
 # curl "http://localhost:6515/predict?property_token=5042&inchi=InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)"
 FROM nvidia/cuda:12.3.1-base-ubuntu20.04
 
-# Set a noninteractive frontend to prevent prompts
+# ----------- System Environment -----------
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Install system dependencies, including Python 3.9, pip, and Git
-RUN apt-get update && apt-get install -y \
-    python3.9 \
-    python3-pip \
-    python3.9-dev \
-    git
-
-# Symlink Python 3.9 as the default Python version
-RUN ln -s /usr/bin/python3.9 /usr/bin/python
-
-# Upgrade pip
-RUN python -m pip install --upgrade pip
-
-# Install PyTorch and other dependencies
-RUN pip install \
-    torch torchvision torchaudio \
-    pandas scikit-learn \
-    biobricks dvc tqdm \
-    matplotlib dask[distributed] \
-    rdkit
-
-# RDKIT needs libxrender1
-RUN apt-get install -y libxrender1
-
-# Install the requirements
-COPY flask_cvae/requirements.txt requirements.txt
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
-
-# Copy the app
-RUN mkdir -p app
-COPY flask_cvae app/flask_cvae
-
-# Command to run the application
+ENV APP_DIR=/app
 ENV FLASK_APP=flask_cvae.app
 ENV ROOT_URL=http://localhost:6515
+ENV PORT=6515
+ENV PATH="/root/.local/bin:$PATH"
 
-# Copy the necessary resources
-COPY brick/moe app/brick/moe
-COPY brick/cvae.sqlite app/brick/cvae.sqlite
-COPY brick/selfies_property_val_tokenizer app/brick/selfies_property_val_tokenizer
+# ----------- Install Python 3.11 and Tools -----------
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3.11-distutils \
+    python3.11-venv \
+    git \
+    curl \
+    libxrender1 \
+    openjdk-11-jdk && \
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 && \
+    ln -s /usr/bin/python3.11 /usr/bin/python
 
-# Expose the port the app runs on
-EXPOSE 6515
+# ----------- Install pipx and uv -----------
+RUN pip install pipx && \
+    pipx ensurepath && \
+    pipx install uv
 
-# add the cvae module
-COPY cvae app/cvae
+# ----------- Install Python Dependencies -----------
+RUN uv pip install --system \
+    flask \
+    werkzeug \
+    pandas \
+    numpy \
+    torch torchvision torchaudio \
+    tqdm \
+    rdkit \
+    scikit-learn \
+    pyyaml \
+    selfies \
+    faiss-cpu \
+    pyspark \
+    rotary_embedding_torch \
+    x_transformers
 
-# Start the container with a bash shell
-WORKDIR /app
+# ----------- Set Up Application -----------
+WORKDIR ${APP_DIR}
+
+COPY flask_cvae/requirements.txt requirements.txt
+RUN uv pip install --system -r requirements.txt
+
+COPY flask_cvae ${APP_DIR}/flask_cvae
+COPY brick/moe ${APP_DIR}/brick/moe
+COPY brick/cvae.sqlite ${APP_DIR}/brick/cvae.sqlite
+COPY brick/selfies_property_val_tokenizer ${APP_DIR}/brick/selfies_property_val_tokenizer
+COPY cvae ${APP_DIR}/cvae
+
+EXPOSE ${PORT}
+
 CMD ["gunicorn", "-b", "0.0.0.0:6515", "--timeout", "480", "--graceful-timeout", "480", \
-    "--workers", "1", "--keep-alive", "300", "flask_cvae.app:app"]
-# gunicorn -b 0.0.0.0:6515 --timeout 480 --graceful-timeout 480 --workers 1 flask_cvae.app:app
+     "--workers", "1", "--keep-alive", "300", "flask_cvae.app:app"]

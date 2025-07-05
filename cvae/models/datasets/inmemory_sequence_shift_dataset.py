@@ -114,3 +114,53 @@ class PreloadedSequenceShiftWrapper(torch.utils.data.Dataset):
         out = F.pad(av_sos_eos, (0, self.nprops * 2 + 2 - av_sos_eos.size(0)), value=float(self.pad_idx))
         tch = torch.cat([torch.tensor([1], device=device), out[:-1]])
         return tch, out
+
+class TargetPropertySequenceShiftWrapper(torch.utils.data.Dataset):
+    def __init__(self, base: PreloadedSequenceShiftDataset, target_property_token: int, nprops: int = 5):
+        self.tokenizer = base.tokenizer
+        self.nprops = nprops
+        self.pad_idx = self.tokenizer.PAD_IDX
+        self.target_property_token = target_property_token
+        self.SEP = torch.tensor([self.tokenizer.SEP_IDX], dtype=torch.long)
+        self.END = torch.tensor([self.tokenizer.END_IDX], dtype=torch.long)
+
+        self.base_samples = base.samples
+        self.samples = []
+
+        for idx, (selfies, reshaped) in enumerate(self.base_samples):
+            if torch.any(reshaped[:, 0] == target_property_token):
+                self.samples.append(idx)
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        base_idx = self.samples[idx]
+        selfies, reshaped = self.base_samples[base_idx]
+        tch, out = self._process(reshaped)
+        return selfies, tch, out, reshaped.size(0)
+
+    def _process(self, reshaped: Tensor) -> Tuple[Tensor, Tensor]:
+        device = reshaped.device
+
+        # Split out the target row
+        target_rows = reshaped[reshaped[:, 0] == self.target_property_token]
+        other_rows = reshaped[reshaped[:, 0] != self.target_property_token]
+
+        if target_rows.size(0) == 0:
+            raise ValueError("Target property token not found in reshaped tensor.")
+
+        # Shuffle other rows
+        perm = torch.randperm(other_rows.size(0))
+        shuffled = other_rows[perm]
+
+        # Keep only the first (nprops - 1) from shuffled, append target last
+        n_other = min(self.nprops - 1, shuffled.size(0))
+        selected = torch.cat([shuffled[:n_other], target_rows[0:1]], dim=0).flatten()
+
+        av_sos_eos = torch.cat([self.SEP.to(device), selected, self.END.to(device)])
+        total_len = self.nprops * 2 + 2
+        out = F.pad(av_sos_eos, (0, total_len - av_sos_eos.size(0)), value=float(self.pad_idx))
+        tch = torch.cat([torch.tensor([1], device=device), out[:-1]])
+
+        return tch, out

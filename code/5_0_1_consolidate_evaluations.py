@@ -9,7 +9,8 @@ from pyspark.sql import functions as F
 
 # Set up directories
 outdir = pathlib.Path("cache/consolidate_evaluations")
-tmpdir = pathlib.Path("cache/generate_evaluations") / "temp"
+tmpdir = pathlib.Path("cache/generate_evaluations/evaluations.parquet")
+tmpdir.mkdir(parents=True, exist_ok=True)
 partitioned_dir = outdir / "multitask_predictions.parquet"
 
 # Set up logging
@@ -60,7 +61,8 @@ logging.info(f"Partitioned dataset written to {partitioned_dir}")
 logging.info("Starting AUC calculation...")
 
 # Select only required columns and cache to avoid recomputation
-scored = spark.read.parquet(str(partitioned_dir)).select("nprops", "value", "probs")
+scored = spark.read.parquet(str(partitioned_dir))
+scored = scored.select("nprops", "property_token","true_value", "prob_of_1")
 scored.cache()
 
 # Grouped processing using Pandas UDF for efficient AUC computation
@@ -80,9 +82,12 @@ def compute_auc(value_series: pd.Series, probs_series: pd.Series) -> float:
 
 
 # Process in smaller chunks
-auc_df = scored.groupBy("nprops").agg(compute_auc(F.col("value"), F.col("probs")).alias("auc"))
+auc_df = scored.groupBy(["nprops","property_token"]).agg(compute_auc(F.col("true_value"), F.col("prob_of_1")).alias("auc"))
 auc_results = auc_df.orderBy("nprops").toPandas()
 
+# pivot with property_token on the rows and nprops on the columns
+auc_results = auc_results.pivot(index="property_token", columns="nprops", values="auc").reset_index()
+auc_results
 logging.info(f"AUC by nprops:\n{auc_results}")
 
 # Clean up

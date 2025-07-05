@@ -24,10 +24,20 @@ outdir.mkdir(exist_ok=True, parents=True)
 tqdm.tqdm.pandas()
 
 # Load tokenizer and Spark session
-spark = cvae.utils.get_spark_session()
+spark = SparkSession.builder \
+        .appName("eval_multi_properties") \
+        .master("local[16]") \
+        .config("spark.driver.memory", "128g") \
+        .config("spark.driver.maxResultSize", "96g") \
+        .config("spark.sql.shuffle.partitions", "128") \
+        .config("spark.sql.files.maxPartitionBytes", str(64 * 1024 * 1024)) \
+        .config("spark.local.dir", "/home/ubuntu/spark_tmp") \
+        .config("spark.network.timeout", "600s") \
+        .config("spark.executor.heartbeatInterval", "60s") \
+        .getOrCreate()
 
 # Read predictions
-outdf = spark.read.parquet("cache/direct_eval_predictions/predictions_parquet")
+outdf = spark.read.parquet("cache/consolidate_evaluations/multitask_predictions.parquet")
 
 def calculate_metrics(y_true, y_pred):
     if len(set(y_true)) < 2:
@@ -52,22 +62,22 @@ calculate_metrics_udf = F.udf(calculate_metrics, "struct<AUC:double, ACC:double,
 
 from pyspark.sql.window import Window
 
-meanpred = outdf.groupBy("nprops", "property_token", "inchi", "value").agg(F.mean("prob_of_1").alias("probs"))
-# meanpred.write.parquet((outdir / "multitask_meanpred.parquet").as_posix(), mode="overwrite")
+# numprops is the number of properties for the chemical, nprops is the number of properties in the input for this prediction
+meanpred = outdf.groupBy("nprops", "numprops","property_token", "chemical_id", "true_value").agg(F.mean("prob_of_1").alias("probs")).cache()
 
-# get dict of inchi to list of inchi to list of (property_token, value_token) from 5_0_2_0_direct_evaluation.py
-with open("cache/direct_eval/activity_by_inchi.pkl", "rb") as f:
-    activity_by_inchi = pickle.load(f)
-inchi_to_nprops = [{"inchi": inchi, "num_known_properties": len(props)} for inchi, props in activity_by_inchi.items()]
-inchi_props_df = pd.DataFrame(inchi_to_nprops)
-inchi_props_sdf = spark.createDataFrame(inchi_props_df)
+# meanpred = meanpred.filter(col('nprops') <= .5*col('num_known_properties'))
+# meanpred.count() / a2
 
-large_properties_df = meanpred.groupBy('nprops', 'property_token').agg(
-    F.collect_list('value').alias('y_true'),
-    F.collect_list('probs').alias('y_pred'),
-    countDistinct('inchi').alias('nchem'),
-    F.sum(when(col('value') == 1, 1).otherwise(0)).alias('NUM_POS'),
-    F.sum(when(col('value') == 0, 1).otherwise(0)).alias('NUM_NEG'))
+large_properties_df = meanpred\
+    .groupBy('nprops', 'property_token', 'numprops').agg(
+        F.collect_list('true_value').alias('y_true'),
+        F.collect_list('probs').alias('y_pred'),
+        countDistinct('chemical_id').alias('nchem'),
+        F.sum(when(col('true_value') == 1, 1).otherwise(0)).alias('NUM_POS'),
+        F.sum(when(col('true_value') == 0, 1).otherwise(0)).alias('NUM_NEG'))\
+    .filter((col('NUM_POS') >= 10) & (col("NUM_NEG") >= 10))
+
+large_properties_df.write.parquet((outdir / "multitask_large_properties.parquet").as_posix(), mode="overwrite")
 
 metrics_df = large_properties_df.repartition(800) \
     .withColumn('metrics', calculate_metrics_udf(F.col('y_true'), F.col('y_pred'))) \
@@ -77,4 +87,5 @@ metrics_df = large_properties_df.repartition(800) \
         col('metrics.BAC').alias('BAC'), 
         col('metrics.cross_entropy_loss').alias('cross_entropy_loss'), 'NUM_POS', 'NUM_NEG', 'nchem')
 
+metrics_df.show()
 metrics_df.write.parquet((outdir / "multitask_metrics.parquet").as_posix(), mode="overwrite")
