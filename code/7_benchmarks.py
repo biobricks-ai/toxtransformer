@@ -13,7 +13,6 @@ tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer.load('brick/selfies_prope
 #%% TOXCAST BENCHMARK ===========================================================
 conn = sqlite3.connect('brick/cvae.sqlite')
 
-
 prop_src = pd.read_sql("SELECT property_token,title,source FROM property p INNER JOIN source s on p.source_id = s.source_id", conn)
 prop_src['source'].value_counts()
 

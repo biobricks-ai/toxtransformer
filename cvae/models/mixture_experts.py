@@ -144,7 +144,7 @@ class MoE(nn.Module):
                 
         return output
     
-    def build_stratified_lossfn(self):
+    def build_stratified_lossfn(self,label_smoothing=.001):
         ignore_index = self.tokenizer.pad_idx
         value_token_ids = torch.tensor(list(self.tokenizer.value_indexes().values()), dtype=torch.long)
         
@@ -172,11 +172,7 @@ class MoE(nn.Module):
             binary_targets = (output_selected == value_tokens_device[1]).long()
             
             # Standard cross entropy with label smoothing on 2 classes
-            loss = torch.nn.functional.cross_entropy(
-                value_logits, 
-                binary_targets, 
-                label_smoothing=0.005
-            )
+            loss = torch.nn.functional.cross_entropy(value_logits,binary_targets, label_smoothing=label_smoothing)
             
             return loss
 

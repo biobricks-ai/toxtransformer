@@ -3,13 +3,14 @@ import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from lion_pytorch import Lion
+# from lion_pytorch import Lion
 import logging
 import pathlib
 import numpy as np
 import torch.nn.functional as F
 from torch.amp import autocast, GradScaler
 import traceback # Import traceback to log full error info
+import psutil
 import datetime
 from cvae.models.multitask_transformer import linear_warmup_and_decay_scheduler
 from typing import Optional, Tuple
@@ -261,7 +262,8 @@ class Trainer():
         try:
             epoch = 0
             while self.global_step < self.max_steps:
-                self.log(f"Rank {self.rank}: Starting epoch {epoch}")
+                ram = psutil.virtual_memory()
+                self.log(f"Rank {self.rank}: Starting epoch {epoch} remaining ram {ram.available / (1024 ** 3):.2f} GB")
                 self.trn_iterator.sampler.set_epoch(epoch)
                 self.log(f"Rank {self.rank}: Sampler epoch set to {epoch}")
                 

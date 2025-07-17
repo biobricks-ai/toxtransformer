@@ -31,7 +31,6 @@ spark = SparkSession.builder \
         .config("spark.driver.maxResultSize", "96g") \
         .config("spark.sql.shuffle.partitions", "128") \
         .config("spark.sql.files.maxPartitionBytes", str(64 * 1024 * 1024)) \
-        .config("spark.local.dir", "/home/ubuntu/spark_tmp") \
         .config("spark.network.timeout", "600s") \
         .config("spark.executor.heartbeatInterval", "60s") \
         .getOrCreate()
@@ -69,14 +68,14 @@ meanpred = outdf.groupBy("nprops", "numprops","property_token", "chemical_id", "
 # meanpred.count() / a2
 
 large_properties_df = meanpred\
-    .groupBy('nprops', 'property_token', 'numprops').agg(
+    .groupBy('nprops', 'property_token').agg(
         F.collect_list('true_value').alias('y_true'),
         F.collect_list('probs').alias('y_pred'),
         countDistinct('chemical_id').alias('nchem'),
         F.sum(when(col('true_value') == 1, 1).otherwise(0)).alias('NUM_POS'),
         F.sum(when(col('true_value') == 0, 1).otherwise(0)).alias('NUM_NEG'))\
     .filter((col('NUM_POS') >= 10) & (col("NUM_NEG") >= 10))
-
+    
 large_properties_df.write.parquet((outdir / "multitask_large_properties.parquet").as_posix(), mode="overwrite")
 
 metrics_df = large_properties_df.repartition(800) \

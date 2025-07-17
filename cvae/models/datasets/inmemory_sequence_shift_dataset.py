@@ -1,3 +1,7 @@
+from typing import Dict, List, Set, Tuple
+from collections import defaultdict
+import random
+
 import torch
 from torch.utils.data import Dataset
 import pathlib
@@ -64,7 +68,11 @@ class PreloadedSequenceShiftDataset:
         self.samples: List[Tuple[Tensor, Tensor]] = []
         self.tokenizer = tokenizer
         self.pad_idx = tokenizer.PAD_IDX
+        self.property_to_sample_idxs: Dict[int, List[int]] = defaultdict(list)
+        self.property_to_value_to_sample_idxs: Dict[int, Dict[int, List[int]]] = defaultdict(lambda: defaultdict(list))
+        self.sample_to_numprops : Dict[int, int] = defaultdict(int)
 
+        sample_idx = 0
         for file_path in tqdm.tqdm(pathlib.Path(path).glob("*.pt"), desc="Preloading dataset"):
             file_data = torch.load(file_path, map_location="cpu")
             selfies_list = file_data["selfies"]
@@ -73,50 +81,24 @@ class PreloadedSequenceShiftDataset:
             for selfies, assay_vals in zip(selfies_list, assay_vals_list):
                 mask = assay_vals != self.pad_idx
                 valid_tokens = assay_vals[mask][1:-1]
-                if valid_tokens.numel() >= 2:
-                    reshaped = valid_tokens.view(-1, 2).contiguous()
-                    self.samples.append((selfies, reshaped))
+                reshaped = valid_tokens.view(-1, 2).contiguous()
+                self.samples.append((selfies, reshaped))
+                
+                # For each property (assay id) in this sample, add sample_idx to the dict
+                for prop in reshaped[:, 0].unique().tolist():
+                    self.property_to_sample_idxs[prop].append(sample_idx)
 
+                # Map property values to sample indices
+                for prop, value in zip(reshaped[:, 0].tolist(), reshaped[:, 1].tolist()):
+                    self.property_to_value_to_sample_idxs[prop][value].append(sample_idx)
 
-class PreloadedSequenceShiftWrapper(torch.utils.data.Dataset):
-    def __init__(self, base: PreloadedSequenceShiftDataset, nprops=5, assay_filter: List[int] = []):
-        self.tokenizer = base.tokenizer
-        self.nprops = nprops
-        self.pad_idx = self.tokenizer.PAD_IDX
-        self.SEP = torch.tensor([self.tokenizer.SEP_IDX], dtype=torch.long)
-        self.END = torch.tensor([self.tokenizer.END_IDX], dtype=torch.long)
+                self.sample_to_numprops[sample_idx] = reshaped.size(0)
 
-        self.samples = []
-        self.base_samples = base.samples
-        self.assay_filter_tensor = torch.tensor(assay_filter, dtype=torch.long) if assay_filter else None
-
-        for idx, (selfies, reshaped) in enumerate(self.base_samples):
-            if self.assay_filter_tensor is not None:
-                assay_ids = reshaped[:, 0]
-                if not torch.any(torch.isin(assay_ids, self.assay_filter_tensor)):
-                    continue
-            self.samples.append(idx)  # Just store index for indirection
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        base_idx = self.samples[idx]
-        selfies, reshaped = self.base_samples[base_idx]
-        return selfies, *self._process(reshaped)
-
-    def _process(self, reshaped: Tensor) -> Tuple[Tensor, Tensor]:
-        device = reshaped.device
-        perm = torch.randperm(reshaped.size(0))
-        shuffled = reshaped[perm].flatten()
-        av_truncate = shuffled[:self.nprops * 2]
-        av_sos_eos = torch.cat([self.SEP.to(device), av_truncate, self.END.to(device)])
-        out = F.pad(av_sos_eos, (0, self.nprops * 2 + 2 - av_sos_eos.size(0)), value=float(self.pad_idx))
-        tch = torch.cat([torch.tensor([1], device=device), out[:-1]])
-        return tch, out
+                sample_idx += 1
 
 class TargetPropertySequenceShiftWrapper(torch.utils.data.Dataset):
-    def __init__(self, base: PreloadedSequenceShiftDataset, target_property_token: int, nprops: int = 5):
+
+    def __init__(self, base: PreloadedSequenceShiftDataset, target_property_token: int, nprops: int, nsamples: int, minprops: int):
         self.tokenizer = base.tokenizer
         self.nprops = nprops
         self.pad_idx = self.tokenizer.PAD_IDX
@@ -125,11 +107,25 @@ class TargetPropertySequenceShiftWrapper(torch.utils.data.Dataset):
         self.END = torch.tensor([self.tokenizer.END_IDX], dtype=torch.long)
 
         self.base_samples = base.samples
-        self.samples = []
+        
+        # Get all unique values for the target property
+        value_to_idxs = base.property_to_value_to_sample_idxs[target_property_token]
+        
+        # For each value, collect sample indices with at least nprops properties
+        val_selected = defaultdict(list)
+        for value, idxs in value_to_idxs.items():
+            for idx in idxs:
+                if base.sample_to_numprops[idx] >= minprops:
+                    val_selected[value].append(idx)
 
-        for idx, (selfies, reshaped) in enumerate(self.base_samples):
-            if torch.any(reshaped[:, 0] == target_property_token):
-                self.samples.append(idx)
+        # Compute the minimum number of samples available per value
+        min_selected_lengths = min((len(v) for v in val_selected.values()), default=0)
+        per_value_samples = min(nsamples, min_selected_lengths)
+
+        # Build the final sample indices list: for each value, randomly select per_value_samples indices
+        self.samples: List[int] = []
+        for value, idxs in val_selected.items():
+            self.samples.extend(idxs[:per_value_samples])
 
     def __len__(self):
         return len(self.samples)
