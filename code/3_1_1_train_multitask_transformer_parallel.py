@@ -72,28 +72,29 @@ def main(rank, world_size):
     logging.info(f"Rank {rank} starting setup.")
     tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer.load('brick/selfies_property_val_tokenizer')
 
-    # Epoch: 0, Step: 6700, Train Loss (last cycle): 0.3774, Eval Loss: 0.3448, BAC: 0.7082, AUC: 0.8653, LR: 0.000020
-    # model = me.MoE(tokenizer, num_experts=16, k=4, hdim=256, dim_feedforward=1024, nhead=4, balance_loss_weight=0.1, expert_layers=6)
-    # batch_size = 100
-
-    # 2025-04-27 19:51:22 - INFO - Epoch: 0, Step: 1700, Train Loss (last cycle): 2.1533, Eval Loss: 0.4625, BAC: 0.5000, AUC: 0.7146, LR: 0.000078
-    # model = me.MoE(tokenizer, num_experts=16, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, expert_layers=6)
-    # batch_size = 25
-
-    # 2025-04-28 08:57:34 - INFO - Rank 0: Evaluation complete. Loss: 0.5168, AUC: 0.7997, BAC: 0.6644
-    # model = me.MoE(tokenizer, num_experts=18, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, expert_layers=6)
-    # batch_size = 25
-
-    # 2025-04-28 20:12:00 - INFO - Epoch: 0, Step: 6000, Train Loss (last cycle): 0.4948, Eval Loss: 0.4219, BAC: 0.7163, AUC: 0.8700, LR: 0.000100
-    # 2025-05-06 13:02:38 - INFO - Epoch: 8, Step: 37000, Train Loss (last cycle): 0.9009, Eval Loss: 0.8615, BAC: 0.7482, AUC: 0.9135, LR: 0.000210
-    # model = me.MoE(tokenizer, num_experts=24, k=4, hdim=512, dim_feedforward=2048, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
-
     # model = me.MoE(tokenizer, num_experts=12, k=4, hdim=512, dim_feedforward=1024, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
     # Epoch: 30, Step: 310000, Train Loss (last cycle): 0.7030, Eval Loss: 0.7256, BAC: 0.7734, AUC: 0.9643, LR: 0.000001
     # model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
     # model = me.MoE(tokenizer, num_experts=12, k=4, hdim=512, dim_feedforward=1024, nhead=4, balance_loss_weight=0.1, diversity_loss_weight=1e-4, expert_layers=6)
-    model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
-    batch_size = 52
+    # model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
+    # batch_size = 52
+
+    model = me.MoE(
+        tokenizer, 
+        num_experts=8,  # Reduced from 32 for speed
+        k=2,           # Reduced from 4 for efficiency  
+        hdim=256,      # Reduced from 512
+        dim_feedforward=512,  # Reduced from 1024
+        nhead=8, 
+        expert_layers=3,  # Reduced from 6
+        balance_loss_weight=0.05, 
+        diversity_loss_weight=1e-3,
+        noise_factor=0.1,           # Initial noise
+        noise_decay_steps=10000,    # Steps to decay over
+    )
+    # model = me.MoE.load("cache/train_multitask_transformer_parallel/models/step_10000")
+    model.noise_factor = 0 # no longer exploring experts
+    batch_size = 600
 
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
@@ -101,49 +102,32 @@ def main(rank, world_size):
     train_workers = max(2, min(32, cpus_per_rank))
     val_workers = max(1, min(20, cpus_per_rank))
 
-    # trnds = sd.SamplingDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=50, sample_pool=int(5e4), recent_prop_cap=4000, recent_idx_cap=int(1e6))
-    # valds = sd.SamplingDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=50, sample_pool=int(5e4), recent_prop_cap=4000, recent_idx_cap=int(1e6))
     bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
-    target_props = list(set(bp['property_token'].tolist()))
-    
-    # trnds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=100)
-    # valds = mt.SequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=100, assay_filter=target_props)
+    benchmark_properties = list(bp['property_token'].unique())
+    tox21_props = list(bp[bp['source'].isin(['Tox21'])]['property_token'].unique().tolist())
 
-    trnds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=100)
-    valds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=100, assay_filter=target_props)
-
-   # Create rank-aware datasets using setup_distributed
-    # trnds = mt.RotatingModuloSequenceShiftDataset.setup_distributed(
-    #     path="cache/build_tensordataset/multitask_tensors/trn", 
-    #     tokenizer=tokenizer, 
-    #     nprops=100,
-    #     local_rank=rank,
-    #     world_size=world_size
-    # )
-    
-    # valds = mt.RotatingModuloSequenceShiftDataset.setup_distributed(
-    #     path="cache/build_tensordataset/multitask_tensors/tst", 
-    #     tokenizer=tokenizer, 
-    #     nprops=100,
-    #     local_rank=rank,
-    #     world_size=world_size
-    # )
+    # tmp = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tmp", tokenizer, nprops=10)
+    # trnds = tmp
+    # valds = tmp
+    trnds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=10, assay_filter=benchmark_properties)
+    valds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=10, assay_filter=tox21_props)
 
     trndl = torch.utils.data.DataLoader(
         trnds, batch_size=batch_size, shuffle=False, num_workers=train_workers,
-        pin_memory=f"cuda:{rank}", persistent_workers=True, prefetch_factor=100,
+        pin_memory=True, persistent_workers=True, prefetch_factor=100,
         sampler=torch.utils.data.distributed.DistributedSampler(trnds, num_replicas=world_size, rank=rank, drop_last=True, shuffle=True)
     )
 
     valdl = torch.utils.data.DataLoader(
         valds, batch_size=batch_size, shuffle=False, num_workers=val_workers,
-        pin_memory=f"cuda:{rank}", persistent_workers=True, prefetch_factor=100,
+        pin_memory=True, persistent_workers=True, prefetch_factor=100,
         sampler=torch.utils.data.distributed.DistributedSampler(valds, num_replicas=world_size, rank=rank, drop_last=True, shuffle=True)
     )
 
     trainer = Trainer(model, rank, tokenizer, trndl, batch_size=batch_size, 
-        scheduler_warmup_steps=10_000, scheduler_max_steps=300_000, scheduler_min_lr=2e-5, scheduler_max_lr=1e-4, effective_accum_batch_size=1024*16,
-        max_steps=1_000_000, eval_samples=2_000, first_eval=10_000)
+        scheduler_warmup_steps=10_000, scheduler_max_steps=300_000, 
+        scheduler_min_lr=2e-5, scheduler_max_lr=1e-4, effective_accum_batch_size=16384,
+        max_steps=1_000_000, eval_samples=2_000, first_eval=1000, eval_every=1000)
     
     trainer.set_validation_dataloader(valdl)
     trainer.set_mask_percent(0.1)
@@ -153,10 +137,10 @@ def main(rank, world_size):
     if rank == 0:
         logging.info(f"trnds samples: {len(trnds)}, valds samples: {len(valds)}")
         logging.info(f"workers train: {train_workers}, val: {val_workers}")
-        trainer.log(f"{len(trndl)} train batches")
-        trainer.log(f"{len(valdl)} validation batches")
-        trainer.log(f"{num_params/1e6:.2f} million parameters")
-        trainer.log(f"Gradient accumulation: {trainer.gradient_accumulation_steps}")
+        logging.info(f"{len(trndl)} train batches")
+        logging.info(f"{len(valdl)} validation batches")
+        logging.info(f"{num_params/1e6:.2f} million parameters")
+        logging.info(f"Gradient accumulation: {trainer.gradient_accumulation_steps}")
 
     trainer.start()
     cleanup()

@@ -34,6 +34,8 @@ pyarrow
 
 # ML Optimizers
 lion-pytorch
+rotary_embedding_torch
+x_transformers
 
 # Utilities
 biobricks

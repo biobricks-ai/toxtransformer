@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=2 --master-port=29500 code/3_3_finetune_benchmarks.py 2> cache/finetune_benchmarks/logs/err.log
+# PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=8 --master-port=29500 code/3_1_2_train_adapters.py 2> cache/train_adapters/logs/err.log
 
 import os
 import sys
@@ -8,7 +8,6 @@ import shutil
 import pathlib
 import logging
 import datetime
-import psutil
 
 import torch
 import torch.utils.data
@@ -35,7 +34,6 @@ os.environ['TORCH_NCCL_ASYNC_ERROR_HANDLING'] = '1'
 # os.environ['TORCH_NCCL_BLOCKING_WAIT'] = '1'
 os.environ['NCCL_IB_DISABLE'] = '0'
 os.environ['NCCL_P2P_DISABLE'] = '0'
-os.environ["TORCH_COMPILE"] = "0"
 
 # Enable TF32 for A100s
 torch.backends.cudnn.benchmark = True
@@ -51,11 +49,12 @@ def cleanup():
         dist.destroy_process_group()
 
 def init_logging(rank):
-    logdir = pathlib.Path("cache/finetune_benchmarks/logs")
-    logdir.mkdir(exist_ok=True, parents=True)
-    logging.basicConfig(filename=logdir / f"finetune_benchmarks_{rank}.log", level=logging.INFO, 
-                        format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
-    logging.info("Logging initialized.")
+    if rank == 0:
+        logdir = pathlib.Path("cache/train_adapters/logs")
+        logdir.mkdir(exist_ok=True, parents=True)
+        logging.basicConfig(filename=logdir / "train_adapters.log", level=logging.INFO, 
+                            format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
+        logging.info("Logging initialized.")
 
 def main(rank, world_size):
     setup(rank, world_size)
@@ -66,59 +65,61 @@ def main(rank, world_size):
 
     init_logging(rank)
 
-    outdir = pathlib.Path("cache/finetune_benchmarks")
+    outdir = pathlib.Path("cache/train_adapters")
     modeldir = outdir / "models"
-    metricsdir = outdir / "metrics"
+    modeldir.mkdir(exist_ok=True, parents=True)
 
+    metricsdir = outdir / "metrics"
+    metricsdir.mkdir(exist_ok=True, parents=True)
+    
     logging.info(f"Rank {rank} starting setup.")
     tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer.load('brick/selfies_property_val_tokenizer')
-
-    # model = me.MoE.load("cache/train_multitask_transformer_parallel/models/moe")
-    model = me.MoE.load("cache/finetune_benchmarks/models/moe")
-    batch_size = 52
-
-    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
     cpus_per_rank = max(2, os.cpu_count() // world_size)
     train_workers = max(2, min(32, cpus_per_rank))
     val_workers = max(1, min(20, cpus_per_rank))
 
     bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
-    bp = bp[bp['source'].isin(['Tox21'])]
-    target_props = list(set(bp['property_token'].tolist()))
+    # bp = bp[~bp['source'].isin(['pubchem','bindingdb'])]
     
-    # tmpdir = pathlib.Path("cache/build_tensordataset/multitask_tensors/tmp")
-    # shutil.rmtree(tmpdir, ignore_errors=True)  # clear previous results
-    # tmpdir.mkdir(exist_ok=True, parents=True)
-    # files = list(pathlib.Path("cache/build_tensordataset/multitask_tensors/tst").glob("*.pt"))[:2]
-    # for f in files:
-    #     shutil.copy(f, tmpdir / f.name)
-    
-    # tstds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tmp", tokenizer, nprops=5, assay_filter=target_props)
-    # trnds = tstds
-    # valds = tstds
+    benchmark_properties = list(bp['property_token'].unique())
+    tox21_props = list(bp[bp['source'].isin(['Tox21'])]['property_token'].unique().tolist())
 
-    trnds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=5, assay_filter=target_props)
-    valds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=5, assay_filter=target_props)
-    
-    logging.info(f"Rank {rank} loaded datasets: train={len(trnds)}, val={len(valds)}")
+    model : me.MoE = me.MoE.load("cache/train_multitask_transformer_parallel/models/step_16000")
+    model.save(modeldir / "moe")
+    model.freeze_shared_embedding()
+    # model.freeze_main_experts()
 
+    adapter_props = bp[~bp['source'].isin(['pubchem','bindingdb','ctdbase','reach','chembl','toxcast','ice','toxvaldb'])]['property_token'].unique().tolist()
+    for prop in adapter_props:
+        _ = model.add_boosting_expert(prop, expert_layers=2, expert_nhead=2, expert_dim_feedforward=128, expert_dropout_rate=0.1)
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    batch_size = 32
+
+    # tmp = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tmp", tokenizer, nprops=10)
+    # trnds = tmp
+    # valds = tmp
+
+    trnds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/trn", tokenizer, nprops=10, assay_filter=benchmark_properties)
+    valds = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=10, assay_filter=tox21_props)
     trndl = torch.utils.data.DataLoader(
         trnds, batch_size=batch_size, shuffle=False, num_workers=train_workers,
-        pin_memory=f"cuda:{rank}", persistent_workers=True, prefetch_factor=100,
+        pin_memory=True, persistent_workers=True, prefetch_factor=100,
         sampler=torch.utils.data.distributed.DistributedSampler(trnds, num_replicas=world_size, rank=rank, drop_last=True, shuffle=True)
     )
 
     valdl = torch.utils.data.DataLoader(
         valds, batch_size=batch_size, shuffle=False, num_workers=val_workers,
-        pin_memory=f"cuda:{rank}", persistent_workers=True, prefetch_factor=100,
+        pin_memory=True, persistent_workers=True, prefetch_factor=100,
         sampler=torch.utils.data.distributed.DistributedSampler(valds, num_replicas=world_size, rank=rank, drop_last=True, shuffle=True)
     )
 
+    
+
     trainer = Trainer(model, rank, tokenizer, trndl, batch_size=batch_size, 
         scheduler_warmup_steps=10_000, scheduler_max_steps=300_000, 
-        scheduler_min_lr=2e-5, scheduler_max_lr=1e-4, effective_accum_batch_size=1024*16,
-        max_steps=1_000_000, eval_samples=1_000, first_eval=10, eval_every=250)
+        scheduler_min_lr=2e-5, scheduler_max_lr=1e-4, effective_accum_batch_size=2048 * 8,
+        max_steps=1_000_000, eval_samples=2_000, first_eval=1000, eval_every=100)
     
     trainer.set_validation_dataloader(valdl)
     trainer.set_mask_percent(0.1)
@@ -128,18 +129,21 @@ def main(rank, world_size):
     if rank == 0:
         logging.info(f"trnds samples: {len(trnds)}, valds samples: {len(valds)}")
         logging.info(f"workers train: {train_workers}, val: {val_workers}")
-        trainer.log(f"{len(trndl)} train batches")
-        trainer.log(f"{len(valdl)} validation batches")
-        trainer.log(f"{num_params/1e6:.2f} million parameters")
-        trainer.log(f"Gradient accumulation: {trainer.gradient_accumulation_steps}")
+        logging.info(f"{len(trndl)} train batches")
+        logging.info(f"{len(valdl)} validation batches")
+        logging.info(f"{num_params/1e6:.2f} million parameters")
+        logging.info(f"Gradient accumulation: {trainer.gradient_accumulation_steps}")
 
     trainer.start()
     cleanup()
 
     if rank == 0:
         logging.info("Copying final model from modeldir to brick/moe...")
-        shutil.rmtree("brick/tox21_moe", ignore_errors=True)
-        shutil.copytree(modeldir / "moe", "brick/tox21_moe")
+        # save modeldir/moe to brick/moe
+        # delete brick/moe directory
+        if os.path.exists("brick/moe"):
+            shutil.rmtree("brick/moe", ignore_errors=True)
+        shutil.copytree(modeldir / "moe", "brick/moe")
 
 if __name__ == "__main__":
     rank = int(os.environ["RANK"])

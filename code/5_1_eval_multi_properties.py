@@ -1,7 +1,6 @@
 # PYTHONPATH=./ spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/5_1_eval_multi_properties.py 2> cache/eval_multi_properties/logs/err.log
 
-import pickle
-import itertools, uuid, pathlib
+import pathlib
 import pandas as pd, tqdm, sklearn.metrics, torch, numpy as np, os
 import cvae.tokenizer, cvae.models.multitask_transformer as mt, cvae.utils, cvae.models.mixture_experts as me
 import logging
@@ -24,6 +23,7 @@ outdir.mkdir(exist_ok=True, parents=True)
 tqdm.tqdm.pandas()
 
 # Load tokenizer and Spark session
+pathlib.Path("/tmp/spark-events").mkdir(exist_ok=True, parents=True)
 spark = SparkSession.builder \
         .appName("eval_multi_properties") \
         .master("local[16]") \
@@ -39,8 +39,6 @@ spark = SparkSession.builder \
 outdf = spark.read.parquet("cache/consolidate_evaluations/multitask_predictions.parquet")
 
 def calculate_metrics(y_true, y_pred):
-    if len(set(y_true)) < 2:
-        return -1.0, -1.0, -1.0, -1.0
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
 
@@ -62,13 +60,13 @@ calculate_metrics_udf = F.udf(calculate_metrics, "struct<AUC:double, ACC:double,
 from pyspark.sql.window import Window
 
 # numprops is the number of properties for the chemical, nprops is the number of properties in the input for this prediction
-meanpred = outdf.groupBy("nprops", "numprops","property_token", "chemical_id", "true_value").agg(F.mean("prob_of_1").alias("probs")).cache()
+meanpred = outdf.groupBy("nprops","minprops", "numprops","property_token", "chemical_id", "true_value").agg(F.mean("prob_of_1").alias("probs")).cache()
 
 # meanpred = meanpred.filter(col('nprops') <= .5*col('num_known_properties'))
 # meanpred.count() / a2
 
 large_properties_df = meanpred\
-    .groupBy('nprops', 'property_token').agg(
+    .groupBy('nprops', 'property_token','minprops').agg(
         F.collect_list('true_value').alias('y_true'),
         F.collect_list('probs').alias('y_pred'),
         countDistinct('chemical_id').alias('nchem'),
@@ -80,11 +78,16 @@ large_properties_df.write.parquet((outdir / "multitask_large_properties.parquet"
 
 metrics_df = large_properties_df.repartition(800) \
     .withColumn('metrics', calculate_metrics_udf(F.col('y_true'), F.col('y_pred'))) \
-    .select('nprops', 'property_token', 
+    .select('nprops', 'minprops','property_token', 
         col('metrics.AUC').alias('AUC'), 
         col('metrics.ACC').alias('ACC'), 
         col('metrics.BAC').alias('BAC'), 
         col('metrics.cross_entropy_loss').alias('cross_entropy_loss'), 'NUM_POS', 'NUM_NEG', 'nchem')
 
-metrics_df.show()
+metrics_df.orderBy('nprops') \
+    .groupBy('nprops') \
+    .pivot('minprops') \
+    .agg(F.mean("AUC")) \
+    .orderBy('nprops') \
+    .show()
 metrics_df.write.parquet((outdir / "multitask_metrics.parquet").as_posix(), mode="overwrite")

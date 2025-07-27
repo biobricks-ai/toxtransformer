@@ -14,7 +14,8 @@ sched_interval = int(args[1]) if len(args) > 1 else 20
 
 # metrics_file = 'cache/train_multitask_transformer/metrics/multitask_loss.tsv'
 # metrics_file = 'cache/train_multitask_transformer_parallel/metrics/multitask_loss.tsv'
-metrics_file = 'cache/finetune_benchmarks/metrics/multitask_loss.tsv'
+metrics_file = 'cache/train_adapters/metrics/multitask_loss.tsv'
+# metrics_file = 'cache/finetune_benchmarks/metrics/multitask_loss.tsv'
 
 def draw_plot(last_scheduler_length=0):
     # Read the first three columns of the metrics file type, batch, loss, lr
@@ -96,7 +97,7 @@ def draw_plot(last_scheduler_length=0):
 
     # Create the directory and save the plot
     os.makedirs('notebook/plots', exist_ok=True)
-    g.savefig('notebook/plots/loss.png', dpi=300, bbox_inches='tight')
+    g.savefig('notebook/plots/loss2.png', dpi=300, bbox_inches='tight')
     plt.close()
 
     return scheduler_length

@@ -1,5 +1,7 @@
 __pycache__
+*.zip
 /cache
+/cache.old
 /data
 /models
 /metrics

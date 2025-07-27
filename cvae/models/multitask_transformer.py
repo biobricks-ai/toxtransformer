@@ -52,36 +52,15 @@ class PositionalEncoding(nn.Module):
 
         pe = pe.unsqueeze(0)  # Shape: [1, max_len, d_model]
         self.register_buffer('pe', pe)
-
-    # def forward(self, x):
-    #     # x shape: [batch_size, sequence_length, d_model]
-    #     # Update positional encoding to match batch size and sequence length
-    #     x = x + self.pe[:, :x.size(1)].repeat(x.size(0), 1, 1)
-    #     return self.dropout(x)
     
     def forward(self, x):
         x = x + self.pe[:, :x.size(1)]
         return self.dropout(x)
 
 
-# def generate_square_subsequent_mask(sz: int) -> torch.Tensor:
-#     """ Generate the attention mask for causal decoding """
-#     mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1).float()
-#     mask = mask.masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
-#     return mask
-
 def generate_square_subsequent_mask(sz: int) -> torch.Tensor:
     """Generate a standard causal mask (upper triangular with -inf above diag)"""
     return torch.triu(torch.full((sz, sz), float('-inf')), diagonal=1)
-
-# def generate_custom_subsequent_mask(sz: int) -> torch.Tensor:
-#     """ Generate a custom attention mask for causal decoding with specific unmasked positions """
-#     mask = generate_square_subsequent_mask(sz)
-    
-#     for i in range(1, sz-1, 2):
-#         mask[i,i+1] = 0.0
-    
-#     return mask
 
 @torch.no_grad()
 def generate_custom_subsequent_mask(sz: int, device=None) -> torch.Tensor:
@@ -92,8 +71,25 @@ def generate_custom_subsequent_mask(sz: int, device=None) -> torch.Tensor:
     return mask
 
 
+class TokenEmbedding(nn.Module):
+
+    def __init__(self, tokenizer, hdim=256):
+        super().__init__()
+        self.tokenizer = tokenizer
+        self.hdim = hdim
+        self.embedding = nn.Embedding(tokenizer.vocab_size, hdim)
+        self.embedding_norm = nn.LayerNorm(hdim)
+
+    def forward(self, input):
+        embedded = self.embedding(input)
+        return self.embedding_norm(embedded)
+
 class MultitaskTransformer(nn.Module):
-    def __init__(self, tokenizer, hdim=256, nhead=2, num_layers=4, dim_feedforward=256, dropout_rate=0.1, output_size=None):
+
+    def __init__(self, tokenizer, hdim=256, nhead=2, num_layers=4, 
+        dim_feedforward=256, dropout_rate=0.1, output_size=None,
+        shared_embedding=None):
+
         super().__init__()
 
         self.output_size = tokenizer.vocab_size if output_size is None else output_size
@@ -103,10 +99,8 @@ class MultitaskTransformer(nn.Module):
         self.tokenizer = tokenizer
         self.token_pad_idx = tokenizer.PAD_IDX
 
-        self.embedding = nn.Embedding(tokenizer.vocab_size, self.hdim)
-        self.outemb = nn.Embedding(tokenizer.vocab_size, self.hdim)
-        self.embedding_norm = nn.LayerNorm(self.hdim)
-
+        self.embedding = TokenEmbedding(tokenizer, hdim) if shared_embedding is None else shared_embedding
+        
         self.encoder = Encoder(
             dim=self.hdim,
             depth=num_layers,
@@ -140,10 +134,10 @@ class MultitaskTransformer(nn.Module):
         memory_mask = input != self.token_pad_idx
         tgt_mask = teach_forcing != self.token_pad_idx
 
-        input_embedding = self.embedding_norm(self.embedding(input))
+        input_embedding = self.embedding(input)
         input_encoding = self.encoder(input_embedding, mask=memory_mask)
 
-        teach_forcing_emb = self.embedding_norm(self.outemb(teach_forcing))
+        teach_forcing_emb = self.embedding(teach_forcing)
 
         decoded = self.decoder(
             teach_forcing_emb,
@@ -156,36 +150,36 @@ class MultitaskTransformer(nn.Module):
         logits = self.classification_layers(decoded)
         return logits
 
-    @staticmethod
-    def lossfn(ignore_index=-100, weight_decay=1e-5):
-        ce_lossfn = nn.CrossEntropyLoss(reduction='mean', ignore_index=ignore_index, label_smoothing=0.01)
+    # @staticmethod
+    # def lossfn(ignore_index=-100, weight_decay=1e-5):
+    #     ce_lossfn = nn.CrossEntropyLoss(reduction='mean', ignore_index=ignore_index, label_smoothing=0.01)
 
-        def lossfn(parameters, logits, output):
-            loss = ce_lossfn(logits, output)
-            return loss
+    #     def lossfn(parameters, logits, output):
+    #         loss = ce_lossfn(logits, output)
+    #         return loss
 
-        return lossfn
+    #     return lossfn
 
-    @staticmethod
-    def build_eval_lossfn(value_indexes, device):
-        value_token_ids = torch.tensor(list(value_indexes), dtype=torch.long).to(device)
-        ce_lossfn = nn.CrossEntropyLoss(reduction='mean', ignore_index=-100, label_smoothing=0.01)
+    # @staticmethod
+    # def build_eval_lossfn(value_indexes, device):
+    #     value_token_ids = torch.tensor(list(value_indexes), dtype=torch.long).to(device)
+    #     ce_lossfn = nn.CrossEntropyLoss(reduction='mean', ignore_index=-100, label_smoothing=0.01)
 
-        def lossfn(parameters, logits, output):
-            B, V, T = logits.shape
-            logits = logits.permute(0, 2, 1).contiguous()
-            logits_flat = logits.reshape(-1, V)
-            output_flat = output.reshape(-1)
+    #     def lossfn(parameters, logits, output):
+    #         B, V, T = logits.shape
+    #         logits = logits.permute(0, 2, 1).contiguous()
+    #         logits_flat = logits.reshape(-1, V)
+    #         output_flat = output.reshape(-1)
 
-            mask = torch.isin(output_flat, value_token_ids)
-            if mask.sum() == 0:
-                return torch.tensor(0.0, device=output.device)
+    #         mask = torch.isin(output_flat, value_token_ids)
+    #         if mask.sum() == 0:
+    #             return torch.tensor(0.0, device=output.device)
 
-            logits_sel = logits_flat[mask]
-            output_sel = output_flat[mask]
-            return ce_lossfn(logits_sel, output_sel)
+    #         logits_sel = logits_flat[mask]
+    #         output_sel = output_flat[mask]
+    #         return ce_lossfn(logits_sel, output_sel)
 
-        return lossfn
+    #     return lossfn
 
     def save(self, path):
         if not isinstance(path, pathlib.Path):
@@ -318,42 +312,6 @@ class SequenceShiftDataset(Dataset):
                 current_valid_idx += 1
         
         raise IndexError(f"Index {idx} not found")
-
-class FastPackedSequenceShiftDataset(Dataset):
-
-    def __init__(self, path_prefix, nprops=None):
-        meta = json.load(open(f"{path_prefix}_meta.json"))
-        self.nprops = nprops
-
-        def load_tensor(name):
-            shape = tuple(meta[name]["shape"])
-            dtype = getattr(torch, meta[name]["dtype"].split('.')[-1])  # e.g. "torch.int64" → torch.int64
-            numel = int(np.prod(shape))
-            return torch.from_file(
-                filename=f"{path_prefix}_{name}.dat",
-                shared=False,
-                size=numel,
-                dtype=dtype
-            ).view(shape)
-
-
-        self.selfies = load_tensor("selfies")
-        self.tch = load_tensor("tch")
-        self.out = load_tensor("out")
-
-        # sequence is <pad> <sos> <prop1> <val1> <prop2> <val2> ... <propN> <valn> <eos> for teach
-        # sequence is <sos> <prop1> <val1> <prop2> <val2> ... <propN> <valn> <eos> for out
-        # so we want for teach[0:(1+1+2*nprops+1)] and out[0:(1+2*nprops+1)]
-        if self.nprops is not None:
-            end = 3 + 2 * self.nprops
-            self.tch = self.tch[:, :end]
-            self.out = self.out[:, :end]
-
-    def __len__(self):
-        return self.selfies.size(0)
-
-    def __getitem__(self, idx):
-        return self.selfies[idx], self.tch[idx], self.out[idx]
 
 class LabelSmoothingCrossEntropySequence(nn.Module):
     def __init__(self, epsilon_ls=0.05, ignore_index=None):

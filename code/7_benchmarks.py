@@ -16,6 +16,9 @@ conn = sqlite3.connect('brick/cvae.sqlite')
 prop_src = pd.read_sql("SELECT property_token,title,source FROM property p INNER JOIN source s on p.source_id = s.source_id", conn)
 prop_src['source'].value_counts()
 
+# bp = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
+# bp[bp['source'] == 'Tox21']['property_token'].unique()
+
 # assert that each property_token has only one title
 assert prop_src.groupby('property_token').size().max() == 1
 

@@ -21,8 +21,9 @@ class InMemorySequenceShiftDataset(Dataset):
         # Each sample is (selfies_tensor, reshaped_valid_tokens [N x 2])
         self.samples: List[Tuple[Tensor, Tensor]] = []
 
-        self.SEP = torch.tensor([tokenizer.SEP_IDX], dtype=torch.long)
-        self.END = torch.tensor([tokenizer.END_IDX], dtype=torch.long)
+        self.sep_idx = tokenizer.SEP_IDX
+        self.end_idx = tokenizer.END_IDX
+        self.one_token = 1
 
         for file_path in tqdm.tqdm(pathlib.Path(path).glob("*.pt"), desc="Loading dataset into RAM"):
             file_data = torch.load(file_path, map_location="cpu")
@@ -54,13 +55,20 @@ class InMemorySequenceShiftDataset(Dataset):
         return selfies, tch, out
 
     def _process(self, reshaped: Tensor) -> Tuple[Tensor, Tensor]:
-        device = reshaped.device
+        # Work entirely with CPU tensors, let pin_memory handle GPU transfer
         perm = torch.randperm(reshaped.size(0))
         shuffled = reshaped[perm].flatten()
-        av_truncate = shuffled[:self.nprops * 2] # Flatten to 1D and truncate to nprops * 2 tokens
-        av_sos_eos = torch.cat([self.SEP.to(device), av_truncate, self.END.to(device)])
-        out = F.pad(av_sos_eos, (0, self.nprops * 2 + 2 - av_sos_eos.size(0)), value=float(self.pad_idx))
-        tch = torch.cat([torch.tensor([1], device=device), out[:-1]])
+        av_truncate = shuffled[:self.nprops * 2]
+        
+        # Create tensors on CPU
+        av_sos_eos = torch.cat([
+            torch.tensor([self.sep_idx]), 
+            av_truncate, 
+            torch.tensor([self.end_idx])
+        ])
+        
+        out = F.pad(av_sos_eos, (0, self.nprops * 2 + 2 - av_sos_eos.size(0)), value=self.pad_idx)
+        tch = torch.cat([torch.tensor([self.one_token]), out[:-1]])
         return tch, out
 
 class PreloadedSequenceShiftDataset:
