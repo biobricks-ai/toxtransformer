@@ -13,6 +13,7 @@ import traceback # Import traceback to log full error info
 import psutil
 import datetime
 from cvae.models.multitask_transformer import linear_warmup_and_decay_scheduler
+from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR, CosineAnnealingWarmRestarts
 from typing import Optional, Tuple
 
 class Trainer():
@@ -26,12 +27,14 @@ class Trainer():
         self.trn_iterator = trn_iterator
         self.tokenizer = tokenizer
 
+        torch.cuda.set_device(rank)
+        logging.info(f"Rank {self.rank}: Setting CUDA device to {rank}")
         self.model = model.to(rank)
         self.lossfn = self.model.build_stratified_lossfn()
         self.eval_loss = self.model.build_stratified_lossfn()
         
-        dist.barrier()
-        self.model = torch.compile(self.model)
+        dist.barrier(device_ids=[self.rank])
+        # self.model = torch.compile(self.model)
         self.model = DDP(self.model, device_ids=[rank], find_unused_parameters=True)
         self.max_steps = max_steps
 
@@ -44,10 +47,14 @@ class Trainer():
         world_size = dist.get_world_size() if dist.is_initialized() else 1
         total_effective_batch_size = effective_batch_size_per_gpu * world_size
 
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=1, betas=(0.9, 0.99), weight_decay=1e-2)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=scheduler_min_lr, betas=(0.9, 0.99), weight_decay=1e-2)
         max_lr, min_lr = scheduler_max_lr, scheduler_min_lr
-        self.scheduler = linear_warmup_and_decay_scheduler(self.optimizer, max_lr=max_lr, min_lr=min_lr, warmup_steps=scheduler_warmup_steps, total_steps=scheduler_max_steps)
-        self.scheduler.step()
+        self.scheduler = CosineAnnealingWarmRestarts(
+            self.optimizer,
+            T_0=scheduler_warmup_steps,    # First cycle length
+            T_mult=2,                      # Each restart cycle is 2× longer
+            eta_min=scheduler_min_lr       # Min learning rate at end of each cycle
+        )
 
         self.metrics_path = None
         self.best_loss = np.inf
@@ -155,7 +162,7 @@ class Trainer():
         value_token_ids = set(self.tokenizer.value_indexes().values())
         value_token_to_01 = {v: k for k, v in self.tokenizer.value_indexes().items()}
 
-        dist.barrier()
+        dist.barrier(device_ids=[self.rank])
         for i, (inp, teach, out) in enumerate(self.valdl):
             logging.info(f"Rank {self.rank}: Evaluating batch {i + 1}/{max_eval_batches} (total batches: {len(self.valdl)})")
             if max_eval_batches is not None and i >= max_eval_batches:
@@ -243,7 +250,7 @@ class Trainer():
             
             self.trn_iterator.sampler.set_epoch(epoch)
             logging.info(f"Rank {self.rank}: Starting epoch {epoch}. step {self.global_step}.")
-            dist.barrier()
+            dist.barrier(device_ids=[self.rank])
 
             self.model.train()  # Ensure model is in training mode
 
@@ -261,7 +268,7 @@ class Trainer():
                 if self.global_step == self.first_eval or (self.global_step + self.first_eval) % self.eval_every == 0:
                     logging.info(f"Rank {self.rank}: Starting evaluation at step {self.global_step}")
                     torch.cuda.synchronize() # Wait for current GPU operations to complete
-                    dist.barrier()
+                    dist.barrier(device_ids=[self.rank])
 
                     self.model.eval()  # Switch to eval mode
                     with torch.no_grad():  # Prevent gradient computation during eval
@@ -291,7 +298,7 @@ class Trainer():
                                 f"LR: {current_lr:.6f}")
 
                     # Ensure all ranks are synced before continuing training
-                    dist.barrier()
+                    dist.barrier(device_ids=[self.rank])
                     self.model.train()  # Switch back to training mode
                     logging.info(f"Rank {self.rank}: Model set back to training mode.")
             

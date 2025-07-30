@@ -11,8 +11,36 @@ from torch import Tensor
 import torch.nn.functional as F
 
 class InMemorySequenceShiftDataset(Dataset):
+
+    @staticmethod
+    def from_cache_or_create(paths, tokenizer, nprops=5, assay_filter: List[int] = [], cache_path=None):
+        """
+        Creates dataset from cache if it exists, otherwise builds and caches it.
+        """
+        if cache_path is not None:
+            cache_path = pathlib.Path(cache_path)
+            if cache_path.exists():
+                print(f"✅ Loading dataset from cache: {cache_path}")
+                dataset = InMemorySequenceShiftDataset.__new__(InMemorySequenceShiftDataset)
+                dataset.samples = torch.load(cache_path, map_location="cpu")
+                dataset.nprops = nprops
+                dataset.tokenizer = tokenizer
+                dataset.pad_idx = tokenizer.PAD_IDX
+                dataset.sep_idx = torch.tensor([tokenizer.SEP_IDX])
+                dataset.end_idx = torch.tensor([tokenizer.END_IDX])
+                dataset.one_tensor = torch.tensor([1], dtype=torch.long)
+                return dataset
+
+        # Otherwise, create and cache it
+        dataset = InMemorySequenceShiftDataset(paths, tokenizer, nprops, assay_filter)
+        if cache_path is not None:
+            print(f"💾 Caching dataset to: {cache_path}")
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save(dataset.samples, cache_path)
+
+        return dataset
     
-    def __init__(self, path, tokenizer, nprops=5, assay_filter: List[int] = []):
+    def __init__(self, paths, tokenizer, nprops=5, assay_filter: List[int] = []):
         self.nprops = nprops
         self.tokenizer = tokenizer
         self.pad_idx, self.sep_idx, self.end_idx = tokenizer.PAD_IDX, tokenizer.SEP_IDX, tokenizer.END_IDX
@@ -21,11 +49,21 @@ class InMemorySequenceShiftDataset(Dataset):
         # Each sample is (selfies_tensor, reshaped_valid_tokens [N x 2])
         self.samples: List[Tuple[Tensor, Tensor]] = []
 
-        self.sep_idx = tokenizer.SEP_IDX
-        self.end_idx = tokenizer.END_IDX
-        self.one_token = 1
+        self.sep_idx = torch.tensor([tokenizer.SEP_IDX])
+        self.end_idx = torch.tensor([tokenizer.END_IDX])
+        self.one_tensor = torch.tensor([1], dtype=torch.long)
 
-        for file_path in tqdm.tqdm(pathlib.Path(path).glob("*.pt"), desc="Loading dataset into RAM"):
+        # Handle both directory path, list of file paths, and single pt file
+        if isinstance(paths, list):
+            file_paths = [pathlib.Path(p) for p in paths]
+        else:
+            path = pathlib.Path(paths)
+            if path.is_file() and path.suffix == '.pt':
+                file_paths = [path]
+            else:
+                file_paths = list(path.glob("*.pt"))
+
+        for file_path in tqdm.tqdm(file_paths, desc="Loading dataset into RAM"):
             file_data = torch.load(file_path, map_location="cpu")
             selfies_list = file_data["selfies"]
             assay_vals_list = file_data["assay_vals"]
@@ -62,13 +100,13 @@ class InMemorySequenceShiftDataset(Dataset):
         
         # Create tensors on CPU
         av_sos_eos = torch.cat([
-            torch.tensor([self.sep_idx]), 
+            self.sep_idx, 
             av_truncate, 
-            torch.tensor([self.end_idx])
+            self.end_idx
         ])
         
         out = F.pad(av_sos_eos, (0, self.nprops * 2 + 2 - av_sos_eos.size(0)), value=self.pad_idx)
-        tch = torch.cat([torch.tensor([self.one_token]), out[:-1]])
+        tch = torch.cat([self.one_tensor, out[:-1]])
         return tch, out
 
 class PreloadedSequenceShiftDataset:

@@ -92,6 +92,8 @@ class MultitaskTransformer(nn.Module):
 
         super().__init__()
 
+        assert dim_feedforward >= hdim and dim_feedforward % hdim == 0, f"dim_feedforward must be >= hdim and a multiple of hdim, got {dim_feedforward} (hdim={hdim})"
+
         self.output_size = tokenizer.vocab_size if output_size is None else output_size
         self.hdim = hdim
         self.nhead = nhead
@@ -101,11 +103,13 @@ class MultitaskTransformer(nn.Module):
 
         self.embedding = TokenEmbedding(tokenizer, hdim) if shared_embedding is None else shared_embedding
         
+        ffdim = dim_feedforward // hdim
+        
         self.encoder = Encoder(
             dim=self.hdim,
             depth=num_layers,
             heads=self.nhead,
-            ff_mult=dim_feedforward // hdim,
+            ff_mult=ffdim,
             rotary_pos_emb=True,
             attn_dropout=dropout_rate,
             ff_dropout=dropout_rate
@@ -115,7 +119,7 @@ class MultitaskTransformer(nn.Module):
             dim=self.hdim,
             depth=num_layers,
             heads=self.nhead,
-            ff_mult=dim_feedforward // hdim,
+            ff_mult=ffdim,
             rotary_pos_emb=True,
             attn_dropout=dropout_rate,
             ff_dropout=dropout_rate,
@@ -149,37 +153,6 @@ class MultitaskTransformer(nn.Module):
         decoded = self.decoder_norm(decoded)
         logits = self.classification_layers(decoded)
         return logits
-
-    # @staticmethod
-    # def lossfn(ignore_index=-100, weight_decay=1e-5):
-    #     ce_lossfn = nn.CrossEntropyLoss(reduction='mean', ignore_index=ignore_index, label_smoothing=0.01)
-
-    #     def lossfn(parameters, logits, output):
-    #         loss = ce_lossfn(logits, output)
-    #         return loss
-
-    #     return lossfn
-
-    # @staticmethod
-    # def build_eval_lossfn(value_indexes, device):
-    #     value_token_ids = torch.tensor(list(value_indexes), dtype=torch.long).to(device)
-    #     ce_lossfn = nn.CrossEntropyLoss(reduction='mean', ignore_index=-100, label_smoothing=0.01)
-
-    #     def lossfn(parameters, logits, output):
-    #         B, V, T = logits.shape
-    #         logits = logits.permute(0, 2, 1).contiguous()
-    #         logits_flat = logits.reshape(-1, V)
-    #         output_flat = output.reshape(-1)
-
-    #         mask = torch.isin(output_flat, value_token_ids)
-    #         if mask.sum() == 0:
-    #             return torch.tensor(0.0, device=output.device)
-
-    #         logits_sel = logits_flat[mask]
-    #         output_sel = output_flat[mask]
-    #         return ce_lossfn(logits_sel, output_sel)
-
-    #     return lossfn
 
     def save(self, path):
         if not isinstance(path, pathlib.Path):

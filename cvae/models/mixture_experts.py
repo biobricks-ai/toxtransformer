@@ -90,6 +90,7 @@ class MoE(nn.Module):
         property_token: int, 
         expert_layers: int = 1,
         expert_nhead: int = 1,
+        hdim: int = 32,
         expert_dim_feedforward: int = 32,
         expert_dropout_rate: float = .1):
         """
@@ -113,8 +114,8 @@ class MoE(nn.Module):
             dropout_rate=expert_dropout_rate,
             output_size=self.output_size,
             shared_embedding=self.shared_embedding
-        )
-        
+        )      
+
         # Store expert and its config
         property_key = str(property_token)
         self.boosting_experts[property_key] = boosting_expert
@@ -125,9 +126,6 @@ class MoE(nn.Module):
             'expert_dim_feedforward': expert_dim_feedforward,
             'expert_dropout_rate': expert_dropout_rate
         }
-        num_params = sum(p.numel() for p in boosting_expert.parameters() if p.requires_grad)
-        logging.info(f"Added boosting expert for property {property_key} with {num_params} parameters")
-        logging.info(f"Added boosting expert for property {property_token}, {expert_layers} layers")
         
         return boosting_expert
     
@@ -147,7 +145,7 @@ class MoE(nn.Module):
         logging.info("Froze shared embedding")
         return self
 
-    def forward_boosting(self, inp, tch):
+    def forward_boosting(self, inp, tch, current_output):
         """
         Run boosting models only on relevant value positions efficiently.
         Assumes format: [SOS, prop1, val1, prop2, val2, ..., EOS]
@@ -161,11 +159,6 @@ class MoE(nn.Module):
         """
         B, T = tch.shape
         V = self.output_size
-        
-        # Initialize output
-        boosting_output = torch.zeros(B, T, V, device=inp.device, dtype=torch.float)
-        if not self.boosting_experts:
-            return boosting_output
 
         # Get property tokens at positions (2, 4, 6, ...) - the property positions in tch
         prop_positions = torch.arange(2, T, 2, device=inp.device)
@@ -180,9 +173,6 @@ class MoE(nn.Module):
         # Filter to only properties that have boosting experts
         expert_prop_keys = set(self.boosting_experts.keys())
         active_props = [p for p in unique_props if str(p.item()) in expert_prop_keys]
-        
-        if not active_props:
-            return boosting_output
         
         # Process each active property
         for prop_token in active_props:
@@ -202,8 +192,9 @@ class MoE(nn.Module):
                 value_positions = prop_positions[prop_indices] + 1  # Shift to value positions
                 
                 # Apply expert output only at value positions
-                boosting_output[batch_indices, value_positions] += expert_output[batch_indices, value_positions]
-        
+                # boosting_output[batch_indices, value_positions] += expert_output[batch_indices, value_positions]
+                current_output[batch_indices, value_positions] = expert_output[batch_indices, value_positions]
+
         return boosting_output
 
     def forward(self, input, teach_forcing=None):
@@ -243,9 +234,9 @@ class MoE(nn.Module):
         # Apply routing weights to expert outputs
         output = (stacked_outputs * routing_weights.unsqueeze(2)).sum(dim=-1)  # [B, T, V]
 
-        boosted_output = self.forward_boosting(input, teach_forcing)
+        boosted_output = self.forward_boosting(input, teach_forcing, output)
 
-        return output + boosted_output
+        return boosted_output
     
     def build_stratified_lossfn(self,label_smoothing=.001):
         ignore_index = self.tokenizer.pad_idx

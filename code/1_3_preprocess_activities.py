@@ -99,8 +99,8 @@ logging.info(f"wrote {outdir / 'activities.parquet'}")
 data = spark.read.parquet((outdir / 'activities.parquet').as_posix()).cache()
 assert data.count() > 10e6 # should have more than 10m activities
 
-source_counts_2 = data.groupBy('source').count().orderBy('count', ascending=False).toPandas()
 # Calculate percentage drop for each source
+source_counts_2 = data.groupBy('source').count().orderBy('count', ascending=False).toPandas()
 source_counts_2['initial_count'] = source_counts_2['source'].map(source_counts.set_index('source')['count'])
 source_counts_2['pct_drop'] = ((source_counts_2['initial_count'] - source_counts_2['count']) / source_counts_2['initial_count'] * 100)
 source_counts_2['pct_remaining'] = 100 - source_counts_2['pct_drop']
