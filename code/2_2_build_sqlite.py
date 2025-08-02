@@ -1,4 +1,6 @@
 # PYTHONPATH=./ spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/2_build_sqlite.py 2> cache/build_sqlite/err.log
+# PYTHONPATH=./ spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///data/tmp/spark-events --conf spark.local.dir=/data/tmp/spark-local code/2_2_build_sqlite.py 2> cache/build_sqlite/err.log
+
 import os, sys, biobricks as bb, pandas as pd, shutil, sqlite3, pathlib
 import pyspark.sql, pyspark.sql.functions as F
 import pyarrow.dataset as ds
@@ -12,8 +14,8 @@ logger = logging.getLogger(__name__)
 #%% SETUP =================================================================================
 logger.info("Initializing Spark session")
 spark = pyspark.sql.SparkSession.builder.appName("ChemharmonyDataProcessing")
-spark = spark.config("spark.driver.memory", "64g").config("spark.driver.maxResultSize", "100g").getOrCreate()
-    
+spark = spark.config("spark.driver.memory", "64g").config("spark.driver.maxResultSize", "100g").config("spark.local.dir", "/data/tmp/spark-local").getOrCreate()
+
 ch = bb.assets('chemharmony')
 outdir = pathlib.Path('cache/build_sqlite')
 outdir.mkdir(parents=True, exist_ok=True)

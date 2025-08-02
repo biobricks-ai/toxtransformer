@@ -13,8 +13,8 @@ batch_skip = int(args[0]) if len(args) > 0 else 0
 sched_interval = int(args[1]) if len(args) > 1 else 20
 
 # metrics_file = 'cache/train_multitask_transformer/metrics/multitask_loss.tsv'
-# metrics_file = 'cache/train_multitask_transformer_parallel/metrics/multitask_loss.tsv'
-metrics_file = 'cache/train_adapters/metrics/multitask_loss.tsv'
+metrics_file = 'cache/train_multitask_transformer_parallel/metrics/multitask_loss.tsv'
+# metrics_file = 'cache/train_adapters/metrics/multitask_loss.tsv'
 # metrics_file = 'cache/finetune_benchmarks/metrics/multitask_loss.tsv'
 
 def draw_plot(last_scheduler_length=0):
@@ -43,8 +43,11 @@ def draw_plot(last_scheduler_length=0):
     # complete_sched_groups = sched_counts[sched_counts == sched_interval].index
     # complete_sched_data = train_data[train_data['sched_group'].isin(complete_sched_groups)]
 
-    # Group and compute mean
+    # Group and compute mean, only show groups that are nearly complete
     sched_data = train_data.groupby('sched_group')['loss'].mean().reset_index()
+    sched_data['count'] = train_data.groupby('sched_group').size().reset_index(drop=True)
+    sched_data = sched_data[sched_data['count'] >= (sched_interval-5)]  # Keep only complete groups
+
     sched_data.rename(columns={'sched_group': 'batch'}, inplace=True)
     sched_data['type'] = 'sched'
 

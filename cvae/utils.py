@@ -35,9 +35,9 @@ def write_path(path, text, mode='a'):
         
 def mk_empty_directory(path, overwrite=False):
     path = pathlib.Path(path)
-    path.mkdir(parents=True, exist_ok=True)
     if path.exists() and overwrite:
         shutil.rmtree(path)
+    path.mkdir(parents=True, exist_ok=True)
     return path
     
 def rootdir(p=Path(os.getcwd())):

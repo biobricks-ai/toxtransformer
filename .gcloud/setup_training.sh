@@ -92,7 +92,28 @@ gcloud compute instances create $INSTANCE_NAME \
     chmod -R 775 /data/toxtransformer
 
     echo "✅ RAID 0 array ready at /mnt/raid0"
-'
+
+    # Install Java and set JAVA_HOME
+    echo "☕ Installing Java..."
+    apt-get update
+    apt-get install -y openjdk-17-jdk
+
+    # Set JAVA_HOME permanently
+    JAVA_HOME_PATH=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+    echo "export JAVA_HOME=$JAVA_HOME_PATH" >> /etc/environment
+    echo "export PATH=\$PATH:\$JAVA_HOME/bin" >> /etc/environment
+
+    # Set for current session
+    export JAVA_HOME=$JAVA_HOME_PATH
+    export PATH=$PATH:$JAVA_HOME/bin
+
+    echo "✅ Java installed, JAVA_HOME set to: $JAVA_HOME_PATH"
+
+    # install pipx
+    echo "📦 Installing pipx...
+    apt-get install pipx
+    
+  '
 
 # SSH into the instance (NEED TO MANUALLY INSTALL nvidia-driver)
 echo "🔗 Connecting to instance..."

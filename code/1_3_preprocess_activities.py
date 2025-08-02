@@ -1,5 +1,6 @@
 # cmd: 
 # spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/1_3_preprocess_activities.py
+# spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///data/tmp/spark-events --conf spark.local.dir=/data/tmp/spark-local code/1_3_preprocess_activities.py
 
 import biobricks
 import cvae
@@ -32,49 +33,13 @@ substances = spark.read.parquet('cache/preprocess_tokenizer/substances.parquet')
 data = activities.join(substances.select('sid','selfies','encoded_selfies'), 'sid', 'inner')
 data = data.withColumnRenamed('pid', 'assay').withColumnRenamed('binary_value', 'value')
 data = data.orderBy(F.rand(52)) # Randomly shuffle data with seed 52
+data.cache()
 
 initial_count = data.count()
 
 source_counts = data.groupBy('source').count().orderBy('count', ascending=False).toPandas()
 logging.info(str(source_counts))
 assert min(source_counts['count']) >= 1000
-
-## SPECIAL CTDBASE PROCESSING =============================================================================
-# 1. remove ctdbase from data
-# 2. extract the GeneSymbol and InteractionActions from the data json field
-# 3. set the first assay with each gene_symbol + interaction_action as the assay property
-# 4. replace the assay of each row with the assay property
-
-
-# Define schema for JSON in 'data'
-json_schema = StructType([
-    StructField("GeneForms", StringType(), True),
-    StructField("GeneSymbol", StringType(), True),
-    StructField("InteractionActions", StringType(), True),
-    StructField("Organism", StringType(), True),
-    StructField("OrganismID", IntegerType(), True),
-])
-
-# Load properties
-properties = spark.read.parquet(chemharmony.properties_parquet).withColumnRenamed('pid', 'assay')
-
-# Extract and normalize ctdbase data
-ctdbase = data.filter(col('source') == 'ctdbase') \
-              .join(properties, ['assay','source'], 'inner') \
-              .withColumn('data_parsed', from_json(col('data'), json_schema)) \
-              .withColumn('interaction_action', col('data_parsed.InteractionActions')) \
-              .withColumn('gene_symbol', col('data_parsed.GeneSymbol')) \
-              .cache()  # Cache for reuse
-
-# Set the first assay per gene_symbol + interaction_action
-w = Window.partitionBy('gene_symbol', 'interaction_action').orderBy('assay')
-ctdbase = ctdbase.withColumn('representative_assay', F.first('assay').over(w)) \
-                 .drop('assay') \
-                 .withColumnRenamed('representative_assay', 'assay')
-
-# Combine back into full data
-ctdbase = ctdbase.select(data.columns)
-data = data.filter(col('source') != 'ctdbase').union(ctdbase)
 
 ## FILTER TO USEFUL OR CLASSIFIABLE PROPERTIES ============================================================
 logging.info("Filtering assays based on number of unique selfies")
@@ -84,6 +49,26 @@ assay_counts = assay_counts.filter(F.col('unique_selfies_count') >= 100)
 data = data.join(assay_counts, 'assay', 'inner')
 
 logging.info(f"Data size after filtering: {data.count():,} rows ({(data.count() / initial_count * 100):.1f}% of initial)")
+
+# Filter to assays with at least 50 positives and 50 negatives
+logging.info("Filtering assays for balanced positive/negative samples")
+assay_balance = data.groupBy('assay').agg(
+    F.sum(F.when(F.col('value') == 1, 1).otherwise(0)).alias('positive_count'),
+    F.sum(F.when(F.col('value') == 0, 1).otherwise(0)).alias('negative_count')
+)
+
+# Filter assays with at least 50 positives AND 50 negatives
+balanced_assays = assay_balance.filter((F.col('positive_count') >= 50) & (F.col('negative_count') >= 50))
+data = data.join(balanced_assays.select('assay'), 'assay', 'inner')
+
+# Check for conflicts (same SELFIES-assay pair with different values)
+conflicts = data.groupBy('selfies', 'assay').agg(
+    F.countDistinct('value').alias('distinct_values'),
+    F.count('*').alias('duplicate_count')
+).filter(F.col('distinct_values') > 1)
+
+conflicting_pairs = conflicts.select('selfies', 'assay')
+data = data.join(conflicting_pairs, on=['selfies', 'assay'], how='left_anti')
 
 ## Map assay UUIDs to integers
 logging.info("Converting assay IDs to indices...")
@@ -99,8 +84,9 @@ logging.info(f"wrote {outdir / 'activities.parquet'}")
 data = spark.read.parquet((outdir / 'activities.parquet').as_posix()).cache()
 assert data.count() > 10e6 # should have more than 10m activities
 
-# Calculate percentage drop for each source
 source_counts_2 = data.groupBy('source').count().orderBy('count', ascending=False).toPandas()
+
+# Calculate percentage drop for each source
 source_counts_2['initial_count'] = source_counts_2['source'].map(source_counts.set_index('source')['count'])
 source_counts_2['pct_drop'] = ((source_counts_2['initial_count'] - source_counts_2['count']) / source_counts_2['initial_count'] * 100)
 source_counts_2['pct_remaining'] = 100 - source_counts_2['pct_drop']

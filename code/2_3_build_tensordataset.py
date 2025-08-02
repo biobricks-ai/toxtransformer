@@ -1,14 +1,14 @@
 # cmd:
 # spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/2_3_build_tensordataset.py
+# spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///data/tmp/spark-events --conf spark.local.dir=/data/tmp/spark-local code/2_3_build_tensordataset.py
+
 import uuid, torch, torch.nn.utils.rnn
 import pyspark.sql, pyspark.sql.functions as F
 import cvae.utils, cvae.tokenizer.selfies_tokenizer, cvae.tokenizer.selfies_property_val_tokenizer
 import logging
 import pathlib
 import pandas as pd
-import uuid
-import torch
-from pyspark.sql import functions as F
+import shutil
 from pyspark.sql import Window
 from pyspark.sql.types import StringType
 from pyspark.sql.functions import pandas_udf
@@ -51,9 +51,9 @@ data = data.withColumn("row_number", F.row_number().over(window)).join(avcounts,
 def assign_split_udf(row_number: pd.Series, n_total: pd.Series) -> pd.Series:
     result = pd.Series([""] * len(row_number))
     ratio = row_number / n_total
-    result[ratio <= 0.8] = 'trn'
-    result[(ratio > 0.89) & (ratio <= 0.9)] = 'tst'
-    result[ratio > 0.9] = 'hld'
+    result[ratio <= 0.89] = 'trn'
+    result[(ratio > 0.94) & (ratio <= 0.95)] = 'tst'
+    result[ratio > 0.95] = 'hld'
     return result
 
 data = data.withColumn("split", assign_split_udf("row_number", "n_total"))
@@ -63,7 +63,12 @@ selfies_tok = cvae.tokenizer.selfies_tokenizer.SelfiesTokenizer().load('cache/pr
 num_assays = int(data.agg(F.max('assay_index')).collect()[0][0] + 1)
 num_values = int(data.agg(F.max('value')).collect()[0][0] + 1) # TODO this assumes an index identity for values
 tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer(selfies_tok, num_assays, num_values)
-tokenizer.save(cvae.utils.mk_empty_directory('brick/selfies_property_val_tokenizer', overwrite=True))
+spv_path = pathlib.Path('brick/selfies_property_val_tokenizer')
+if spv_path.exists():
+    shutil.rmtree(spv_path)
+spv_path.mkdir(parents=True, exist_ok=True)
+
+tokenizer.save(spv_path)
 
 # Group data by SELFIES and split for batch processing
 grouped_data = data.select("encoded_selfies", "assay_index", "value", "split") \

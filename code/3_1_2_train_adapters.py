@@ -85,7 +85,7 @@ def main(rank, world_size):
     # adapter_props = bp[~bp['source'].isin(['pubchem','bindingdb','ctdbase','reach','chembl','toxcast','ice','toxvaldb'])]['property_token'].unique().tolist()
     adapter_props = tox21_props
     for prop in adapter_props:
-        _ = model.add_boosting_expert(prop, expert_layers=6, expert_nhead=2, expert_dim_feedforward=512, expert_dropout_rate=0.1)
+        _ = model.add_boosting_expert(prop, expert_layers=2, expert_nhead=2, expert_dim_feedforward=256, expert_dropout_rate=0.3)
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     batch_size = 32
 
@@ -98,7 +98,7 @@ def main(rank, world_size):
     trnpaths = trnpaths[rank:] + trnpaths[:rank]
     trnds = InMemorySequenceShiftDataset.from_cache_or_create(
         trnpaths, tokenizer, nprops=10, assay_filter=tox21_props,
-        cache_path= outdir / "inmemory_dataset_cache" / "trn_dataset_tox21.pt")
+        cache_path= outdir / "inmemory_dataset_cache" / "trn_dataset.pt")
 
     trndl = torch.utils.data.DataLoader(
         trnds, batch_size=batch_size, shuffle=False, num_workers=train_workers,
@@ -119,9 +119,15 @@ def main(rank, world_size):
     )
     
     logging.info("creating trainer")
+    num_batches_to_accumulate = 8
+    warmup_steps = 2000
+    first_cycle_length = 1000 
     trainer = Trainer(model, rank, tokenizer, trndl, batch_size=batch_size, 
-        scheduler_warmup_steps=10_000, scheduler_max_steps=300_000, 
-        scheduler_min_lr=2e-4, scheduler_max_lr=1e-3, effective_accum_batch_size=batch_size * 8 * 12,
+        scheduler_warmup_steps=warmup_steps, 
+        scheduler_max_steps=first_cycle_length, 
+        scheduler_min_lr=1e-6, 
+        scheduler_max_lr=1e-3, 
+        effective_accum_batch_size=batch_size * world_size * num_batches_to_accumulate,
         max_steps=1_000_000, eval_samples=2_000, first_eval=1000, eval_every=100)
     
     trainer.set_validation_dataloader(valdl)
@@ -136,6 +142,9 @@ def main(rank, world_size):
         logging.info(f"{len(valdl)} validation batches")
         logging.info(f"{num_params/1e6:.2f} million parameters")
         logging.info(f"Gradient accumulation: {trainer.gradient_accumulation_steps}")
+        trainable_params_count = len([p for p in model.parameters() if p.requires_grad])
+        logging.info(f"Total trainable parameters: {trainable_params_count}")
+
 
     trainer.start()
     cleanup()
