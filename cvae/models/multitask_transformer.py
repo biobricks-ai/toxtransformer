@@ -19,97 +19,189 @@ import random
 from cvae.tokenizer.selfies_property_val_tokenizer import SelfiesPropertyValTokenizer
 import cvae.utils
 
-class LearnedPositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=5000, dropout=0.1):
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-        
-        # Learnable embeddings for the positions
-        self.positional_embeddings = nn.Embedding(max_len, d_model)
-
-    def forward(self, x):
-        # Create a tensor of position indices [0, 1, 2, ..., sequence_length-1]
-        position_indices = torch.arange(x.size(1), dtype=torch.long, device=x.device).unsqueeze(0).expand(x.size(0), x.size(1))
-        
-        # Retrieve the positional embeddings for the position indices
-        position_embeddings = self.positional_embeddings(position_indices)
-        
-        # Add the positional embeddings to the input embeddings
-        x = x + position_embeddings
-        
-        return self.dropout(x)
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-
-        pe = pe.unsqueeze(0)  # Shape: [1, max_len, d_model]
-        self.register_buffer('pe', pe)
-    
-    def forward(self, x):
-        x = x + self.pe[:, :x.size(1)]
-        return self.dropout(x)
-
-
-def generate_square_subsequent_mask(sz: int) -> torch.Tensor:
-    """Generate a standard causal mask (upper triangular with -inf above diag)"""
-    return torch.triu(torch.full((sz, sz), float('-inf')), diagonal=1)
-
-@torch.no_grad()
-def generate_custom_subsequent_mask(sz: int, device=None) -> torch.Tensor:
-    mask = torch.full((sz, sz), float('-inf'), device=device)
-    mask = torch.triu(mask, diagonal=1)
-    for i in range(1, sz - 1, 2):
-        mask[i, i + 1] = 0.0  # allow peeking
-    return mask
-
 
 class TokenEmbedding(nn.Module):
 
-    def __init__(self, tokenizer, hdim=256):
+    def __init__(self, vocab_size, hdim=256):
         super().__init__()
-        self.tokenizer = tokenizer
         self.hdim = hdim
-        self.embedding = nn.Embedding(tokenizer.vocab_size, hdim)
+        self.embedding = nn.Embedding(vocab_size, hdim)
         self.embedding_norm = nn.LayerNorm(hdim)
 
     def forward(self, input):
         embedded = self.embedding(input)
         return self.embedding_norm(embedded)
 
-class MultitaskTransformer(nn.Module):
+class ToxTransformer(nn.Module):
 
-    def __init__(self, tokenizer, hdim=256, nhead=2, num_layers=4, 
-        dim_feedforward=256, dropout_rate=0.1, output_size=None,
-        shared_embedding=None):
-
+    def __init__(self, tokenizer):
         super().__init__()
+        self.tokenizer = tokenizer
+        self.num_tasks = len(tokenizer.assay_indexes())
+        self.mintoken = min(tokenizer.assay_indexes().values())
 
-        assert dim_feedforward >= hdim and dim_feedforward % hdim == 0, f"dim_feedforward must be >= hdim and a multiple of hdim, got {dim_feedforward} (hdim={hdim})"
+        expert_hdim=16
+        router = ContiguousRouting(0, self.num_tasks)
+        self.expert_generator = lambda : ToxExpert(hdim=expert_hdim, nhead=1, ff_mult=4, num_layers=2, dropout_rate=0.1, output_size=2)
+        self.shared_base = MultitaskTransformer(tokenizer, hdim=256, nhead=8, num_layers=48, ff_mult=4, dropout_rate=0.1, output_size=expert_hdim)
+        self.multitask_heads = MultitaskHeads(num_tasks=self.num_tasks, model_generator=self.expert_generator, shared_base=self.shared_base, routing_module=router)
+        
+        
+    def forward(self, selfies, properties, values, property_mask):
+        return self.multitask_heads(selfies, properties, values, property_mask)
 
-        self.output_size = tokenizer.vocab_size if output_size is None else output_size
+
+class RoutingModule(nn.Module):
+    """Base class for routing task tokens to head indices."""
+    
+    def forward(self, tasks):
+        """Convert task tokens to head indices.
+        
+        Args:
+            tasks: [batch_size, seq_len] tensor of task tokens
+            
+        Returns:
+            head_indices: [batch_size, seq_len] tensor of head indices (0 to num_heads-1)
+        """
+        raise NotImplementedError
+
+
+class ContiguousRouting(RoutingModule):
+    """Routes contiguous task tokens (possibly offset) to head indices."""
+    
+    def __init__(self, min_task_token, num_tasks):
+        super().__init__()
+        self.min_task_token = min_task_token
+        self.num_tasks = num_tasks
+        
+    def forward(self, tasks):
+        # Convert task tokens to head indices: task_token - min_task_token
+        head_indices = tasks - self.min_task_token
+        
+        # Clamp to valid range [0, num_tasks-1], set invalid to -1
+        valid_mask = (head_indices >= 0) & (head_indices < self.num_tasks)
+        head_indices = torch.where(valid_mask, head_indices, -1)
+        
+        return head_indices
+
+
+class MultitaskHeads(nn.Module):
+
+    def __init__(self, num_tasks, model_generator, shared_base: nn.Module, routing_module: RoutingModule):
+        super().__init__()
+        self.num_tasks = num_tasks
+        self.model_generator = model_generator
+        self.heads = nn.ModuleList([self.model_generator() for _ in range(num_tasks)])
+        self.shared_base = shared_base
+        self.routing_module = routing_module
+
+    def forward(self, selfies, tasks, values, property_mask):
+        # Forward pass through shared base
+        shared_output = self.shared_base(selfies, tasks, values, property_mask)  # [batch_size, seq_len, hdim]
+        shared_output.shape
+        
+        # Use routing module to get head indices
+        head_indices = self.routing_module(tasks)  # [batch_size, seq_len]
+        
+        # Find which heads are actually needed
+        valid_head_indices = head_indices[head_indices != -1]
+        if len(valid_head_indices) == 0:
+            # No valid tasks, return zeros
+            batch_size, seq_len = tasks.shape
+            output_size = self.heads[0](shared_output[:1, :1]).shape[-1]  # Get output size from dummy call
+            return torch.zeros(batch_size, seq_len, output_size, device=shared_output.device)
+        
+        unique_heads_needed = torch.unique(valid_head_indices)
+        
+        # Run all needed heads and store in list indexed by head_idx
+        max_head_idx = unique_heads_needed.max()
+        task_outputs = [None] * (max_head_idx + 1)
+        
+        for i in range(len(unique_heads_needed)):
+            head_idx = unique_heads_needed[i]
+            task_outputs[head_idx] = self.heads[head_idx](shared_output)
+        
+        # Create output tensor
+        batch_size, seq_len = tasks.shape
+        output_size = task_outputs[unique_heads_needed[0]].shape[-1]
+        output = torch.zeros(batch_size, seq_len, output_size, device=shared_output.device)
+        
+        # Fill in outputs for each head
+        for i in range(len(unique_heads_needed)):
+            head_idx = unique_heads_needed[i]
+            mask = (head_indices == head_idx)
+            output[mask] = task_outputs[head_idx][mask]
+        
+        return output
+
+class ToxExpert(nn.Module):
+
+    def __init__(self, hdim, nhead, ff_mult, num_layers, dropout_rate, output_size):
+        super().__init__()
         self.hdim = hdim
         self.nhead = nhead
-        self.dim_feedforward = dim_feedforward
+        self.ff_mult = ff_mult
+        self.num_layers = num_layers
+        self.dropout_rate = dropout_rate
+        self.output_size = output_size
+
+        self.decoder = Decoder(
+            dim=self.hdim,
+            depth=num_layers,
+            heads=self.nhead,
+            ff_mult=ff_mult,
+            rotary_pos_emb=True,
+            attn_dropout=dropout_rate,
+            ff_dropout=dropout_rate,
+            cross_attend=False
+        )
+
+        self.classification_layers = nn.Sequential(
+            nn.LayerNorm(self.hdim),
+            nn.Linear(self.hdim, self.output_size)
+        )
+
+    def forward(self, base_output):
+        x = self.decoder(base_output)
+        x = self.classification_layers(x)
+        return x
+
+
+class MultitaskTransformer(nn.Module):
+ 
+    def __init__(self, tokenizer, hdim=256, nhead=2, num_layers=4, 
+        ff_mult=4, dropout_rate=0.1, output_size=None,
+        shared_embedding=None):
+        
+        super().__init__()
+
+        self.output_size = len(tokenizer.value_indexes()) if output_size is None else output_size
+        self.hdim = hdim
+        self.nhead = nhead
+        self.ff_mult = ff_mult
         self.tokenizer = tokenizer
         self.token_pad_idx = tokenizer.PAD_IDX
 
-        self.embedding = TokenEmbedding(tokenizer, hdim) if shared_embedding is None else shared_embedding
+        # we map the minimum property token to vocab_size + 1         
+        # prop_val = (prop - minprop) + (val - minval + 1) * num_props
+        self.numprops = len(tokenizer.assay_indexes())
+        self.minprop = min(tokenizer.assay_indexes().values())
+        self.minval = min(tokenizer.value_indexes().values())
+        self.pv_offset = tokenizer.vocab_size
         
-        ffdim = dim_feedforward // hdim
+        # Calculate expanded vocabulary size:
+        # original_vocab + (num_properties * num_values) for property-value combinations
+        self.pv_combinations = self.numprops * len(tokenizer.value_indexes())
+        self.expanded_vocab_size = tokenizer.vocab_size + self.pv_combinations
+        
+        # Single embedding for everything: SELFIES tokens, property tokens, and property-value combinations
+        self.embedding = TokenEmbedding(self.expanded_vocab_size, hdim)
         
         self.encoder = Encoder(
             dim=self.hdim,
             depth=num_layers,
             heads=self.nhead,
-            ff_mult=ffdim,
+            ff_mult=ff_mult,
             rotary_pos_emb=True,
             attn_dropout=dropout_rate,
             ff_dropout=dropout_rate
@@ -119,39 +211,78 @@ class MultitaskTransformer(nn.Module):
             dim=self.hdim,
             depth=num_layers,
             heads=self.nhead,
-            ff_mult=ffdim,
+            ff_mult=ff_mult,
             rotary_pos_emb=True,
             attn_dropout=dropout_rate,
             ff_dropout=dropout_rate,
             cross_attend=True
         )
 
-        self.decoder_norm = nn.LayerNorm(self.hdim)
         self.classification_layers = nn.Sequential(
             nn.LayerNorm(self.hdim),
-            nn.Linear(self.hdim, self.hdim),
-            nn.ReLU(),
             nn.Linear(self.hdim, self.output_size)
         )
 
-    def forward(self, input, teach_forcing):
-        memory_mask = input != self.token_pad_idx
-        tgt_mask = teach_forcing != self.token_pad_idx
+    def create_pv_teacher_forcing(self, properties, values):
+        """
+        Map (property, value) pairs to property-value combination tokens and interleave.
+        
+        Args:
+            properties: [batch_size, num_props] - property token indices
+            values: [batch_size, num_props] - value token indices (0 or 1)
+            
+        Returns:
+            interleaved_tokens: [batch_size, num_props * 2] - interleaved property and property-value tokens
+        """
+        batch_size, num_props = properties.shape
 
-        input_embedding = self.embedding(input)
-        input_encoding = self.encoder(input_embedding, mask=memory_mask)
+        # Calculate combination indices for property-value pairs
+        pv_tokens = self.tokenizer.properties_offset + properties + values * self.numprops
 
-        teach_forcing_emb = self.embedding(teach_forcing)
+        # Set padding positions for properties as well
+        prop_tokens = properties + self.tokenizer.selfies_offset
 
+        # Interleave: p1, pv1, p2, pv2, ...
+        interleaved = torch.stack([prop_tokens, pv_tokens], dim=2)  # [batch_size, num_props, 2]
+        interleaved_tokens = interleaved.view(batch_size, num_props * 2)  # [batch_size, num_props * 2]
+
+        return interleaved_tokens
+
+    def forward(self, selfies, properties, values, mask):
+        """
+        Args:
+            selfies: [batch_size, selfies_seq_len] - tokenized SELFIES molecule representation
+            properties: [batch_size, num_props] - property tokens 
+            values: [batch_size, num_props] - corresponding value tokens
+            
+        Returns:
+            logits: [batch_size, num_props, output_size] - predictions for each property-value position
+        """
+        
+        # Encode molecule (SELFIES) using standard token embeddings
+        molecule_mask = selfies != self.token_pad_idx
+        molecule_emb = self.embedding(selfies)
+        molecule_encoding = self.encoder(molecule_emb, mask=molecule_mask)
+        
+        # Map property-value pairs to combination tokens
+        pv_tokens = self.create_pv_teacher_forcing(properties, values)
+        pv_tokens
+
+        # Embed property-value combinations
+        # Create mask by doubling each element of property_mask
+        pv_mask = mask.repeat_interleave(2, dim=1)
+        pv_emb = self.embedding(pv_tokens)
+        
+        # Decoder uses molecule context to process property-value combinations
         decoded = self.decoder(
-            teach_forcing_emb,
-            context=input_encoding,
-            mask=tgt_mask,
-            context_mask=memory_mask
+            pv_emb,
+            context=molecule_encoding,
+            mask=pv_mask,
+            context_mask=molecule_mask
         )
 
-        decoded = self.decoder_norm(decoded)
-        logits = self.classification_layers(decoded)
+        decoded_values = decoded[:, 0::2]
+        logits = self.classification_layers(decoded_values)
         return logits
 
     def save(self, path):
@@ -173,508 +304,3 @@ class MultitaskTransformer(nn.Module):
         model.eval()
         return model
 
-@torch.jit.script
-def process_assay_vals(
-    raw_assay_vals: Tensor,
-    pad_idx: int,
-    sep_idx: int,
-    end_idx: int,
-    nprops: int,
-    assay_filter_tensor: Optional[Tensor] = None
-) -> Tuple[Tensor, Tensor]:
-    device = raw_assay_vals.device
-    mask = raw_assay_vals != pad_idx
-    valid_tokens = raw_assay_vals[mask][1:-1]
-
-    if assay_filter_tensor is not None and assay_filter_tensor.numel() > 0:
-        assay_ids = valid_tokens[::2]
-        assay_mask = torch.isin(assay_ids, assay_filter_tensor)
-        expanded_mask = torch.zeros_like(valid_tokens, dtype=torch.bool)
-        expanded_mask[::2] = assay_mask
-        expanded_mask[1::2] = assay_mask
-        valid_tokens = valid_tokens[expanded_mask]
-
-    reshaped = valid_tokens.view(-1, 2).contiguous()
-    assert reshaped.numel() > 0, "No assay values found."
-
-    perm = torch.randperm(reshaped.size(0))
-    shuffled = reshaped[perm].flatten()
-    av_truncate = shuffled[:nprops * 2]
-
-    av_sos_eos = torch.cat([
-        torch.tensor([sep_idx], device=device),
-        av_truncate,
-        torch.tensor([end_idx], device=device)
-    ])
-    out = F.pad(av_sos_eos, (0, nprops * 2 + 2 - av_sos_eos.size(0)), value=float(pad_idx))
-    tch = torch.cat([torch.tensor([1], device=device), out[:-1]])
-    return tch, out
-
-
-class SequenceShiftDataset(Dataset):
-    
-    def __init__(self, path, tokenizer: SelfiesPropertyValTokenizer, nprops=5, assay_filter=[]):
-        self.nprops = nprops
-        self.assay_filter = assay_filter
-        self.assay_filter_tensor = torch.tensor(assay_filter, dtype=torch.long) if len(assay_filter) > 0 else None
-        self.file_paths = []
-        self.file_lengths = []
-        self.cumulative_lengths = [0]
-        cumulative_length = 0
-        self.tokenizer = tokenizer
-        self.pad_idx, self.sep_idx, self.end_idx = tokenizer.PAD_IDX, tokenizer.SEP_IDX, tokenizer.END_IDX
-
-        for file_path in tqdm.tqdm(pathlib.Path(path).glob("*.pt")):
-            file_data = torch.load(file_path, map_location="cpu")
-            selfies = file_data["selfies"]
-            assay_vals = file_data["assay_vals"]
-            
-            valid_count = 0
-            for s, a in zip(selfies, assay_vals):
-                mask = a != self.pad_idx
-                valid_tokens = a[mask][1:-1]
-                if self.assay_filter_tensor is not None and self.assay_filter_tensor.numel() > 0:
-                    assay_ids = valid_tokens[::2]
-                    assay_mask = torch.isin(assay_ids, self.assay_filter_tensor)
-                    if assay_mask.sum() == 0:
-                        continue
-                if valid_tokens.numel() >= 2:
-                    valid_count += 1
-            
-            if valid_count > 0:
-                self.file_paths.append(file_path)
-                self.file_lengths.append(valid_count)
-                cumulative_length += valid_count
-                self.cumulative_lengths.append(cumulative_length)
-
-    def __len__(self):
-        return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
-
-    def __getitem__(self, idx):
-        # Find which file contains this index
-        file_idx = bisect.bisect_right(self.cumulative_lengths, idx) - 1
-        local_idx = idx - self.cumulative_lengths[file_idx]
-        
-        # Load the file on-demand
-        file_data = torch.load(self.file_paths[file_idx], map_location="cpu")
-        selfies = file_data["selfies"]
-        assay_vals = file_data["assay_vals"]
-        
-        # Find the local_idx-th valid sample in this file
-        current_valid_idx = 0
-        for s, a in zip(selfies, assay_vals):
-            mask = a != self.pad_idx
-            valid_tokens = a[mask][1:-1]
-            if self.assay_filter_tensor is not None and self.assay_filter_tensor.numel() > 0:
-                assay_ids = valid_tokens[::2]
-                assay_mask = torch.isin(assay_ids, self.assay_filter_tensor)
-                if assay_mask.sum() == 0:
-                    continue
-            if valid_tokens.numel() >= 2:
-                if current_valid_idx == local_idx:
-                    # Found our sample
-                    tch, out = process_assay_vals(
-                        a,
-                        self.pad_idx,
-                        self.sep_idx,
-                        self.end_idx,
-                        self.nprops,
-                        self.assay_filter_tensor
-                    )
-                    return s, tch, out
-                current_valid_idx += 1
-        
-        raise IndexError(f"Index {idx} not found")
-
-class LabelSmoothingCrossEntropySequence(nn.Module):
-    def __init__(self, epsilon_ls=0.05, ignore_index=None):
-        super(LabelSmoothingCrossEntropySequence, self).__init__()
-        self.epsilon_ls = epsilon_ls
-        self.ignore_index = ignore_index
-
-    def forward(self, out, tgt):
-        num_classes = out.size(-1)
-        dev = out.device
-        
-        if tgt.dim() == 1:
-            # Masked case: (num_tokens,)
-            fill = self.epsilon_ls / (num_classes - 1)
-            with torch.no_grad():
-                smooth_label = torch.full(size=(tgt.size(0), num_classes), fill_value=fill, device=dev)
-                tgt = tgt.unsqueeze(-1)
-                smooth_label.scatter_(-1, tgt, 1.0 - self.epsilon_ls)
-
-                if self.ignore_index is not None:
-                    ignore_mask = tgt.eq(self.ignore_index)
-                    smooth_label.masked_fill_(ignore_mask, 0.0)
-
-            loss = -smooth_label * F.log_softmax(out, dim=-1)
-
-            if self.ignore_index is not None:
-                loss.masked_fill_(ignore_mask, 0.0)
-
-            loss = loss.sum(dim=-1)
-            loss = loss.mean()
-
-        else:
-            # Regular case: (batch_size, seq_len)
-            batch_size, seq_len = tgt.size()
-            fill = self.epsilon_ls / (num_classes - 1)
-            with torch.no_grad():
-                smooth_label = torch.full(size=(batch_size, seq_len, num_classes), fill_value=fill, device=dev)
-                tgt = tgt.unsqueeze(-1)
-                smooth_label.scatter_(-1, tgt, 1.0 - self.epsilon_ls)
-
-                if self.ignore_index is not None:
-                    ignore_mask = tgt.eq(self.ignore_index)
-                    smooth_label.masked_fill_(ignore_mask, 0.0)
-
-            loss = -smooth_label * F.log_softmax(out, dim=-1)
-
-            if self.ignore_index is not None:
-                loss.masked_fill_(ignore_mask, 0.0)
-
-            loss = loss.sum(dim=-1)
-            loss = loss.masked_select(~ignore_mask.squeeze(-1)).mean()
-
-        return loss
-
-
-class NoamLR(torch.optim.lr_scheduler._LRScheduler):
-    """
-    Learning rate scheduler from "Attention is All You Need" (Vaswani et al.).
-    
-    Arguments:
-        optimizer: The optimizer to modify
-        model_size: Hidden dimension size of the model (d_model in the paper)
-        warmup_steps: Number of warmup steps before starting decay
-        last_epoch: The index of the last epoch (-1 default)
-        multiplier: Overall scale factor for the learning rate
-        max_lr: Maximum learning rate (after applying multiplier)
-        min_lr: Minimum learning rate to clip at
-    """
-    def __init__(self, optimizer, model_size, warmup_steps, last_epoch=-1, multiplier=1.0, max_lr=5e-5, min_lr=1e-6):
-        self.model_size = model_size
-        self.warmup_steps = warmup_steps
-        self.multiplier = multiplier
-        # Store the true maximum learning rate (after multiplier)
-        self.true_max_lr = max_lr
-        self.max_lr = max_lr
-        self.min_lr = min_lr
-        super(NoamLR, self).__init__(optimizer, last_epoch)
-
-    def get_lr(self):
-        step_num = self.last_epoch + 1
-        
-        # Calculate the Noam scale factor
-        scale = self.model_size ** (-0.5) * min(
-            step_num ** (-0.5), 
-            step_num * self.warmup_steps ** (-1.5)
-        )
-        
-        # Apply multiplier to the scale
-        scaled_lr = self.max_lr * self.multiplier * scale
-        
-        # Generate learning rates for all parameter groups
-        lrs = [scaled_lr for _ in self.base_lrs]
-        
-        # Clip learning rates between min_lr and true_max_lr
-        lrs = [min(lr, self.true_max_lr) for lr in lrs]
-        lrs = [max(lr, self.min_lr) for lr in lrs]
-        
-        return lrs
-
-from torch.optim.lr_scheduler import LambdaLR
-
-def linear_warmup_and_decay_scheduler(optimizer, warmup_steps, total_steps, max_lr=1.0, min_lr=0.0):
-    """
-    GPT-3 style scheduler: linear warmup from min_lr to max_lr, then linear decay back to min_lr.
-    Assumes max_lr is 1.0 unless scaling is required.
-    """
-    def lr_lambda(step):
-        if step < warmup_steps:
-            return min_lr + (max_lr - min_lr) * (step / warmup_steps)
-        elif step < total_steps:
-            decay_steps = total_steps - warmup_steps
-            return min_lr + (max_lr - min_lr) * ((total_steps - step) / decay_steps)
-        else:
-            return min_lr  # stable after total_steps
-
-    return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
-
-from typing import Tuple, Dict, List, Optional
-
-# Helper functions that don't need TorchScript
-def create_shuffled_indices(pairs: torch.Tensor, sample_hash: int, rank: int = 0) -> List[int]:
-    """Create deterministically shuffled indices based on a hash and rank."""
-    total_pairs = pairs.size(0)
-    
-    # Create a deterministic random generator with seed + rank
-    # Adding the rank ensures different devices get the same sequence
-    random_gen = random.Random(sample_hash + rank * 1000000)
-    
-    # Generate a deterministic shuffle pattern
-    shuffled_indices = list(range(total_pairs))
-    random_gen.shuffle(shuffled_indices)
-    
-    return shuffled_indices
-
-
-def rotate_indices(indices: List[int], rotation_idx: int) -> List[int]:
-    """Rotate a list of indices by rotation_idx positions."""
-    if not indices:
-        return []
-    
-    total = len(indices)
-    rotation_idx = rotation_idx % total  # Ensure we don't exceed bounds
-    
-    # Create a rotated list of indices
-    return indices[rotation_idx:] + indices[:rotation_idx]
-
-
-@torch.jit.script
-def process_assay_vals_rotating(
-    raw_assay_vals: torch.Tensor, 
-    pad_idx: int, 
-    sep_idx: int, 
-    end_idx: int, 
-    nprops: int,
-    shuffled_indices: List[int],
-    rotation_idx: int
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    Process assay values with rotation to ensure each property gets to be first.
-    Now with TorchScript compatibility.
-    
-    Args:
-        raw_assay_vals: Raw tensor of assay values with padding
-        pad_idx: Padding index value
-        sep_idx: Separator index value
-        end_idx: End index value
-        nprops: Number of property-value pairs to include
-        shuffled_indices: Pre-shuffled indices 
-        rotation_idx: Current rotation index (determines which property comes first)
-    """
-    mask = raw_assay_vals != pad_idx
-    assay_vals = raw_assay_vals[mask][1:-1]  # Remove SOS/EOS tokens
-    
-    # Safety check
-    if assay_vals.numel() == 0:
-        # Return empty tensors with proper structure
-        device = raw_assay_vals.device
-        dummy = torch.tensor([1, sep_idx, end_idx] + [pad_idx] * (2 * nprops), device=device)
-        return dummy[:-1], dummy[1:]
-    
-    # Reshape into property-value pairs
-    pairs = assay_vals.view(-1, 2)
-    total_pairs = pairs.size(0)
-    
-    # Apply rotation within the TorchScript function
-    total = len(shuffled_indices)
-    rotation_idx = rotation_idx % total  # Ensure we don't exceed bounds
-    
-    # Manual rotation (avoiding tolist() which isn't supported in TorchScript)
-    rotated_indices: List[int] = []
-    for i in range(total):
-        rotated_indices.append(shuffled_indices[(i + rotation_idx) % total])
-    
-    if total_pairs <= nprops:
-        # Use all rotated indices
-        selected_indices = rotated_indices
-    else:
-        # Take the first nprops indices from the rotated list
-        selected_indices = rotated_indices[:nprops]
-    
-    # Get the selected pairs
-    selected_pairs = torch.stack([pairs[i] for i in selected_indices])
-    
-    # Flatten the selected pairs
-    selected_flat = selected_pairs.flatten()
-    
-    # Truncate or pad to the right size
-    if len(selected_flat) > 2 * nprops:
-        av_truncate = selected_flat[:2 * nprops]
-    else:
-        av_truncate = selected_flat
-    
-    # Add SOS and EOS tokens
-    device = raw_assay_vals.device
-    av_sos_eos = torch.cat([
-        torch.tensor([sep_idx], device=device),
-        av_truncate,
-        torch.tensor([end_idx], device=device)
-    ])
-    
-    # Pad to fixed length
-    pad_value = float(pad_idx)
-    out = F.pad(av_sos_eos, (0, nprops * 2 + 2 - av_sos_eos.size(0)), value=pad_value)
-    
-    # Create teacher forcing input (shifted by 1)
-    tch = torch.cat([torch.tensor([1], device=device), out[:-1]])
-    
-    return tch, out
-
-
-class RotatingModuloSequenceShiftDataset(Dataset):
-    def __init__(self, path, tokenizer, nprops=5, assay_filter=None, rank=0, world_size=1):
-        """
-        Dataset with rotating property sampling that's deterministic across different ranks.
-        
-        Args:
-            path: Path to data files
-            tokenizer: Tokenizer for processing sequences
-            nprops: Number of property-value pairs to include
-            assay_filter: Optional list of property IDs to filter
-            rank: Process rank for distributed training (default: 0)
-            world_size: Total number of processes (default: 1)
-        """
-        self.nprops = nprops
-        self.assay_filter = [] if assay_filter is None else assay_filter
-        self.data = []
-        self.cumulative_lengths = [0]
-        cumulative_length = 0
-        self.tokenizer = tokenizer
-        self.pad_idx = tokenizer.PAD_IDX
-        self.sep_idx = tokenizer.SEP_IDX
-        self.end_idx = tokenizer.END_IDX
-        
-        # Store rank information
-        self.rank = rank
-        self.world_size = world_size
-        
-        # Dictionary to track rotation index for each sample
-        self.sample_rotations = {}
-        
-        # Dictionary to cache shuffled indices for each sample
-        self.sample_shuffled_indices = {}
-        
-        # Load data
-        print(f"Rank {rank}: Loading data files...")
-        for file_path in tqdm.tqdm(list(pathlib.Path(path).glob("*.pt"))):
-            file_data = torch.load(file_path, map_location="cpu")
-            self.data.append((file_data["selfies"], file_data["assay_vals"]))
-            cumulative_length += file_data["selfies"].size(0)
-            self.cumulative_lengths.append(cumulative_length)
-
-    def __len__(self):
-        return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
-    
-    def _get_global_idx(self, file_idx, local_idx):
-        """Convert file_idx and local_idx to a global sample index."""
-        return self.cumulative_lengths[file_idx] + local_idx
-    
-    def _get_shuffled_indices(self, global_idx, raw_assay_vals):
-        """Get or create shuffled property indices for a sample."""
-        if global_idx not in self.sample_shuffled_indices:
-            # First time seeing this sample - extract properties
-            mask = raw_assay_vals != self.pad_idx
-            assay_vals = raw_assay_vals[mask][1:-1]  # Remove SOS/EOS
-            
-            if assay_vals.numel() > 0:
-                # Reshape into property-value pairs
-                pairs = assay_vals.view(-1, 2)
-                
-                # Create a simple hash of the sample content
-                sample_hash = int(raw_assay_vals.sum().item()) & 0xFFFFFFFF
-                
-                # Create shuffled indices with rank awareness
-                self.sample_shuffled_indices[global_idx] = create_shuffled_indices(
-                    pairs, sample_hash, self.rank
-                )
-            else:
-                # Empty sample
-                self.sample_shuffled_indices[global_idx] = []
-        
-        return self.sample_shuffled_indices[global_idx]
-    
-    def _initialize_rotation(self, global_idx):
-        """Initialize rotation index for a sample if needed."""
-        if global_idx not in self.sample_rotations:
-            # First time seeing this sample
-            self.sample_rotations[global_idx] = 0
-
-    def __getitem__(self, idx):
-        file_idx = bisect.bisect_right(self.cumulative_lengths, idx) - 1
-        local_idx = idx - self.cumulative_lengths[file_idx]
-        global_idx = self._get_global_idx(file_idx, local_idx)
-
-        selfies_raw = self.data[file_idx][0][local_idx]
-        raw_assay_vals = self.data[file_idx][1][local_idx]
-        
-        # Get shuffled indices for this sample
-        shuffled_indices = self._get_shuffled_indices(global_idx, raw_assay_vals)
-        
-        # Initialize rotation index if needed
-        self._initialize_rotation(global_idx)
-        
-        # Get current rotation index
-        current_rotation = self.sample_rotations[global_idx]
-        
-        # If no properties, return dummy values
-        if not shuffled_indices:
-            device = raw_assay_vals.device
-            dummy_tch = torch.tensor([1, self.sep_idx] + [self.pad_idx] * (2 * self.nprops), device=device)
-            dummy_out = torch.tensor([self.sep_idx, self.end_idx] + [self.pad_idx] * (2 * self.nprops), device=device)
-            return selfies_raw, dummy_tch, dummy_out
-        
-        # Use rotating property sampling
-        tch, out = process_assay_vals_rotating(
-            raw_assay_vals,
-            self.pad_idx,
-            self.sep_idx,
-            self.end_idx,
-            self.nprops,
-            shuffled_indices,
-            current_rotation
-        )
-        
-        # Increment the rotation index for next time
-        self.sample_rotations[global_idx] += 1
-        
-        # Reshuffle if we've completed a full cycle
-        total_pairs = len(shuffled_indices)
-        if self.sample_rotations[global_idx] % total_pairs == 0:
-            # Create a simple hash of the sample content + cycle count
-            sample_hash = int(raw_assay_vals.sum().item()) & 0xFFFFFFFF
-            cycle = self.sample_rotations[global_idx] // total_pairs
-            new_hash = sample_hash + cycle * 10000
-            
-            # Create new shuffled indices with rank awareness
-            pairs = raw_assay_vals[raw_assay_vals != self.pad_idx][1:-1].view(-1, 2)
-            self.sample_shuffled_indices[global_idx] = create_shuffled_indices(
-                pairs, new_hash, self.rank
-            )
-        
-        return selfies_raw, tch, out
-    
-    def reset_rotations(self):
-        """Reset all rotation indices (call at the start of each epoch if desired)."""
-        self.sample_rotations = {key: 0 for key in self.sample_rotations}
-        # Optionally reset the shuffled indices as well
-        self.sample_shuffled_indices = {}
-    
-    @staticmethod
-    def setup_distributed(path, tokenizer, nprops=5, assay_filter=None, 
-                          local_rank=0, world_size=1):
-        """
-        Factory method to create a dataset for distributed training with proper rank.
-        
-        Args:
-            path: Path to data files
-            tokenizer: Tokenizer for processing sequences
-            nprops: Number of property-value pairs to include
-            assay_filter: Optional list of property IDs to filter
-            local_rank: Local process rank
-            world_size: Total number of processes
-            
-        Returns:
-            RotatingModuloSequenceShiftDataset instance configured for distributed training
-        """
-        return RotatingModuloSequenceShiftDataset(
-            path=path,
-            tokenizer=tokenizer,
-            nprops=nprops,
-            assay_filter=assay_filter,
-            rank=local_rank,
-            world_size=world_size
-        )

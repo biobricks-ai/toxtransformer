@@ -17,6 +17,7 @@ class SelfiesPropertyValTokenizer:
         self.pad_idx = selfies_tokenizer.symbol_to_index[selfies_tokenizer.PAD_TOKEN]
         self.selfies_offset = len(self.selfies_tokenizer.symbol_to_index)
         self.num_assays = num_assays
+        self.properties_offset = self.selfies_offset + num_assays
         self.num_vals = num_vals
         
         self.PAD_TOKEN = self.selfies_tokenizer.PAD_TOKEN
@@ -69,7 +70,21 @@ class SelfiesPropertyValTokenizer:
             return self.END_IDX
         else:
             raise ValueError(f"Symbol {symbol} not in tokenizer")
-        
+
+    def norm_properties(self, properties, bool_mask):
+        properties = properties - self.selfies_offset
+        properties[~bool_mask] = 0
+        return properties
+
+    def norm_values(self, values, bool_mask):
+        """
+        takes tokenized values and make them 0 indexed eg
+        if the min value is 16368 [16368,16369] -> [0,1]
+        """
+        values = values - self.properties_offset
+        values[~bool_mask] = 0
+        return values
+
     def save(self, path):
         # Save the necessary attributes to a JSON file
         data = {
