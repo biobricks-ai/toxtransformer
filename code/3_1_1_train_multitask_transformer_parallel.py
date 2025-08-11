@@ -48,7 +48,8 @@ def create_model_and_optimizer(tokenizer):
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
     torch.backends.cudnn.benchmark = True
-    
+    torch.set_float32_matmul_precision('high')
+
     # Create model
     model = mt.MultitaskTransformer(
         tokenizer=tokenizer, 
@@ -60,6 +61,8 @@ def create_model_and_optimizer(tokenizer):
         output_size=2
     )
     
+    model = torch.compile(model, mode='max-autotune')
+
     # Create optimizer
     optimizer = torch.optim.AdamW(
         model.parameters(), 
@@ -83,7 +86,8 @@ def create_dataloaders(tokenizer, batch_size, world_size, rank):
     cpus_per_rank = max(2, os.cpu_count() // world_size)
     train_workers = max(2, min(32, cpus_per_rank))
     val_workers = max(1, min(20, cpus_per_rank))
-    
+    prefetch_factor = 100 if world_size >=8 else 10
+
     # Create dataloaders
     trndl = torch.utils.data.DataLoader(
         trnds, 
@@ -92,7 +96,7 @@ def create_dataloaders(tokenizer, batch_size, world_size, rank):
         num_workers=train_workers,
         pin_memory=True, 
         persistent_workers=True, 
-        prefetch_factor=10,
+        prefetch_factor=prefetch_factor,
         sampler=torch.utils.data.distributed.DistributedSampler(
             trnds, num_replicas=world_size, rank=rank, drop_last=True, shuffle=True
         )
@@ -105,7 +109,7 @@ def create_dataloaders(tokenizer, batch_size, world_size, rank):
         num_workers=val_workers,
         pin_memory=True, 
         persistent_workers=True, 
-        prefetch_factor=10,
+        prefetch_factor=prefetch_factor,
         sampler=torch.utils.data.distributed.DistributedSampler(
             valds, num_replicas=world_size, rank=rank, drop_last=True, shuffle=True
         )
@@ -117,7 +121,7 @@ def calculate_training_params(trnds, batch_size, world_size):
     """Calculate training parameters."""
     # Training configuration
     training_epochs = 10
-    target_effective_batch_size = 8000
+    target_effective_batch_size = 16000
     
     # Calculate steps and accumulation
     batches_in_epoch = max(len(trnds) // (batch_size * world_size), 1)
@@ -178,7 +182,7 @@ def main(rank, world_size):
     model, optimizer = create_model_and_optimizer(tokenizer)
     
     # Training configuration
-    batch_size = 32 * 3
+    batch_size = 128 * 3
     
     # Create dataloaders
     trndl, valdl, trnds = create_dataloaders(tokenizer, batch_size, world_size, rank)
@@ -190,12 +194,16 @@ def main(rank, world_size):
     log_training_info(rank, model, trnds, valdl, trndl, params, batch_size, world_size)
     
     # Create scheduler
+    base_lr = 1e-3
+    base_batch_size = 8000
+    lr_scaling_factor = params['effective_accum_batch_size'] / base_batch_size
+    scaled_max_lr = base_lr * lr_scaling_factor
     scheduler = WarmupCosineScheduler(
         optimizer=optimizer,
         warmup_steps=params['scheduler_warmup_accum_steps'],
         cosine_cycle_length=params['scheduler_accum_steps_in_first_cycle'],
         min_lr=1e-6,
-        max_lr=1e-3,
+        max_lr=scaled_max_lr,
         cosine_t_mult=2
     )
     
@@ -226,6 +234,19 @@ if __name__ == "__main__":
     # Get distributed training parameters
     rank = int(os.environ["RANK"])
     world_size = int(os.environ["WORLD_SIZE"])
+
+    enable_profiling = rank == 0 and False  # Set to True to enable
+    
+    if enable_profiling:
+        from torch.profiler import profile, record_function, ProfilerActivity
+        prof = profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+            schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler('./profiler_logs'),
+            record_shapes=True,
+            with_stack=True
+        )
+        prof.start()
 
     # Setup distributed training
     torch.cuda.set_device(rank)
