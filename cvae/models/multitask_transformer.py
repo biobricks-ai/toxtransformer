@@ -40,9 +40,9 @@ class ToxTransformer(nn.Module):
         self.num_tasks = len(tokenizer.assay_indexes())
         self.mintoken = min(tokenizer.assay_indexes().values())
 
-        expert_hdim=16
+        expert_hdim=32
         router = ContiguousRouting(0, self.num_tasks)
-        self.expert_generator = lambda : ToxExpert(hdim=expert_hdim, nhead=1, ff_mult=4, num_layers=2, dropout_rate=0.1, output_size=2)
+        self.expert_generator = lambda : ToxExpert(hdim=expert_hdim, nhead=2, ff_mult=4, num_layers=2, dropout_rate=0.1, output_size=2)
         self.shared_base = MultitaskTransformer(tokenizer, hdim=256, nhead=8, num_layers=48, ff_mult=4, dropout_rate=0.1, output_size=expert_hdim)
         self.multitask_heads = MultitaskHeads(num_tasks=self.num_tasks, model_generator=self.expert_generator, shared_base=self.shared_base, routing_module=router)
         
@@ -98,7 +98,6 @@ class MultitaskHeads(nn.Module):
     def forward(self, selfies, tasks, values, property_mask):
         # Forward pass through shared base
         shared_output = self.shared_base(selfies, tasks, values, property_mask)  # [batch_size, seq_len, hdim]
-        shared_output.shape
         
         # Use routing module to get head indices
         head_indices = self.routing_module(tasks)  # [batch_size, seq_len]
@@ -109,7 +108,7 @@ class MultitaskHeads(nn.Module):
             # No valid tasks, return zeros
             batch_size, seq_len = tasks.shape
             output_size = self.heads[0](shared_output[:1, :1]).shape[-1]  # Get output size from dummy call
-            return torch.zeros(batch_size, seq_len, output_size, device=shared_output.device)
+            return torch.zeros(batch_size, seq_len, output_size, device=shared_output.device, dtype=shared_output.dtype)
         
         unique_heads_needed = torch.unique(valid_head_indices)
         
@@ -121,10 +120,10 @@ class MultitaskHeads(nn.Module):
             head_idx = unique_heads_needed[i]
             task_outputs[head_idx] = self.heads[head_idx](shared_output)
         
-        # Create output tensor
+        # Create output tensor with matching dtype
         batch_size, seq_len = tasks.shape
         output_size = task_outputs[unique_heads_needed[0]].shape[-1]
-        output = torch.zeros(batch_size, seq_len, output_size, device=shared_output.device)
+        output = torch.zeros(batch_size, seq_len, output_size, device=shared_output.device, dtype=task_outputs[unique_heads_needed[0]].dtype)
         
         # Fill in outputs for each head
         for i in range(len(unique_heads_needed)):

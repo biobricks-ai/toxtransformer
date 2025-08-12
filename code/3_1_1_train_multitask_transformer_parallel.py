@@ -14,7 +14,10 @@ import pandas as pd
 
 import cvae.tokenizer
 import cvae.models.multitask_transformer as mt
-from helper.trainer.selfies_properties_values_trainer import SelfiesPropertiesValuesTrainer, WarmupCosineScheduler
+from helper.trainer.selfies_properties_values_trainer import SelfiesPropertiesValuesTrainer
+from helper.scheduler.warmup_cosine_trainer import WarmupCosineScheduler
+from helper.trainer.gradnorm_trainer import GradNormTrainer
+from helper.trainer.invfreq_trainer import InverseFrequencyWeightedTrainer
 from cvae.models.datasets import InMemorySelfiesPropertiesValuesDataset
 
 # Environment variables setup
@@ -37,7 +40,7 @@ def init_logging(rank):
         logging.basicConfig(
             filename=logdir / "train_multitask_transformer_parallel.log", 
             level=logging.INFO, 
-            format='%(asctime)s - %(levelname)s - %(message)s', 
+            format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', 
             filemode='w'
         )
         logging.info("Logging initialized.")
@@ -61,7 +64,8 @@ def create_model_and_optimizer(tokenizer):
         output_size=2
     )
     
-    model = torch.compile(model, mode='max-autotune')
+    # model = torch.compile(model)
+    # model = mt.ToxTransformer(tokenizer)
 
     # Create optimizer
     optimizer = torch.optim.AdamW(
@@ -86,7 +90,7 @@ def create_dataloaders(tokenizer, batch_size, world_size, rank):
     cpus_per_rank = max(2, os.cpu_count() // world_size)
     train_workers = max(2, min(32, cpus_per_rank))
     val_workers = max(1, min(20, cpus_per_rank))
-    prefetch_factor = 100 if world_size >=8 else 10
+    prefetch_factor = 2
 
     # Create dataloaders
     trndl = torch.utils.data.DataLoader(
@@ -121,8 +125,8 @@ def calculate_training_params(trnds, batch_size, world_size):
     """Calculate training parameters."""
     # Training configuration
     training_epochs = 10
-    target_effective_batch_size = 16000
-    
+    target_effective_batch_size = 16000 * 2 # about 100 updates per epoch
+
     # Calculate steps and accumulation
     batches_in_epoch = max(len(trnds) // (batch_size * world_size), 1)
     training_max_steps = training_epochs * batches_in_epoch
@@ -170,6 +174,8 @@ def main(rank, world_size):
     
     # Setup directories
     outdir = pathlib.Path("cache/train_multitask_transformer_parallel")
+    cachedir = outdir / "cache"
+    cachedir.mkdir(parents=True, exist_ok=True)
     modeldir = outdir / "models"
     metricsdir = outdir / "metrics"
     
@@ -182,7 +188,7 @@ def main(rank, world_size):
     model, optimizer = create_model_and_optimizer(tokenizer)
     
     # Training configuration
-    batch_size = 128 * 3
+    batch_size = 32 * 13
     
     # Create dataloaders
     trndl, valdl, trnds = create_dataloaders(tokenizer, batch_size, world_size, rank)
@@ -208,7 +214,23 @@ def main(rank, world_size):
     )
     
     # Create trainer
-    trainer = SelfiesPropertiesValuesTrainer(
+    # trainer = SelfiesPropertiesValuesTrainer(
+    #     model=model,
+    #     rank=rank,
+    #     tokenizer=tokenizer,
+    #     trn_iterator=trndl,
+    #     batch_size=batch_size,
+    #     scheduler=scheduler,
+    #     max_steps=params['training_max_steps'],
+    #     effective_accum_batch_size=params['effective_accum_batch_size'],
+    #     eval_samples=2000,
+    #     first_eval=5,
+    #     eval_every=1000,
+    #     find_unused_parameters=True
+    # )
+
+
+    trainer = InverseFrequencyWeightedTrainer(
         model=model,
         rank=rank,
         tokenizer=tokenizer,
@@ -219,8 +241,32 @@ def main(rank, world_size):
         effective_accum_batch_size=params['effective_accum_batch_size'],
         eval_samples=2000,
         first_eval=5,
-        eval_every=1000
+        eval_every=1000,
+        find_unused_parameters=True,
+        ema_decay=0.99,     # optional
+        ema_eps=1e-6,       # optional
+        max_weight=1000.0,
+        batch_level_weighting=True
     )
+
+    # trainer = GradNormTrainer(
+    #     model=model,
+    #     rank=rank,
+    #     tokenizer=tokenizer,
+    #     trn_iterator=trndl,
+    #     batch_size=batch_size,
+    #     scheduler=scheduler,
+    #     max_steps=params['training_max_steps'],
+    #     effective_accum_batch_size=params['effective_accum_batch_size'],
+    #     eval_samples=2000,
+    #     first_eval=5,
+    #     eval_every=1000,
+    #     find_unused_parameters=True,
+    #     gradnorm_cfg=dict(
+    #         learning_rate=1e-4,           # weight update LR for GradNorm
+    #         restoring_force_alpha=0.0     # good default for sparse ~4k tasks
+    #     )
+    # )
     
     # Setup trainer
     trainer.set_validation_dataloader(valdl)
@@ -228,6 +274,17 @@ def main(rank, world_size):
     trainer.set_metrics_file(metricsdir / "multitask_loss.tsv", overwrite=True)
     
     # Start training
+    logging.info(f"warming up trainer")
+    warmup_loader = torch.utils.data.DataLoader(
+        trnds, 
+        batch_size=batch_size, 
+        shuffle=False, 
+        num_workers=2,
+        pin_memory=True, 
+        persistent_workers=False
+    )
+    trainer.warmup_frequencies(warmup_steps=len(warmup_loader), dataloader=warmup_loader, cache_path=str(cachedir / "inv_freq_cache"))
+    logging.info(f"Rank {rank} starting training.")
     trainer.start()
 
 if __name__ == "__main__":
@@ -235,18 +292,18 @@ if __name__ == "__main__":
     rank = int(os.environ["RANK"])
     world_size = int(os.environ["WORLD_SIZE"])
 
-    enable_profiling = rank == 0 and False  # Set to True to enable
+    # enable_profiling = rank == 0  # Set to True to enable
     
-    if enable_profiling:
-        from torch.profiler import profile, record_function, ProfilerActivity
-        prof = profile(
-            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-            schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
-            on_trace_ready=torch.profiler.tensorboard_trace_handler('./profiler_logs'),
-            record_shapes=True,
-            with_stack=True
-        )
-        prof.start()
+    # if enable_profiling:
+    #     from torch.profiler import profile, record_function, ProfilerActivity
+    #     prof = profile(
+    #         activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+    #         schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
+    #         on_trace_ready=torch.profiler.tensorboard_trace_handler('./profiler_logs'),
+    #         record_shapes=True,
+    #         with_stack=True
+    #     )
+    #     prof.start()
 
     # Setup distributed training
     torch.cuda.set_device(rank)
@@ -255,7 +312,7 @@ if __name__ == "__main__":
         init_method="env://",
         rank=rank,
         world_size=world_size,
-        timeout=datetime.timedelta(minutes=30),
+        timeout=datetime.timedelta(minutes=30)
     )
     
     print(f"RANK {rank} starting with WORLD_SIZE {world_size}")
