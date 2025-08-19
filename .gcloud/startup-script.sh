@@ -77,8 +77,6 @@ install_software() {
     # Install Java
     apt-get install -y openjdk-17-jdk
     JAVA_HOME_PATH=$(readlink -f /usr/bin/java | sed "s:bin/java::")
-    echo "export JAVA_HOME=$JAVA_HOME_PATH" >> /etc/environment
-    echo "export PATH=\$PATH:\$JAVA_HOME/bin" >> /etc/environment
     export JAVA_HOME=$JAVA_HOME_PATH
     export PATH=$PATH:$JAVA_HOME/bin
     
