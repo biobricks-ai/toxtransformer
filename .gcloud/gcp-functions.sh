@@ -38,7 +38,7 @@ restart_instance() {
     # Delete instance if it exists (keeping disks)
     if gcloud compute instances describe $INSTANCE_NAME --zone=$ZONE --project=$PROJECT_ID &>/dev/null; then
         echo "⚠️  Deleting existing instance..."
-        gcloud compute instances delete $INSTANCE_NAME --zone=$ZONE --project=$PROJECT_ID --quiet
+        delete_instance
         sleep 5
     fi
     
@@ -107,6 +107,7 @@ upload_files() {
 delete_instance() {
     echo "💥 Deleting instance (keeping persistent disk)..."
     gcloud compute instances delete $INSTANCE_NAME --zone=$ZONE --project=$PROJECT_ID --keep-disks=all
+    gcloud compute config-ssh --remove
 }
 
 # Delete everything (instance + disk)
@@ -114,6 +115,7 @@ delete_all() {
     echo "💥 Deleting instance and persistent disk..."
     gcloud compute instances delete $INSTANCE_NAME --zone=$ZONE --project=$PROJECT_ID --quiet 2>/dev/null || true
     gcloud compute disks delete $DISK_NAME --zone=$ZONE --project=$PROJECT_ID --quiet
+    gcloud compute config-ssh --remove
 }
 
 # Show status
@@ -129,7 +131,28 @@ status() {
 
 # Configure local SSH for easier access
 configure_ssh() {
-    echo "🔧 Configuring local SSH..."
+    echo "🔧 Configuring local SSH using gcloud..."
+    
+    # Use gcloud to automatically configure SSH
+    gcloud compute config-ssh --project=$PROJECT_ID
+    
+    # Also add a VS Code friendly entry
+    configure_vscode_ssh
+    
+    echo "✅ SSH configured!"
+    echo ""
+    echo "Now you can use:"
+    echo "  ssh $INSTANCE_NAME.$ZONE.$PROJECT_ID    # Connect to instance"
+    echo "  ssh toxtransformer-vscode               # VS Code friendly alias"
+    echo "  scp file.txt $INSTANCE_NAME.$ZONE.$PROJECT_ID:/data/"
+    echo "  rsync -avz ./ $INSTANCE_NAME.$ZONE.$PROJECT_ID:/data/"
+    echo ""
+    echo "💡 gcloud automatically manages SSH keys and known hosts"
+}
+
+# Configure VS Code specific SSH entry
+configure_vscode_ssh() {
+    echo "🎨 Adding VS Code friendly SSH config..."
     
     # Get current instance IP
     IP=$(gcloud compute instances describe $INSTANCE_NAME \
@@ -144,56 +167,72 @@ configure_ssh() {
     
     # SSH config file
     SSH_CONFIG="$HOME/.ssh/config"
-    HOST_ENTRY="toxtransformer"
+    HOST_ENTRY="toxtransformer-vscode"
     
-    # Remove existing entry if it exists
+    # Remove existing VS Code entry if it exists
     if grep -q "Host $HOST_ENTRY" "$SSH_CONFIG" 2>/dev/null; then
-        echo "🗑️  Removing existing SSH config entry..."
-        # Use sed to remove the host block (from "Host toxtransformer" to next "Host" or end of file)
+        # Remove the existing entry
         if [[ "$OSTYPE" == "darwin"* ]]; then
             # macOS
-            sed -i '' "/^Host $HOST_ENTRY$/,/^Host /{ /^Host $HOST_ENTRY$/d; /^Host /!d; }" "$SSH_CONFIG"
-            sed -i '' "/^Host $HOST_ENTRY$/,\$d" "$SSH_CONFIG"
+            sed -i '' "/^Host $HOST_ENTRY$/,/^$/d" "$SSH_CONFIG"
         else
             # Linux
-            sed -i "/^Host $HOST_ENTRY$/,/^Host /{ /^Host $HOST_ENTRY$/d; /^Host /!d; }" "$SSH_CONFIG"
-            sed -i "/^Host $HOST_ENTRY$/,\$d" "$SSH_CONFIG"
+            sed -i "/^Host $HOST_ENTRY$/,/^$/d" "$SSH_CONFIG"
         fi
     fi
     
-    # Add new SSH config entry
-    echo "➕ Adding new SSH config entry..."
+    # Get the exact paths that gcloud uses
+    IDENTITY_FILE="$HOME/.ssh/google_compute_engine"
+    KNOWN_HOSTS="$HOME/.ssh/google_compute_known_hosts"
+    
+    # Add VS Code optimized SSH config entry (matching gcloud format)
     cat >> "$SSH_CONFIG" << EOF
 
-# ToxTransformer GCP Instance (auto-generated)
+# ToxTransformer VS Code Remote (auto-generated)
 Host $HOST_ENTRY
     HostName $IP
     User insilica
-    IdentityFile ~/.ssh/google_compute_engine
-    UserKnownHostsFile ~/.ssh/google_compute_known_hosts
-    CheckHostIP no
-    StrictHostKeyChecking no
-    ServerAliveInterval 30
+    IdentityFile $IDENTITY_FILE
+    UserKnownHostsFile=$KNOWN_HOSTS
+    IdentitiesOnly=yes
+    CheckHostIP=no
+    StrictHostKeyChecking=no
+    ServerAliveInterval 60
     ServerAliveCountMax 3
 
 EOF
-    
-    echo "✅ SSH configured!"
-    echo ""
-    echo "Now you can use:"
-    echo "  ssh $HOST_ENTRY                    # Connect to instance"
-    echo "  scp file.txt $HOST_ENTRY:/data/    # Copy files"
-    echo "  rsync -avz ./ $HOST_ENTRY:/data/   # Sync directories"
-    echo ""
-    echo "💡 The config will auto-update when you restart the instance"
 }
 
 # Update SSH config when instance IP changes (called by restart_instance)
 update_ssh_config() {
-    if [ -f "$HOME/.ssh/config" ] && grep -q "Host toxtransformer" "$HOME/.ssh/config" 2>/dev/null; then
-        echo "🔄 Updating SSH config with new IP..."
-        configure_ssh
+    echo "🔄 Updating SSH config..."
+    gcloud compute config-ssh --project=$PROJECT_ID
+    configure_vscode_ssh
+}
+
+# Fix PATH issues on existing instance
+fix_path() {
+    echo "🔧 Fixing PATH issues on remote instance..."
+    
+    IP=$(gcloud compute instances describe $INSTANCE_NAME \
+      --zone=$ZONE \
+      --project=$PROJECT_ID \
+      --format='get(networkInterfaces[0].accessConfigs[0].natIP)' 2>/dev/null)
+    
+    if [ -z "$IP" ]; then
+        echo "❌ Instance not running"
+        return 1
     fi
+    
+    # Copy the startup script to the instance and run the fix
+    echo "📤 Uploading fix script..."
+    scp -i ~/.ssh/google_compute_engine startup-script.sh tom@$IP:/tmp/
+    
+    echo "🔧 Running PATH fix on remote instance..."
+    ssh -i ~/.ssh/google_compute_engine tom@$IP "sudo bash /tmp/startup-script.sh fix"
+    
+    echo "✅ PATH fix complete!"
+    echo "💡 You may need to logout and login again on the remote instance"
 }
 
 # Help function
@@ -203,6 +242,9 @@ help() {
     echo "Available commands:"
     echo "  restart_instance  - Restart the spot instance (most common)"
     echo "  configure_ssh    - Set up SSH config for easy access"
+    echo "  fix_ssh          - Fix SSH permissions and regenerate config"
+    echo "  fix_path         - Fix PATH issues on existing instance"
+    echo "  test_vscode_ssh  - Test and troubleshoot VS Code SSH connection"
     echo "  create_disk      - Create the persistent disk"
     echo "  create_instance  - Create new instance"
     echo "  connect          - SSH to instance"

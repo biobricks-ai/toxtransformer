@@ -56,7 +56,7 @@ setup_raid() {
     
     # Add to fstab (if not already there)
     if ! grep -q "/dev/md0" /etc/fstab; then
-        echo "/dev/md0 /mnt/raid0 ext4 defaults,nofail,discard 0 0" >> /etc/fstab
+        echo "/dev/md0 /mnt/raid0 ext4 defaults,discard 0 0" >> /etc/fstab
     fi
     
     # Set permissions
@@ -86,6 +86,38 @@ install_software() {
     echo "✅ Software installation complete"
 }
 
+# Fix PATH issues on existing machines
+fix_path() {
+    echo "🔧 Fixing PATH issues..."
+    
+    # Remove problematic entries from /etc/environment
+    if [ -f /etc/environment ]; then
+        # Create backup
+        cp /etc/environment /etc/environment.backup
+        
+        # Remove any PATH entries from /etc/environment (they shouldn't be there)
+        grep -v "^PATH=" /etc/environment.backup > /etc/environment || true
+    fi
+    
+    # Ensure JAVA_HOME is properly set
+    JAVA_HOME_PATH=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+    
+    # Create proper profile scripts
+    cat > /etc/profile.d/java.sh << EOF
+export JAVA_HOME=$JAVA_HOME_PATH
+EOF
+    chmod +x /etc/profile.d/java.sh
+    
+    # Create safe PATH script
+    cat > /etc/profile.d/safe-path.sh << EOF
+# Ensure basic PATH is always available
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:\$JAVA_HOME/bin:\$PATH"
+EOF
+    chmod +x /etc/profile.d/safe-path.sh
+    
+    echo "✅ PATH fix complete - please logout and login again"
+}
+
 # Main startup sequence
 main() {
     echo "🚀 Starting instance setup..."
@@ -95,4 +127,9 @@ main() {
     echo "🎉 Instance setup complete!"
 }
 
-main
+# If script is run with 'fix' argument, just fix the PATH
+if [ "$1" = "fix" ]; then
+    fix_path
+else
+    main
+fi
