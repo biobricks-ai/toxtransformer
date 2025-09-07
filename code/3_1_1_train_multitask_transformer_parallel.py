@@ -51,7 +51,7 @@ def create_model_and_optimizer(tokenizer):
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
     torch.backends.cudnn.benchmark = True
-    torch.set_float32_matmul_precision('high')
+    # torch.set_float32_matmul_precision('high')
 
     # Create model
     model = mt.MultitaskTransformer(
@@ -63,9 +63,14 @@ def create_model_and_optimizer(tokenizer):
         dropout_rate=0.1, 
         output_size=2
     )
+    # mt.ToxTransformer(tokenizer)
     
+<<<<<<< Updated upstream
     # model = torch.compile(model)
     # model = mt.ToxTransformer(tokenizer)
+=======
+    # model = torch.compile(model, mode='max-autotune')
+>>>>>>> Stashed changes
 
     # Create optimizer
     optimizer = torch.optim.AdamW(
@@ -188,7 +193,11 @@ def main(rank, world_size):
     model, optimizer = create_model_and_optimizer(tokenizer)
     
     # Training configuration
+<<<<<<< Updated upstream
     batch_size = 32 * 13
+=======
+    batch_size = 32 * 5
+>>>>>>> Stashed changes
     
     # Create dataloaders
     trndl, valdl, trnds = create_dataloaders(tokenizer, batch_size, world_size, rank)
@@ -292,7 +301,11 @@ if __name__ == "__main__":
     rank = int(os.environ["RANK"])
     world_size = int(os.environ["WORLD_SIZE"])
 
+<<<<<<< Updated upstream
     # enable_profiling = rank == 0  # Set to True to enable
+=======
+    # enable_profiling = rank == 0 and False  # Set to True to enable
+>>>>>>> Stashed changes
     
     # if enable_profiling:
     #     from torch.profiler import profile, record_function, ProfilerActivity

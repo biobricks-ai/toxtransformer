@@ -118,6 +118,165 @@ delete_all() {
     gcloud compute config-ssh --remove
 }
 
+# Copy persistent disk to another zone
+copy_disk_to_zone() {
+    local target_zone=${1:-"us-central1-a"}
+    local target_disk_name="${DISK_NAME}-${target_zone}"
+    
+    echo "💾 Copying persistent disk to zone: $target_zone"
+    echo "   Source: $DISK_NAME in $ZONE"
+    echo "   Target: $target_disk_name in $target_zone"
+    
+    # Check if source disk exists
+    if ! gcloud compute disks describe $DISK_NAME --zone=$ZONE --project=$PROJECT_ID &>/dev/null; then
+        echo "❌ Source disk $DISK_NAME not found in zone $ZONE"
+        return 1
+    fi
+    
+    # Check if target disk already exists
+    if gcloud compute disks describe $target_disk_name --zone=$target_zone --project=$PROJECT_ID &>/dev/null; then
+        echo "⚠️  Target disk $target_disk_name already exists in $target_zone"
+        read -p "Do you want to delete it and recreate? (y/N): " confirm
+        if [[ $confirm =~ ^[Yy]$ ]]; then
+            echo "🗑️  Deleting existing target disk..."
+            gcloud compute disks delete $target_disk_name --zone=$target_zone --project=$PROJECT_ID --quiet
+        else
+            echo "❌ Aborted"
+            return 1
+        fi
+    fi
+    
+    # Create snapshot of source disk
+    local snapshot_name="${DISK_NAME}-migration-$(date +%Y%m%d-%H%M%S)"
+    echo "📸 Creating snapshot: $snapshot_name"
+    
+    gcloud compute disks snapshot $DISK_NAME \
+        --zone=$ZONE \
+        --snapshot-names=$snapshot_name \
+        --project=$PROJECT_ID
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create snapshot"
+        return 1
+    fi
+    
+    # Create new disk from snapshot in target zone
+    echo "💾 Creating disk in target zone from snapshot..."
+    
+    gcloud compute disks create $target_disk_name \
+        --zone=$target_zone \
+        --source-snapshot=$snapshot_name \
+        --type=pd-ssd \
+        --project=$PROJECT_ID
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to create disk in target zone"
+        echo "🧹 Cleaning up snapshot..."
+        gcloud compute snapshots delete $snapshot_name --project=$PROJECT_ID --quiet
+        return 1
+    fi
+    
+    echo "✅ Disk copied successfully!"
+    echo ""
+    echo "📋 Summary:"
+    echo "   Original disk: $DISK_NAME in $ZONE"
+    echo "   New disk: $target_disk_name in $target_zone"
+    echo "   Snapshot: $snapshot_name (you can delete this later)"
+    echo ""
+    echo "💡 Next steps:"
+    echo "   1. Update your config to use the new zone and disk name"
+    echo "   2. Create instance in the new zone"
+    echo "   3. Delete the old disk when you're sure everything works"
+    echo ""
+    echo "🔧 To switch to the new zone, you can:"
+    echo "   - Edit gcp-config.sh to set ZONE=\"$target_zone\" and DISK_NAME=\"$target_disk_name\""
+    echo "   - Or use: switch_to_zone $target_zone"
+}
+
+# Switch configuration to use a different zone/disk
+switch_to_zone() {
+    local target_zone=${1:-"us-central1-a"}
+    local target_disk_name="${DISK_NAME}-${target_zone}"
+    
+    echo "🔄 Switching configuration to zone: $target_zone"
+    
+    # Check if target disk exists
+    if ! gcloud compute disks describe $target_disk_name --zone=$target_zone --project=$PROJECT_ID &>/dev/null; then
+        echo "❌ Disk $target_disk_name not found in zone $target_zone"
+        echo "💡 Run: copy_disk_to_zone $target_zone"
+        return 1
+    fi
+    
+    # Update environment variables for this session
+    export ZONE=$target_zone
+    export DISK_NAME=$target_disk_name
+    
+    echo "✅ Configuration updated for this session:"
+    echo "   Zone: $ZONE"
+    echo "   Disk: $DISK_NAME"
+    echo ""
+    echo "💡 To make this permanent, update gcp-config.sh:"
+    echo "   ZONE=\"$target_zone\""
+    echo "   DISK_NAME=\"$target_disk_name\""
+}
+
+# Create instance in us-central1 (convenience function)
+restart_instance_central1() {
+    echo "🚀 Starting instance in us-central1-a..."
+    
+    # Check if we need to copy the disk first
+    local target_zone="us-central1-a"
+    local target_disk_name="${DISK_NAME}-${target_zone}"
+    
+    if ! gcloud compute disks describe $target_disk_name --zone=$target_zone --project=$PROJECT_ID &>/dev/null; then
+        echo "💾 Disk not found in $target_zone, copying..."
+        copy_disk_to_zone $target_zone
+        if [ $? -ne 0 ]; then
+            return 1
+        fi
+    fi
+    
+    # Switch to the target zone
+    switch_to_zone $target_zone
+    
+    # Restart instance with new configuration
+    restart_instance
+}
+
+# Clean up old resources after successful migration
+cleanup_old_zone() {
+    local old_zone=${1:-"us-east5-a"}
+    local old_disk_name=${2:-"toxtransformer-data-disk"}
+    
+    echo "🧹 Cleaning up resources in old zone: $old_zone"
+    
+    # List what will be deleted
+    echo "📋 Resources to be deleted:"
+    echo "   Disk: $old_disk_name in $old_zone"
+    echo "   Instance: $INSTANCE_NAME in $old_zone (if exists)"
+    echo ""
+    
+    read -p "Are you sure you want to delete these resources? (y/N): " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        echo "❌ Cleanup cancelled"
+        return 1
+    fi
+    
+    # Delete instance if it exists
+    if gcloud compute instances describe $INSTANCE_NAME --zone=$old_zone --project=$PROJECT_ID &>/dev/null; then
+        echo "🗑️  Deleting instance in old zone..."
+        gcloud compute instances delete $INSTANCE_NAME --zone=$old_zone --project=$PROJECT_ID --quiet
+    fi
+    
+    # Delete old disk
+    if gcloud compute disks describe $old_disk_name --zone=$old_zone --project=$PROJECT_ID &>/dev/null; then
+        echo "🗑️  Deleting disk in old zone..."
+        gcloud compute disks delete $old_disk_name --zone=$old_zone --project=$PROJECT_ID --quiet
+    fi
+    
+    echo "✅ Cleanup completed!"
+}
+
 # Show status
 status() {
     echo "📊 Current Status:"
@@ -240,6 +399,20 @@ help() {
     echo "🚀 GCP Instance Management"
     echo ""
     echo "Available commands:"
+    echo "  restart_instance         - Restart the spot instance (most common)"
+    echo "  restart_instance_central1 - Start instance in us-central1-a (auto-copies disk)"
+    echo "  copy_disk_to_zone [zone] - Copy persistent disk to another zone"
+    echo "  switch_to_zone [zone]    - Switch config to use different zone"
+    echo "  cleanup_old_zone [zone]  - Delete resources in old zone after migration"
+    echo "  configure_ssh           - Set up SSH config for easy access"
+    echo "  create_disk             - Create the persistent disk"
+    echo "  create_instance         - Create new instance"
+    echo "  connect                 - SSH to instance"
+    echo "  upload_files            - Upload current directory to instance"
+    echo "  status                  - Show current status"
+    echo "  delete_instance         - Delete instance (keep disk)"
+    echo "  delete_all              - Delete instance and disk"
+    echo "  help                    - Show this help"
     echo "  restart_instance  - Restart the spot instance (most common)"
     echo "  configure_ssh    - Set up SSH config for easy access"
     echo "  fix_ssh          - Fix SSH permissions and regenerate config"
