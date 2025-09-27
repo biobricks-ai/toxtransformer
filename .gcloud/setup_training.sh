@@ -101,7 +101,6 @@ gcloud compute instances create $INSTANCE_NAME \
     # Set JAVA_HOME permanently
     JAVA_HOME_PATH=$(readlink -f /usr/bin/java | sed "s:bin/java::")
     echo "export JAVA_HOME=$JAVA_HOME_PATH" >> /etc/environment
-    echo "export PATH=\$PATH:\$JAVA_HOME/bin" >> /etc/environment
 
     # Set for current session
     export JAVA_HOME=$JAVA_HOME_PATH
