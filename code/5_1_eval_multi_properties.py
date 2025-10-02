@@ -1,24 +1,26 @@
-# PYTHONPATH=./ spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/5_1_eval_multi_properties.py 2> cache/eval_multi_properties/logs/err.log
+# PYTHONPATH=./ spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/5_1_eval_multi_properties.py 2> cache/eval_multi_properties/logs/err.log 
 
 import pathlib
 import pandas as pd, tqdm, sklearn.metrics, torch, numpy as np, os
 import cvae.tokenizer, cvae.models.multitask_transformer as mt, cvae.utils, cvae.models.mixture_experts as me
 import logging
+import shutil
+
 from cvae.tokenizer import SelfiesPropertyValTokenizer
-from pyspark.sql.functions import col, when, countDistinct
+from pyspark.sql.functions import col, when, countDistinct, lit
 from pyspark.sql import functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import split, col, when
 from sklearn.metrics import roc_auc_score, accuracy_score, balanced_accuracy_score, log_loss
 
+# Output directories
+outdir = pathlib.Path("cache/eval_multi_properties")
+outdir.mkdir(exist_ok=True, parents=True)
+
 # Setup logging
 logdir = pathlib.Path("cache/eval_multi_properties/logs")   
 logdir.mkdir(exist_ok=True, parents=True)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename=logdir / 'eval_multi_properties.log')
-
-# Output directories
-outdir = pathlib.Path("cache/eval_multi_properties")
-outdir.mkdir(exist_ok=True, parents=True)
 
 tqdm.tqdm.pandas()
 
@@ -38,6 +40,35 @@ spark = SparkSession.builder \
 # Read predictions
 outdf = spark.read.parquet("cache/consolidate_evaluations/multitask_predictions.parquet")
 
+# ---- Log-odds pooling setup ----
+EPS = 1e-6                   # clip to avoid infinities from exact 0/1
+TEMPERATURE = float(os.getenv("LOGIT_POOL_TEMPERATURE", "1.0"))  # optional damping
+
+# clip p into (EPS, 1-EPS)
+p = col("prob_of_1")
+p_clipped = F.when(p <= lit(EPS), lit(EPS)) \
+             .when(p >= lit(1.0 - EPS), lit(1.0 - EPS)) \
+             .otherwise(p)
+
+# logit(p) = ln(p/(1-p))
+logit = F.log(p_clipped / (1.0 - p_clipped))
+
+# We aggregate by summing logits within each group, then invert with sigmoid.
+# If you want weights per-oracle later, multiply 'logit' by that weight before summing.
+group_cols = ["nprops", "minprops", "numprops", "property_token", "chemical_id", "true_value"]
+
+sum_logits_df = outdf.groupBy(*group_cols).agg(
+    F.sum(logit).alias("sum_logit"),
+    F.count(F.lit(1)).alias("num_votes")
+)
+
+# sigmoid(sum_logit / T)
+meanpred = sum_logits_df.withColumn(
+    "probs",
+    1.0 / (1.0 + F.exp(-(col("sum_logit") / lit(TEMPERATURE))))
+).cache()
+
+# ---- Metrics ----
 def calculate_metrics(y_true, y_pred):
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
@@ -54,35 +85,33 @@ def calculate_metrics(y_true, y_pred):
     ce_loss = float(log_loss(y_true_binary, y_pred))
     return auc, acc, bac, ce_loss
 
-
 calculate_metrics_udf = F.udf(calculate_metrics, "struct<AUC:double, ACC:double, BAC:double, cross_entropy_loss:double>")
 
 from pyspark.sql.window import Window
+from pyspark.sql.functions import countDistinct
 
-# numprops is the number of properties for the chemical, nprops is the number of properties in the input for this prediction
-meanpred = outdf.groupBy("nprops","minprops", "numprops","property_token", "chemical_id", "true_value").agg(F.mean("prob_of_1").alias("probs")).cache()
-
-# meanpred = meanpred.filter(col('nprops') <= .5*col('num_known_properties'))
-# meanpred.count() / a2
-
-large_properties_df = meanpred\
-    .groupBy('nprops', 'property_token','minprops').agg(
+# Aggregate across chemicals per (nprops, property_token, minprops)
+large_properties_df = meanpred \
+    .groupBy('nprops', 'property_token', 'minprops') \
+    .agg(
         F.collect_list('true_value').alias('y_true'),
         F.collect_list('probs').alias('y_pred'),
         countDistinct('chemical_id').alias('nchem'),
         F.sum(when(col('true_value') == 1, 1).otherwise(0)).alias('NUM_POS'),
-        F.sum(when(col('true_value') == 0, 1).otherwise(0)).alias('NUM_NEG'))\
+        F.sum(when(col('true_value') == 0, 1).otherwise(0)).alias('NUM_NEG')
+    ) \
     .filter((col('NUM_POS') >= 10) & (col("NUM_NEG") >= 10))
-    
+
 large_properties_df.write.parquet((outdir / "multitask_large_properties.parquet").as_posix(), mode="overwrite")
 
 metrics_df = large_properties_df.repartition(800) \
     .withColumn('metrics', calculate_metrics_udf(F.col('y_true'), F.col('y_pred'))) \
-    .select('nprops', 'minprops','property_token', 
-        col('metrics.AUC').alias('AUC'), 
-        col('metrics.ACC').alias('ACC'), 
-        col('metrics.BAC').alias('BAC'), 
-        col('metrics.cross_entropy_loss').alias('cross_entropy_loss'), 'NUM_POS', 'NUM_NEG', 'nchem')
+    .select('nprops', 'minprops', 'property_token',
+        col('metrics.AUC').alias('AUC'),
+        col('metrics.ACC').alias('ACC'),
+        col('metrics.BAC').alias('BAC'),
+        col('metrics.cross_entropy_loss').alias('cross_entropy_loss'),
+        'NUM_POS', 'NUM_NEG', 'nchem')
 
 metrics_df.orderBy('nprops') \
     .groupBy('nprops') \
@@ -90,4 +119,5 @@ metrics_df.orderBy('nprops') \
     .agg(F.mean("AUC")) \
     .orderBy('nprops') \
     .show()
+
 metrics_df.write.parquet((outdir / "multitask_metrics.parquet").as_posix(), mode="overwrite")

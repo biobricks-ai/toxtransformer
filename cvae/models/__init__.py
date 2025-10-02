@@ -1,1 +1,2 @@
 from .multitask_transformer import MultitaskTransformer
+from .multitask_encoder import MultitaskEncoder, MultitaskEncoderConfig

@@ -169,8 +169,7 @@ class ToxExpert(nn.Module):
 class MultitaskTransformer(nn.Module):
  
     def __init__(self, tokenizer, hdim=256, nhead=2, num_layers=4, 
-        ff_mult=4, dropout_rate=0.1, output_size=None,
-        shared_embedding=None):
+        ff_mult=4, dropout_rate=0.1, output_size=None):
         
         super().__init__()
 
@@ -178,6 +177,8 @@ class MultitaskTransformer(nn.Module):
         self.hdim = hdim
         self.nhead = nhead
         self.ff_mult = ff_mult
+        self.dropout_rate = dropout_rate  # Store for saving
+        self.num_layers = num_layers  # Store for saving
         self.tokenizer = tokenizer
         self.token_pad_idx = tokenizer.PAD_IDX
 
@@ -187,15 +188,14 @@ class MultitaskTransformer(nn.Module):
         self.minprop = min(tokenizer.assay_indexes().values())
         self.minval = min(tokenizer.value_indexes().values())
         self.pv_offset = tokenizer.vocab_size
-        
-        # Calculate expanded vocabulary size:
-        # original_vocab + (num_properties * num_values) for property-value combinations
-        self.pv_combinations = self.numprops * len(tokenizer.value_indexes())
-        self.expanded_vocab_size = tokenizer.vocab_size + self.pv_combinations
-        
+        self.num_selfies_tokens = tokenizer.selfies_offset
+        self.numvals = len(tokenizer.value_indexes())
+
         # Single embedding for everything: SELFIES tokens, property tokens, and property-value combinations
-        self.embedding = TokenEmbedding(self.expanded_vocab_size, hdim)
-        
+        self.embedding_selfies = TokenEmbedding(10 + tokenizer.selfies_offset, hdim)
+        self.embedding_property = TokenEmbedding(len(tokenizer.assay_indexes()), hdim)
+        self.embedding_values = TokenEmbedding(len(tokenizer.value_indexes()), hdim)
+
         self.encoder = Encoder(
             dim=self.hdim,
             depth=num_layers,
@@ -231,19 +231,19 @@ class MultitaskTransformer(nn.Module):
             values: [batch_size, num_props] - value token indices (0 or 1)
             
         Returns:
-            interleaved_tokens: [batch_size, num_props * 2] - interleaved property and property-value tokens
+            interleaved_tokens: [batch_size, num_props * 2, hdim] - interleaved property and value embeddings
         """
         batch_size, num_props = properties.shape
 
-        # Calculate combination indices for property-value pairs
-        pv_tokens = self.tokenizer.properties_offset + properties + values * self.numprops
-
-        # Set padding positions for properties as well
-        prop_tokens = properties + self.tokenizer.selfies_offset
+        # Get embeddings for properties and values
+        property_embeddings = self.embedding_property(properties)  # [batch_size, num_props, hdim]
+        value_embeddings = self.embedding_values(values)          # [batch_size, num_props, hdim]
+        value_embeddings = value_embeddings + property_embeddings
 
         # Interleave: p1, pv1, p2, pv2, ...
-        interleaved = torch.stack([prop_tokens, pv_tokens], dim=2)  # [batch_size, num_props, 2]
-        interleaved_tokens = interleaved.view(batch_size, num_props * 2)  # [batch_size, num_props * 2]
+        # Stack along a new dimension, then reshape to interleave
+        interleaved = torch.stack([property_embeddings, value_embeddings], dim=2)  # [batch_size, num_props, 2, hdim]
+        interleaved_tokens = interleaved.view(batch_size, num_props * 2, self.hdim)  # [batch_size, num_props * 2, hdim]
 
         return interleaved_tokens
 
@@ -260,21 +260,23 @@ class MultitaskTransformer(nn.Module):
         
         # Encode molecule (SELFIES) using standard token embeddings
         molecule_mask = selfies != self.token_pad_idx
-        molecule_emb = self.embedding(selfies)
+        molecule_emb = self.embedding_selfies(selfies) * math.sqrt(self.hdim)
         molecule_encoding = self.encoder(molecule_emb, mask=molecule_mask)
         
         # Map property-value pairs to combination tokens
-        pv_tokens = self.create_pv_teacher_forcing(properties, values)
-        pv_tokens
+        pv_embeddings = self.create_pv_teacher_forcing(properties, values) * math.sqrt(self.hdim)
 
         # Embed property-value combinations
         # Create mask by doubling each element of property_mask
         pv_mask = mask.repeat_interleave(2, dim=1)
-        pv_emb = self.embedding(pv_tokens)
+        
+        # 50% of the time just mask the entire property-value sequence
+        if random.random() < 0.5 and self.training:
+            pv_mask = torch.zeros_like(pv_mask, dtype=torch.bool)
         
         # Decoder uses molecule context to process property-value combinations
         decoded = self.decoder(
-            pv_emb,
+            pv_embeddings,
             context=molecule_encoding,
             mask=pv_mask,
             context_mask=molecule_mask
@@ -291,15 +293,52 @@ class MultitaskTransformer(nn.Module):
         cvae.utils.mk_empty_directory(path, overwrite=True)
         cvae.utils.mk_empty_directory(path / "spvt_tokenizer", overwrite=True)
         self.tokenizer.save(path / "spvt_tokenizer")
-        torch.save(self.state_dict(), path / "mtransformer.pt")
+        
+        # Save model state and configuration
+        save_dict = {
+            'state_dict': self.state_dict(),
+            'config': {
+                'hdim': self.hdim,
+                'nhead': self.nhead,
+                'ff_mult': self.ff_mult,
+                'output_size': self.output_size,
+                'num_layers': self.num_layers,
+                'dropout_rate': self.dropout_rate
+            }
+        }
+        torch.save(save_dict, path / "mtransformer.pt")
         return path
 
     @staticmethod
     def load(dirpath = pathlib.Path("brick/mtransform1")):
         dirpath = pathlib.Path(dirpath)
         tokenizer = SelfiesPropertyValTokenizer.load(dirpath / "spvt_tokenizer")
-        model = MultitaskTransformer(tokenizer)
-        model.load_state_dict(torch.load(dirpath / 'mtransformer.pt'))
+        
+        # Load the saved data
+        checkpoint = torch.load(dirpath / 'mtransformer.pt', map_location='cpu')
+        
+        # Handle both old format (just state_dict) and new format (with config)
+        if isinstance(checkpoint, dict) and 'config' in checkpoint:
+            # New format with configuration
+            config = checkpoint['config']
+            model = MultitaskTransformer(
+                tokenizer=tokenizer,
+                hdim=config['hdim'],
+                nhead=config['nhead'],
+                num_layers=config['num_layers'],
+                ff_mult=config['ff_mult'],
+                dropout_rate=config['dropout_rate'],
+                output_size=config['output_size']
+            )
+            model.load_state_dict(checkpoint['state_dict'])
+        else:
+            # Old format - just state_dict, use defaults (may cause size mismatch)
+            print("Warning: Loading old format checkpoint without configuration. This may cause size mismatches.")
+            model = MultitaskTransformer(tokenizer)
+            model.load_state_dict(checkpoint)
+        
         model.eval()
         return model
 
+    def get_adapter_layer(self):
+        return self.classification_layers[0]  # Returns the LayerNorm layer

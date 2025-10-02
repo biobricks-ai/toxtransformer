@@ -135,7 +135,7 @@ class InverseFrequencyWeightedTrainer(TrainerCore):
         
         # Try to load from cache first
         if cache_path:
-            cache_key = f"{self._num_tasks}_{warmup_steps}_{self.max_weight}"
+            cache_key = f"{self._num_tasks}_{self.max_weight}"
             cache_file = f"{cache_path}/freq_cache_{cache_key}.pkl"
             
             try:

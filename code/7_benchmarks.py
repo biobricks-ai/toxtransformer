@@ -23,7 +23,7 @@ prop_src['source'].value_counts()
 assert prop_src.groupby('property_token').size().max() == 1
 
 # pull in multitask_metrics
-evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')[['property_token','nprops','AUC','cross_entropy_loss','NUM_POS','NUM_NEG']]
+evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')[['property_token','nprops','minprops','AUC','cross_entropy_loss','NUM_POS','NUM_NEG']]
 evaldf = evaldf[evaldf['AUC'] > 0.0]
 
 # are there any property_tokens in evaldf that are not in prop_src?
@@ -35,13 +35,13 @@ assert len(set(eval_df_tokens) - set(prop_src_tokens)) == 0
 
 # merge
 evaldf = evaldf.merge(prop_src, left_on='property_token', right_on='property_token', how='inner')
-evaldf['source'].value_counts()
-
+evaldf.groupby('source')['property_token'].nunique().sort_values(ascending=False)
+evaldf[evaldf['source'] == 'sider']
+evaldf[evaldf['source'] == 'BBBP']
 # remove imbalanced properties
 evaldf = evaldf[(evaldf['NUM_POS'] >= 10) & (evaldf['NUM_NEG'] >= 10)]
 
 evaldf.groupby('source').aggregate({'NUM_POS':'max','NUM_NEG':'max'}).sort_values(by='NUM_POS',ascending=False)
-evaldf[evaldf['source'] == 'Tox21'].groupby('property_token').aggregate({'NUM_POS':'max','NUM_NEG':'max'}).sort_values(by='NUM_POS',ascending=False)
 
 # get the median AUC for each property
 evaldf.aggregate({'AUC': 'median','cross_entropy_loss':'median','property_token':'count'}) # 89% median auc, .482 median cross entropy loss
@@ -53,15 +53,17 @@ tox21 = evaldf[evaldf['source'] == 'Tox21'].groupby(['nprops'])\
 tox21.to_csv(outdir / 'tox21_auc_by_nprops.csv', index=False)
 
 #              AUC  assay
-# nprops                 
-# 4       0.900132    110
-# 3       0.902808    110
-# 2       0.909173    110
-# 1       0.871136     66
-# 0       0.829932     18
+# >>> tox21
+#    nprops       AUC  property_token  NUM_POS  NUM_NEG
+# 0       5  0.937381              23      923     5084
+# 1       4  0.930786              23      923     5105
+# 2       3  0.926081              23      923     5113
+# 3       2  0.910628              23      923     5103
+# 4       1  0.847346              23      923     5115
 
 # region SOURCE EVALUATIONS ================================
-source_eval = evaldf#.groupby('property_token').filter(lambda x: len(x['nprops'].unique()) == 5)
+source_eval = evaldf[evaldf['minprops']==1]#.groupby('property_token').filter(lambda x: len(x['nprops'].unique()) == 5)
+source_eval[source_eval['source'] == 'BBBP']
 res = source_eval.groupby(['source','nprops']).aggregate({'AUC': 'median','property_token':'count'}).reset_index()
 
 # add 'meanauc' column

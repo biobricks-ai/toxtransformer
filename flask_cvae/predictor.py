@@ -2,13 +2,14 @@ import json
 import threading
 import pandas as pd
 import numpy as np
-import cvae.models.mixture_experts as moe
+import cvae.models.multitask_encoder as mte
 import cvae.spark_helpers as H
 import torch
 import torch.nn
 import sqlite3
 import itertools
 import logging
+import random
 from torch.utils.data import DataLoader, TensorDataset
 from dataclasses import dataclass
 from tqdm import tqdm
@@ -48,7 +49,7 @@ class Predictor:
     def __init__(self):
         self.dburl = 'brick/cvae.sqlite'
         self.dblock = threading.Lock()
-        self.model = moe.MoE.load("brick/moe").to(DEVICE)
+        self.model = mte.MultitaskEncoder.load("brick/multitask_transformer_model").to(DEVICE)
         self.tokenizer = self.model.tokenizer
         self.model = torch.nn.DataParallel(self.model)  
         
@@ -115,6 +116,8 @@ class Predictor:
         
         return pd.DataFrame(res) if len(res) > 0 else pd.DataFrame(columns=['property_token'])
     
+    # inchi = "InChI=1S/C6H6/c1-2-4-6-5-3-1/h1-6H"
+    # property_token = 3022
     def predict_property_with_randomized_tensors(self, inchi, property_token, seed, num_rand_tensors=1000):
         if property_token not in self.all_property_tokens:
             logging.error(f"Property token {property_token} is not valid")
@@ -125,40 +128,70 @@ class Predictor:
         
         smiles = H.inchi_to_smiles_safe(inchi)
         selfies = H.smiles_to_selfies_safe(smiles)
-        input = torch.LongTensor(self.tokenizer.selfies_tokenizer.selfies_to_indices(selfies))
-        input = input.view(1, -1).to(DEVICE)
+        selfies_tokens = torch.LongTensor(self.tokenizer.selfies_tokenizer.selfies_to_indices(selfies))
+        selfies_input = selfies_tokens.view(1, -1).to(DEVICE)
         
         known_props = self._get_known_properties(inchi)
         known_props = known_props[known_props['property_token'] != property_token]
-        teach_force = torch.LongTensor([1, self.tokenizer.SEP_IDX, property_token]).view(1, -1).to(DEVICE)
-        value_indexes = list(self.tokenizer.value_indexes().values())
         
         if known_props.empty:
-            result_logit = self.model(input, teach_force)[:, -1, value_indexes]
-            return torch.softmax(result_logit, dim=1).detach().cpu().numpy()
+            # Simple case: no known properties, just predict the target property
+            # Normalize the property token
+            norm_property = property_token - self.tokenizer.selfies_offset
+            properties = torch.LongTensor([[norm_property]]).to(DEVICE)
+            values = torch.LongTensor([[0]]).to(DEVICE)  # Use normalized value 0 (which is value_token 1)
+            mask = torch.BoolTensor([[True]]).to(DEVICE)
+            
+            with torch.no_grad():
+                result_logit = self.model(selfies_input, properties, values, mask)
+                return torch.softmax(result_logit, dim=-1).detach().cpu().numpy()
 
-        property_value_pairs = list(zip(known_props['property_token'], known_props['value_token']))        
-        av_flat = torch.LongTensor(list(itertools.chain.from_iterable(property_value_pairs)))
-        av_reshaped = av_flat.reshape(av_flat.size(0) // 2, 2)
+        # Complex case: randomize known properties and predict target
+        property_value_pairs = list(zip(known_props['property_token'], known_props['value_token']))
         
-        rand_tensors = []
+        rand_tensors_props = []
+        rand_tensors_values = []
+        rand_tensors_masks = []
+        
         for i in range(num_rand_tensors):
-            av_shuffled = av_reshaped[torch.randperm(av_reshaped.size(0)), :].reshape(av_flat.size(0))
-            av_truncate = av_shuffled[0:8]
-            av_sos_trunc = torch.cat([torch.LongTensor([1, self.tokenizer.SEP_IDX]), av_truncate])
-            rand_tensor = torch.cat([av_sos_trunc, torch.LongTensor([property_token])])
-            rand_tensors.append(rand_tensor)
+            # Shuffle and truncate known properties
+            shuffled_pairs = random.sample(property_value_pairs, min(4, len(property_value_pairs)))
+            
+            # Add target property
+            target_value_token = self.tokenizer.value_id_to_token_idx(1)
+            shuffled_pairs.append((property_token, target_value_token))
+            
+            # Prepare tensors
+            props, vals = zip(*shuffled_pairs)
+            
+            # Normalize properties and values
+            props_tensor = torch.LongTensor([props])
+            vals_tensor = torch.LongTensor([vals])
+            mask_tensor = torch.BoolTensor([[True] * len(props)])
+            
+            # Apply normalization
+            norm_props = self.tokenizer.norm_properties(props_tensor.clone(), mask_tensor.clone())
+            norm_vals = self.tokenizer.norm_values(vals_tensor.clone(), mask_tensor.clone())
+            
+            rand_tensors_props.append(norm_props)
+            rand_tensors_values.append(norm_vals)
+            rand_tensors_masks.append(mask_tensor)
         
-        rand_tensors = torch.stack(rand_tensors).to(DEVICE)
-        input = input.repeat(num_rand_tensors, 1)
-        print(f"Stacked Random Tensors size: {rand_tensors.size()}")
+        # Stack tensors
+        properties_batch = torch.cat(rand_tensors_props, dim=0).to(DEVICE)
+        values_batch = torch.cat(rand_tensors_values, dim=0).to(DEVICE)
+        masks_batch = torch.cat(rand_tensors_masks, dim=0).to(DEVICE)
+        selfies_batch = selfies_input.repeat(num_rand_tensors, 1)
         
-        result_logit = self.model(input, rand_tensors)[:, -1, value_indexes]
-        return torch.softmax(result_logit, dim=1).detach().cpu().numpy()
+        print(f"Batch shapes - selfies: {selfies_batch.shape}, properties: {properties_batch.shape}, values: {values_batch.shape}, masks: {masks_batch.shape}")
+        
+        with torch.no_grad():
+            result_logit = self.model(selfies_batch, properties_batch, values_batch, masks_batch)
+            # Get the last prediction (target property)
+            target_logits = result_logit[:, -1, :]
+            return torch.softmax(target_logits, dim=-1).detach().cpu().numpy()
     
     def predict_property(self, inchi, property_token, seed=137, num_rand_tensors=1000):
-        value_indexes = list(self.tokenizer.value_indexes().values())
-        one_index = value_indexes.index(self.tokenizer.value_id_to_token_idx(1))
         predictions = self.predict_property_with_randomized_tensors(inchi, property_token, seed, num_rand_tensors=num_rand_tensors)
         
         if predictions.size == 0:
@@ -166,7 +199,8 @@ class Predictor:
             return np.nan
         
         token_property = self.property_map.get(property_token, None)
-        meanpred = float(np.mean(predictions[:, one_index], axis=0))
+        # For binary classification (output_size=2), index 1 is the positive class
+        meanpred = float(np.mean(predictions[:, 1], axis=0))
         prediction = Prediction(inchi=inchi, property_token=property_token, property=token_property, value=meanpred)
         return prediction
     
@@ -176,71 +210,131 @@ class Predictor:
         
         smiles = H.inchi_to_smiles_safe(inchi)
         selfies = H.smiles_to_selfies_safe(smiles)
-        input = torch.LongTensor(self.tokenizer.selfies_tokenizer.selfies_to_indices(selfies))
-        input = input.view(1, -1)
+        selfies_tokens = torch.LongTensor(self.tokenizer.selfies_tokenizer.selfies_to_indices(selfies))
+        selfies_input = selfies_tokens.view(1, -1)
         
         known_props = self._get_known_properties(inchi)
-        teach_force = torch.LongTensor([1, self.tokenizer.SEP_IDX]).view(1, -1)
         
         if known_props.empty:
-            return input, teach_force
+            # Return empty tensors for properties/values when no known properties
+            empty_props = torch.LongTensor([[0]])  # Normalized padding
+            empty_values = torch.LongTensor([[0]])  # Normalized padding
+            empty_mask = torch.BoolTensor([[False]])
+            return selfies_input, empty_props, empty_values, empty_mask
 
-        property_value_pairs = list(zip(known_props['property_token'], known_props['value_token']))        
-        av_flat = torch.LongTensor(list(itertools.chain.from_iterable(property_value_pairs)))
-        av_reshaped = av_flat.reshape(av_flat.size(0) // 2, 2)
+        property_value_pairs = list(zip(known_props['property_token'], known_props['value_token']))
         
-        rand_tensors = []
+        rand_props_list = []
+        rand_values_list = []
+        rand_masks_list = []
+        
         for _ in range(num_rand_tensors):
-            av_shuffled = av_reshaped[torch.randperm(av_reshaped.size(0)), :].reshape(av_flat.size(0))
-            av_truncate = av_shuffled[0:8]
-            av_sos_trunc = torch.cat([torch.LongTensor([1, self.tokenizer.SEP_IDX]), av_truncate])
-            rand_tensors.append(av_sos_trunc)
+            # Shuffle and truncate properties
+            shuffled_pairs = random.sample(property_value_pairs, min(4, len(property_value_pairs)))
+            
+            props, vals = zip(*shuffled_pairs)
+            props_tensor = torch.LongTensor([props])
+            vals_tensor = torch.LongTensor([vals])
+            mask_tensor = torch.BoolTensor([[True] * len(props)])
+            
+            # Apply normalization
+            norm_props = self.tokenizer.norm_properties(props_tensor.clone(), mask_tensor.clone())
+            norm_vals = self.tokenizer.norm_values(vals_tensor.clone(), mask_tensor.clone())
+            
+            rand_props_list.append(norm_props)
+            rand_values_list.append(norm_vals)
+            rand_masks_list.append(mask_tensor)
         
-        rand_tensors = torch.stack(rand_tensors)
-        print(f"Stacked Random Tensors size: {rand_tensors.size()}")
+        # Stack all tensors
+        rand_props = torch.cat(rand_props_list, dim=0)
+        rand_values = torch.cat(rand_values_list, dim=0)
+        rand_masks = torch.cat(rand_masks_list, dim=0)
         
-        return input, rand_tensors
+        print(f"Random tensors shapes - props: {rand_props.shape}, values: {rand_values.shape}, masks: {rand_masks.shape}")
+        
+        return selfies_input, rand_props, rand_values, rand_masks
     
     # test with inchi=InChI=1S/C6H6/c1-2-4-6-5-3-1/h1-6H
     def predict_all_properties(self, inchi, seed=137, max_num_rand_tensors=100) -> list[Prediction]:
-        input, rand_tensors_raw = self._build_random_tensors(inchi, seed, max_num_rand_tensors)
+        selfies_input, rand_props, rand_values, rand_masks = self._build_random_tensors(inchi, seed, max_num_rand_tensors)
         
-        # Remove duplicate rows from rand_tensors
-        rand_tensors = torch.unique(rand_tensors_raw, dim=0)
-        num_rand_tensors = rand_tensors.size(0)
-
-        value_indexes = list(self.tokenizer.value_indexes().values())
-        one_index = value_indexes.index(self.tokenizer.value_id_to_token_idx(1))
-        
-        # Pre-build tensors for all property tokens
-        all_property_tokens_tensor = torch.LongTensor(self.all_property_tokens)
-        repeated_property_tokens = all_property_tokens_tensor.repeat_interleave(num_rand_tensors).unsqueeze(1)
-        
-        # Repeat rand_tensors for all properties
-        repeated_rand_tensors = rand_tensors.repeat(len(self.all_property_tokens), 1)
-        
-        # Concatenate rand_tensors with property tokens
-        all_prop_tensors = torch.cat([repeated_rand_tensors, repeated_property_tokens], dim=1)
-
-        # Create a TensorDataset and DataLoader for efficient batching
-        simultaneous_properties = 100
-        batch_size = simultaneous_properties * num_rand_tensors
-        dataset = TensorDataset(all_prop_tensors)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-        
-        raw_preds = []
-        # batch = next(iter(dataloader))
-        for batch in tqdm(dataloader):
-            prop_tensors_batch = batch[0].to(DEVICE)
-            batch_input = input.repeat(prop_tensors_batch.size(0), 1).to(DEVICE)
-            # Model inference
-            with torch.no_grad():  # Disable gradients for inference
-                result_logit = self.model(batch_input, prop_tensors_batch)[:, -1, value_indexes]
-                batch_preds = torch.softmax(result_logit, dim=1)[:, one_index]
-                # Calculate mean predictions
-                batch_preds_mean = batch_preds.view(-1, num_rand_tensors).mean(dim=1)
-                raw_preds.extend(batch_preds_mean.detach().cpu().numpy())
+        # Remove duplicate rows from rand_props to get unique property combinations
+        if rand_props.size(0) > 1:
+            # Convert to tuples for uniqueness check
+            prop_tuples = [tuple(row.tolist()) for row in rand_props]
+            unique_indices = []
+            seen = set()
+            for i, tup in enumerate(prop_tuples):
+                if tup not in seen:
+                    seen.add(tup)
+                    unique_indices.append(i)
             
+            if unique_indices:
+                rand_props = rand_props[unique_indices]
+                rand_values = rand_values[unique_indices]
+                rand_masks = rand_masks[unique_indices]
+        
+        num_rand_tensors = rand_props.size(0)
+        
+        # Create batches for all property predictions
+        simultaneous_properties = 50  # Reduced batch size
+        raw_preds = []
+        
+        for prop_start in tqdm(range(0, len(self.all_property_tokens), simultaneous_properties)):
+            prop_end = min(prop_start + simultaneous_properties, len(self.all_property_tokens))
+            current_prop_tokens = self.all_property_tokens[prop_start:prop_end]
+            num_current_props = len(current_prop_tokens)
+            
+            # Build batch for current properties
+            batch_selfies = []
+            batch_props = []
+            batch_values = []
+            batch_masks = []
+            
+            for prop_token in current_prop_tokens:
+                # Normalize the target property token
+                norm_target_prop = prop_token - self.tokenizer.selfies_offset
+                target_value_token = self.tokenizer.value_id_to_token_idx(1)
+                norm_target_value = target_value_token - self.tokenizer.properties_offset
+                
+                for i in range(num_rand_tensors):
+                    # Clone existing property context
+                    existing_props = rand_props[i:i+1].clone()  # Keep batch dimension
+                    existing_values = rand_values[i:i+1].clone()  # Keep batch dimension
+                    existing_mask = rand_masks[i:i+1].clone()  # Keep batch dimension
+                    
+                    # Add the target property (already normalized)
+                    new_prop = torch.LongTensor([[norm_target_prop]])
+                    new_value = torch.LongTensor([[norm_target_value]])
+                    new_mask = torch.BoolTensor([[True]])
+                    
+                    combined_props = torch.cat([existing_props, new_prop], dim=1)
+                    combined_values = torch.cat([existing_values, new_value], dim=1)
+                    combined_mask = torch.cat([existing_mask, new_mask], dim=1)
+                    
+                    batch_selfies.append(selfies_input)
+                    batch_props.append(combined_props)
+                    batch_values.append(combined_values)
+                    batch_masks.append(combined_mask)
+            
+            # Stack batch tensors
+            batch_selfies = torch.cat(batch_selfies, dim=0).to(DEVICE)
+            batch_props = torch.cat(batch_props, dim=0).to(DEVICE)
+            batch_values = torch.cat(batch_values, dim=0).to(DEVICE)
+            batch_masks = torch.cat(batch_masks, dim=0).to(DEVICE)
+            
+            # Model inference
+            with torch.no_grad():
+                result_logit = self.model(batch_selfies, batch_props, batch_values, batch_masks)
+                # Get predictions for the target property (last position)
+                target_logits = result_logit[:, -1, :]  # Shape: [batch, 2] for binary classification
+                target_probs = torch.softmax(target_logits, dim=-1)[:, 1]  # Get positive class probability
+                
+                # Calculate mean predictions across random contexts for each property
+                target_probs_reshaped = target_probs.view(num_current_props, num_rand_tensors)
+                batch_preds_mean = target_probs_reshaped.mean(dim=1)
+                raw_preds.extend(batch_preds_mean.detach().cpu().numpy())
+        
         raw_preds = [float(x) for x in raw_preds]
         property_tokens = [self.all_property_tokens[i] for i in range(len(raw_preds))]
         properties = [self.property_map.get(property_token, None) for property_token in property_tokens]

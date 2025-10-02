@@ -41,6 +41,7 @@ raw_activities = spark.read.parquet("cache/preprocess_activities/activities.parq
     .select("property_id","source","property_token",'substance_id','smiles','selfies','value','value_token')
 
 raw_property_tokens = raw_activities.select('property_id','property_token').distinct()
+
 raw_prop_title = spark.read.parquet(ch.property_titles_parquet).withColumnRenamed('pid', 'property_id')
 
 prop = spark.read.parquet(ch.properties_parquet)

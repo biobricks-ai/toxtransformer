@@ -81,7 +81,7 @@ data.write.parquet((outdir / 'activities.parquet').as_posix(), mode='overwrite')
 logging.info(f"wrote {outdir / 'activities.parquet'}")
 
 ## TEST count activities ===========================================================
-data = spark.read.parquet((outdir / 'activities.parquet').as_posix()).cache()
+data = spark.read.parquet((outdir / 'activities.parquet').as_posix())
 assert data.count() > 10e6 # should have more than 10m activities
 
 source_counts_2 = data.groupBy('source').count().orderBy('count', ascending=False).toPandas()

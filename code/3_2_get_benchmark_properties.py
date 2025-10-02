@@ -2,8 +2,6 @@
 import sqlite3
 import pandas as pd
 import pathlib
-from cvae.models.datasets import PropertyGuaranteeDataset, SharedSampleTracker
-from cvae.models.multitask_transformer import SelfiesPropertyValTokenizer
 import logging
 
 

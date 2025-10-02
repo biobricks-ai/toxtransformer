@@ -1,0 +1,256 @@
+from typing import Dict, List, Set, Tuple
+from collections import defaultdict
+import random
+
+import torch
+from torch.utils.data import Dataset
+import pathlib
+import tqdm
+from typing import Optional, List, Tuple
+from torch import Tensor
+import torch.nn.functional as F
+
+class DynamicBalancedSelfiesDataset(Dataset):
+    """
+    A dataset that dynamically balances property-value pair sampling during __getitem__.
+    
+    This dataset loads all samples and then dynamically samples during training to ensure
+    balanced exposure of specified property-value pairs. It ignores the provided index
+    and instead performs intelligent sampling to maintain balance.
+    """
+    
+    def __init__(self, paths, tokenizer, nprops=5, assay_filter: List[int] = [],
+                 target_properties: List[int] = []):
+        self.nprops = nprops
+        self.tokenizer = tokenizer
+        self.pad_idx = tokenizer.PAD_IDX
+        self.target_properties = set(target_properties)
+        self.assay_filter_tensor = torch.tensor(assay_filter, dtype=torch.long) if assay_filter else None
+
+        # Each sample is (selfies_tensor, reshaped_valid_tokens [N x 2])
+        self.samples: List[Tuple[Tensor, Tensor]] = []
+        
+        # Index: property_id -> list of sample indices that contain this property
+        self.property_sample_index: Dict[int, List[int]] = {}
+        
+        # Index: (property_id, value_token) -> list of sample indices
+        self.property_value_index: Dict[Tuple[int, int], List[int]] = {}
+
+        # Handle paths
+        if isinstance(paths, list):
+            file_paths = [pathlib.Path(p) for p in paths]
+        else:
+            path = pathlib.Path(paths)
+            if path.is_file() and path.suffix == '.pt':
+                file_paths = [path]
+            else:
+                file_paths = list(path.glob("*.pt"))
+
+        print(f"🔍 Loading dataset for dynamic balanced sampling")
+        print(f"🎯 Target properties: {target_properties}")
+
+        # Load all samples and build indices
+        for file_path in tqdm.tqdm(file_paths, desc="Loading dataset into RAM"):
+            file_data = torch.load(file_path, map_location="cpu")
+            selfies_list = file_data["selfies"]
+            assay_vals_list = file_data["assay_vals"]
+
+            for selfies, assay_vals in zip(selfies_list, assay_vals_list):
+                mask = assay_vals != self.pad_idx
+                valid_tokens = assay_vals[mask][1:-1]  # Remove SEP and END tokens
+
+                if self.assay_filter_tensor is not None and self.assay_filter_tensor.numel() > 0:
+                    assay_ids = valid_tokens[::2]  # Property tokens at even indices
+                    assay_mask = torch.isin(assay_ids, self.assay_filter_tensor)
+                    expanded_mask = torch.zeros_like(valid_tokens, dtype=torch.bool)
+                    expanded_mask[::2] = assay_mask  # Properties
+                    expanded_mask[1::2] = assay_mask  # Values
+                    valid_tokens = valid_tokens[expanded_mask]
+
+                if valid_tokens.numel() >= 2:
+                    reshaped = valid_tokens.view(-1, 2).contiguous()  # [num_pairs, 2]
+                    sample_idx = len(self.samples)
+                    self.samples.append((selfies, reshaped))
+                    
+                    # Index this sample by its properties and property-value pairs
+                    self._index_sample(sample_idx, reshaped)
+
+        print(f"📊 Loaded {len(self.samples)} total samples")
+        self._print_index_statistics()
+        
+        # Initialize sampling counters for balanced sampling
+        self._init_sampling_counters()
+
+    def _index_sample(self, sample_idx: int, property_value_pairs: Tensor):
+        """Index a sample by its properties and property-value pairs."""
+        properties = property_value_pairs[:, 0]  # Property tokens
+        values = property_value_pairs[:, 1]      # Value tokens
+        
+        for prop_token, value_token in zip(properties, values):
+            # Convert property token to property ID
+            prop_id = (prop_token - self.tokenizer.selfies_offset).item()
+            
+            # Only index target properties
+            if prop_id in self.target_properties:
+                # Index by property
+                if prop_id not in self.property_sample_index:
+                    self.property_sample_index[prop_id] = []
+                self.property_sample_index[prop_id].append(sample_idx)
+                
+                # Index by property-value pair
+                prop_val_key = (prop_id, value_token.item())
+                if prop_val_key not in self.property_value_index:
+                    self.property_value_index[prop_val_key] = []
+                self.property_value_index[prop_val_key].append(sample_idx)
+
+    def _init_sampling_counters(self):
+        """Initialize counters to track how often each property-value pair has been sampled."""
+        self.property_value_counts = {}
+        for prop_val_key in self.property_value_index.keys():
+            self.property_value_counts[prop_val_key] = 0
+            
+    def _print_index_statistics(self):
+        """Print statistics about the indexed properties."""
+        print("\n📈 Property indexing statistics:")
+        for prop_id in sorted(self.target_properties):
+            if prop_id in self.property_sample_index:
+                sample_count = len(self.property_sample_index[prop_id])
+                # Count unique values for this property
+                prop_values = [key[1] for key in self.property_value_index.keys() if key[0] == prop_id]
+                unique_values = len(set(prop_values))
+                print(f"   Property {prop_id}: {sample_count} samples, {unique_values} unique values")
+            else:
+                print(f"   Property {prop_id}: 0 samples")
+
+    def _get_least_sampled_property_value(self) -> Tuple[int, int]:
+        """Get the property-value pair that has been sampled the least."""
+        if not self.property_value_counts:
+            # If no counts yet, return a random property-value pair
+            return random.choice(list(self.property_value_index.keys()))
+        
+        # Find the minimum count
+        min_count = min(self.property_value_counts.values())
+        least_sampled = [pv for pv, count in self.property_value_counts.items() if count == min_count]
+        return random.choice(least_sampled)
+
+    def _sample_balanced_sample(self) -> int:
+        """Sample a data sample that helps maintain balance across property-value pairs."""
+        # Get the least sampled property-value pair
+        target_prop_val = self._get_least_sampled_property_value()
+        
+        # Sample from samples that contain this property-value pair
+        candidate_samples = self.property_value_index[target_prop_val]
+        selected_sample_idx = random.choice(candidate_samples)
+        
+        # Update counters for all property-value pairs in this sample
+        _, property_value_pairs = self.samples[selected_sample_idx]
+        self._update_sampling_counts(property_value_pairs)
+        
+        return selected_sample_idx
+
+    def _update_sampling_counts(self, property_value_pairs: Tensor):
+        """Update sampling counts for property-value pairs in the given sample."""
+        properties = property_value_pairs[:, 0]
+        values = property_value_pairs[:, 1]
+        
+        for prop_token, value_token in zip(properties, values):
+            prop_id = (prop_token - self.tokenizer.selfies_offset).item()
+            if prop_id in self.target_properties:
+                prop_val_key = (prop_id, value_token.item())
+                if prop_val_key in self.property_value_counts:
+                    self.property_value_counts[prop_val_key] += 1
+
+    def _process_sample_for_target_properties(self, property_value_pairs: Tensor) -> Tuple[Tensor, Tensor]:
+        """
+        Process sample to prioritize target properties and ensure they're included.
+        
+        Returns:
+            properties: [nprops] tensor of property tokens, padded if necessary
+            values: [nprops] tensor of value tokens, padded if necessary
+        """
+        properties = property_value_pairs[:, 0]
+        values = property_value_pairs[:, 1]
+        
+        # Separate target properties from others
+        target_pairs = []
+        other_pairs = []
+        
+        for i, (prop_token, value_token) in enumerate(zip(properties, values)):
+            prop_id = (prop_token - self.tokenizer.selfies_offset).item()
+            pair = property_value_pairs[i:i+1]  # Keep as 2D tensor
+            
+            if prop_id in self.target_properties:
+                target_pairs.append(pair)
+            else:
+                other_pairs.append(pair)
+        
+        # Combine target properties first, then fill with others
+        selected_pairs = []
+        
+        # Add all target properties (up to nprops)
+        for pair in target_pairs[:self.nprops]:
+            selected_pairs.append(pair)
+        
+        # Fill remaining slots with other properties
+        remaining_slots = self.nprops - len(selected_pairs)
+        if remaining_slots > 0 and other_pairs:
+            # Randomly sample from other properties
+            other_sample_count = min(remaining_slots, len(other_pairs))
+            sampled_others = random.sample(other_pairs, other_sample_count)
+            selected_pairs.extend(sampled_others)
+        
+        # Convert to tensors
+        if selected_pairs:
+            combined_pairs = torch.cat(selected_pairs, dim=0)
+            actual_pairs = combined_pairs.size(0)
+        else:
+            actual_pairs = 0
+        
+        # Create padded output tensors
+        properties_out = torch.full((self.nprops,), self.pad_idx, dtype=torch.long)
+        values_out = torch.full((self.nprops,), self.pad_idx, dtype=torch.long)
+        
+        if actual_pairs > 0:
+            properties_out[:actual_pairs] = combined_pairs[:, 0]
+            values_out[:actual_pairs] = combined_pairs[:, 1]
+        
+        return properties_out, values_out
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        """
+        Get item using balanced sampling (ignores the provided idx).
+        
+        This method ignores the provided index and instead performs balanced sampling
+        to ensure target properties are sampled proportionally.
+        """
+        # Perform balanced sampling to select an actual sample
+        selected_sample_idx = self._sample_balanced_sample()
+        selfies, property_value_pairs = self.samples[selected_sample_idx]
+        
+        # Process the sample to prioritize target properties
+        properties, values = self._process_sample_for_target_properties(property_value_pairs)
+        
+        # Apply tokenizer normalization
+        mask = properties != self.pad_idx
+        normproperties = self.tokenizer.norm_properties(properties, mask)
+        normvalues = self.tokenizer.norm_values(values, mask)
+        
+        return selfies, normproperties, normvalues, mask
+
+    def get_sampling_statistics(self) -> Dict:
+        """Get statistics about how often each property-value pair has been sampled."""
+        stats = {}
+        for prop_id in self.target_properties:
+            prop_stats = {}
+            for (pid, value_token), count in self.property_value_counts.items():
+                if pid == prop_id:
+                    prop_stats[value_token] = count
+            stats[prop_id] = prop_stats
+        return stats
+
+    def reset_sampling_counters(self):
+        """Reset sampling counters to start fresh balancing."""
+        self._init_sampling_counters()

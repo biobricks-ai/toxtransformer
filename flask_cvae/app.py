@@ -15,13 +15,16 @@ logging.basicConfig(level=logging.INFO,
                     handlers=[logging.StreamHandler()])
 
 
+logging.info("Starting Flask CVAE app...")
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 
 app = Flask(__name__)
 app.config['TIMEOUT'] = 300  # 5 minutes in seconds
 
+logging.info("Loading model...")
 predict_lock = threading.Lock()
 predictor = Predictor()
+logging.info("Model loaded.")
 
 @app.route('/predict_all', methods=['GET'])
 def predict_all():

@@ -9,7 +9,7 @@ from pyspark.sql.functions import col, when, countDistinct
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import split, col, when
 from sklearn.metrics import roc_auc_score, accuracy_score, balanced_accuracy_score, log_loss
-from cvae.models.datasets.inmemory_sequence_shift_dataset import InMemorySequenceShiftDataset, PreloadedSequenceShiftDataset, StratifiedPropertySequenceShiftWrapper, ComprehensiveStratifiedPropertySequenceShiftWrapper
+from cvae.models.datasets import InMemorySelfiesPropertiesValuesDataset
 from torch.nn import functional as F
 from tqdm import tqdm
 
@@ -22,12 +22,10 @@ model : me.MoE = me.MoE.load("cache/train_multitask_transformer_parallel/models/
 model.gating_network.all_props_tensor.device
 model.train()
 
-tmp = InMemorySequenceShiftDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=5)
+tmp = InMemorySelfiesPropertiesValuesDataset("cache/build_tensordataset/multitask_tensors/tst", tokenizer, nprops=5)
 tmpdl = torch.utils.data.DataLoader(tmp, batch_size=1, shuffle=False, num_workers=1)
 tmpdl = iter(tmpdl)
-eginp, egtch, egout = next(tmpdl)
-model(eginp, egtch)  # [B, T, V]
-model.num_forward_calls 
+egselfies, egprop, egval, egmask = next(tmpdl)
 
 model.gating_network.get_routing_stats()
 # {'expert_loads': array([0.06274803, 0.06076939, 0.0666521 , 0.05664491, 0.06364259,
