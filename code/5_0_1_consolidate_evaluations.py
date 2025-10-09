@@ -27,6 +27,7 @@ logging.basicConfig(
 logging.info("Starting consolidate_evaluations with Spark.")
 
 # Start Spark session with increased memory settings and custom temp directory
+# .config("spark.local.dir", "/data/toxtransformer/spark-temp") \
 spark = SparkSession.builder \
     .appName("ConsolidateEvaluations") \
     .config("spark.sql.parquet.compression.codec", "zstd") \
@@ -35,7 +36,6 @@ spark = SparkSession.builder \
     .config("spark.memory.offHeap.enabled", "true") \
     .config("spark.memory.offHeap.size", "256g") \
     .config("spark.sql.shuffle.partitions", "400") \
-    .config("spark.local.dir", "/data/toxtransformer/spark-temp") \
     .config("spark.sql.adaptive.enabled", "true") \
     .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
     .config("spark.sql.adaptive.skewJoin.enabled", "true") \
@@ -44,8 +44,8 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # Create temp directory on the larger filesystem
-spark_temp_dir = pathlib.Path("/data/toxtransformer/spark-temp")
-spark_temp_dir.mkdir(parents=True, exist_ok=True)
+# spark_temp_dir = pathlib.Path("/data/toxtransformer/spark-temp")
+# spark_temp_dir.mkdir(parents=True, exist_ok=True)
 
 # Log Spark UI URLs for monitoring
 ui_web_url = spark.sparkContext.uiWebUrl

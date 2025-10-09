@@ -69,3 +69,87 @@ with torch.no_grad():
     print("No Inf:", not torch.any(torch.isinf(logits)).item())
 
 print("✅ All tests passed!")
+
+# do different smiles of the same compound get different selfies?
+import rdkit, rdkit.Chem
+import selfies, random
+import selfies as sf
+
+from rdkit import Chem
+import cvae.tokenizer.selfies_tokenizer
+tokenizer = cvae.tokenizer.selfies_tokenizer.SelfiesTokenizer().load('cache/preprocess_tokenizer/selfies_tokenizer.json')
+
+def generate_alternative_smiles(smiles, num_alternatives=5, max_attempts=50, seed=42):
+    """
+    Generate alternative valid SMILES representations of the same molecule.
+    Returns a list including the original SMILES plus alternatives.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return [smiles]  # Return original if parsing fails
+    
+    # Set seed for reproducibility per molecule
+    # Use hash of SMILES to ensure same alternatives are generated for same molecule
+    mol_seed = hash(smiles) % (2**32) + seed
+    random.seed(mol_seed)
+    
+    alternatives = set()
+    alternatives.add(smiles)  # Include original
+    
+    attempts = 0
+    while len(alternatives) < num_alternatives + 1 and attempts < max_attempts:
+        
+        # Generate non-canonical SMILES with randomization
+        random_smiles = Chem.MolToSmiles(mol, canonical=False, doRandom=True)
+        
+        # Verify the SMILES is valid by parsing it
+        if Chem.MolFromSmiles(random_smiles) is not None:
+            alternatives.add(random_smiles)
+        
+        attempts += 1
+    
+    return list(alternatives)
+
+def generate_alternative_selfies_and_encode(smiles, tokenizer, num_alternatives=5, max_attempts=50, seed=42):
+    """
+    Generate alternative SMILES, convert to SELFIES, and encode them.
+    Returns a list of encoded SELFIES arrays.
+    """
+    try:
+        # Get alternative SMILES
+        alternative_smiles = generate_alternative_smiles(smiles, num_alternatives, max_attempts, seed)
+        
+        # Convert each SMILES to SELFIES and encode
+        encoded_alternatives = []
+        for alt_smiles in alternative_smiles:
+            try:
+                selfies_str = sf.encoder(alt_smiles)
+                if selfies_str:
+                    encoded = tokenizer.encode(selfies_str)
+                    encoded_alternatives.append(encoded)
+            except Exception as e:
+                logging.debug(f"Failed to encode SMILES {alt_smiles}: {e}")
+                continue
+        
+        # If no alternatives could be encoded, return empty list
+        if not encoded_alternatives:
+            logging.warning(f"Could not encode any alternatives for SMILES: {smiles}")
+        
+        return encoded_alternatives
+        
+    except Exception as e:
+        logging.warning(f"Alternative generation failed for SMILES {smiles}: {str(e)}")
+        return []
+
+apap = 'CC(=O)NC1=CC=C(C=C1)O'
+mol = rdkit.Chem.MolFromSmiles(apap)
+apap2 = rdkit.Chem.MolToSmiles(mol, doRandom=True)
+
+sf1 = selfies.encoder(apap)
+sf2 = selfies.encoder(apap2)
+
+alts = generate_alternative_smiles(apap, num_alternatives=5)
+
+smiles = "NS(=O)(=O)c1ccc(OCCN2CCN(c3ccc(C(F)(F)F)cc3[N+](=O)[O-])CC2)cc1"
+alts = generate_alternative_smiles(test, num_alternatives=5)
+altsf = generate_alternative_selfies_and_encode(test, tokenizer, num_alternatives=5)

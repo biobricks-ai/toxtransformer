@@ -524,10 +524,10 @@ class MultitaskEncoder(nn.Module):
             molecule_mask = molecule_mask & ~span_mask
         
         # Apply standard dropout to non-masked, non-padded positions
-        if self.training:
-            dropout_mask = (torch.rand_like(selfies, dtype=torch.float) < self.config.dropout_rate) & molecule_mask
-            molecule_emb = molecule_emb.masked_fill(dropout_mask.unsqueeze(-1), 0.0)
-            molecule_mask = molecule_mask & ~dropout_mask
+        # if self.training:
+        #     dropout_mask = (torch.rand_like(selfies, dtype=torch.float) < self.config.dropout_rate) & molecule_mask
+        #     molecule_emb = molecule_emb.masked_fill(dropout_mask.unsqueeze(-1), 0.0)
+        #     molecule_mask = molecule_mask & ~dropout_mask
         
         # Create property-value sequence
         pv_embeddings = self.create_pv_teacher_forcing(properties, values) * self.embed_scale
@@ -678,16 +678,42 @@ def create_multitask_encoder(tokenizer: SelfiesPropertyValTokenizer,
     
     configs = {
         'small': MultitaskEncoderConfig(
-            hdim=256, nhead=8, num_layers=4, ff_mult=3,
+            hdim=256, nhead=4, num_layers=4, ff_mult=3,
             use_flash_attention=True, use_rms_norm=True, 
             activation='swiglu', use_rotary_embeddings=True,
             use_span_masking=True, span_masking_rate=0.15, mean_span_length=3.0
         ),
         'base': MultitaskEncoderConfig(
-            hdim=512, nhead=16, num_layers=6, ff_mult=3,
+            hdim=512, nhead=16, num_layers=8, ff_mult=3,
             use_flash_attention=True, use_rms_norm=True,
             activation='swiglu', use_rotary_embeddings=True,
             use_span_masking=True, span_masking_rate=0.15, mean_span_length=3.0
+        ), # 86 AUC 42
+        'wide': MultitaskEncoderConfig(
+            hdim=1024, nhead=16, num_layers=6, ff_mult=3,
+            use_flash_attention=True, use_rms_norm=True,
+            activation='swiglu', use_rotary_embeddings=True, span_masking_rate=0.15, mean_span_length=3.0
+        ), # 84.7 AUC 44.3 Loss
+        'base-dropout-no-attention-dropoutV1': MultitaskEncoderConfig(
+            hdim=512, nhead=8, num_layers=16, ff_mult=3,
+            use_flash_attention=True, use_rms_norm=True,
+            activation='swiglu', use_rotary_embeddings=True,
+            use_span_masking=True, span_masking_rate=0.1, mean_span_length=3.0,
+            dropout_rate=0.2, attention_dropout=0.0, layer_dropout=0.0
+        ),
+        'base-dropout-no-attention-dropoutV2': MultitaskEncoderConfig(
+            hdim=512, nhead=8, num_layers=16, ff_mult=3,
+            use_flash_attention=True, use_rms_norm=True,
+            activation='swiglu', use_rotary_embeddings=True,
+            use_span_masking=True, span_masking_rate=0.15, mean_span_length=3.0,
+            dropout_rate=0.2, attention_dropout=0.1, layer_dropout=0.1
+        ),
+        'V3': MultitaskEncoderConfig(
+            hdim=512, nhead=8, num_layers=16, ff_mult=3,
+            use_flash_attention=True, use_rms_norm=True,
+            activation='swiglu', use_rotary_embeddings=True,
+            use_span_masking=True, span_masking_rate=0.15, mean_span_length=3.0,
+            dropout_rate=0.2, attention_dropout=0.1, layer_dropout=0.1
         ),
         'large': MultitaskEncoderConfig(
             hdim=768, nhead=24, num_layers=12, ff_mult=3,

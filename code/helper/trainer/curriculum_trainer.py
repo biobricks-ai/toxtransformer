@@ -19,19 +19,18 @@ class AccumulatedStratifiedPropertyWeightedTrainer(TrainerCore):
     Trainer that computes per-property EMA of training losses and uses
     those EMAs to derive per-property weights for subsequent batches.
 
-    NEW: Randomly samples x% of properties and sets their weights to 1.0,
-    with higher sampling probability for poorly performing properties.
+    Randomly samples x% of properties and applies calculated dynamic weights
+    to them (range: min_score to max_score), with higher sampling probability 
+    for poorly performing properties. Non-sampled properties receive a 
+    configurable baseline weight (default: 1.0).
 
-    Efficiency highlights:
-    - Purely tensorized per-batch loss (no Python loops over properties)
-    - GPU-side accumulation and EMA update; minimal host sync
-    - Cached sorted lookup for O(log K) per-batch weight fetch
-    - Periodic coalescing of accumulation buffers (configurable)
+    Setting unsampled_property_weight to:
+    - 1.0 (default): Importance weighting - all properties train, sampled get emphasis
+    - 0.0: Dropout-style - only sampled properties contribute to loss
+    - 0.0 < x < 1.0: Reduced contribution from non-sampled properties
+    - > 1.0: Enhanced contribution from non-sampled properties (unusual but possible)
 
-    Correctness highlight:
-    - If a property appears multiple times in a batch, we first take the
-      *mean loss per property* and then apply *one* weight to that mean.
-    - Properties are randomly sampled with bias toward worse performers.
+    ...
     """
 
     def __init__(
@@ -45,19 +44,22 @@ class AccumulatedStratifiedPropertyWeightedTrainer(TrainerCore):
         label_smoothing: float = 0.1,
         log_gpu_mem: bool = False,
         normalize_weights: bool = True,
-        acc_coalesce_every: int = 8,   # coalesce acc buffers every N accumulation windows
-        property_sample_rate: float = 0.3,  # NEW: fraction of properties to sample
-        sample_bias_strength: float = 2.0,  # NEW: how much to bias sampling toward worse properties
-        sampling_warmup: int = 50,          # NEW: batches before enabling sampling
-        random_seed: Optional[int] = None,  # NEW: seed for reproducible sampling
+        acc_coalesce_every: int = 8,
+        property_sample_rate: float = 0.3,
+        sample_bias_strength: float = 2.0,
+        sampling_warmup: int = 50,
+        unsampled_property_weight: float = 1.0,  # NEW parameter
+        random_seed: Optional[int] = None,
         **kwargs,
     ):
+    
         super().__init__(*args, **kwargs)
 
         # --- Config
         self._ema_alpha = float(ema_alpha)
         self._min_score = float(min_score)
         self._max_score = float(max_score)
+        self.unsampled_property_weight = float(unsampled_property_weight)
 
         self._skip_initial_batches = int(skip_initial_batches)
         self._min_properties_for_weighting = min_properties_for_weighting
@@ -108,6 +110,7 @@ class AccumulatedStratifiedPropertyWeightedTrainer(TrainerCore):
             f"normalize_weights={self.normalize_weights}, acc_coalesce_every={self._acc_coalesce_every}, "
             f"property_sample_rate={self.property_sample_rate}, sample_bias_strength={self.sample_bias_strength}, "
             f"sampling_warmup={self.sampling_warmup})"
+            f"unsampled_property_weight={self.unsampled_property_weight})"
         )
 
     # --------------------------- Scheduler helpers ---------------------------
@@ -279,8 +282,8 @@ class AccumulatedStratifiedPropertyWeightedTrainer(TrainerCore):
         if self._should_apply_random_sampling() and self._ema_vals.numel() > 1:
             sample_mask = self._sample_properties_with_bias(self._ema_prop_ids, self._ema_vals)
             
-            # Set non-sampled properties to weight 1.0, keep original weights for sampled ones
-            scores[~sample_mask] = 1.0
+            # Set non-sampled properties to weight `self.unsampled_property_weight`, keep original weights for sampled ones
+            scores[~sample_mask] = self.unsampled_property_weight
             
             # Log statistics about sampling
             num_sampled = sample_mask.sum().item()
@@ -308,16 +311,18 @@ class AccumulatedStratifiedPropertyWeightedTrainer(TrainerCore):
 
     # --------------------------- Fast per-batch loss (vectorized) ---------------------------
 
-    def _lookup_weights_for_props(self, uniq_props: torch.Tensor, default_weight: float = 1.0) -> torch.Tensor:
+    def _lookup_weights_for_props(self, uniq_props: torch.Tensor, default_weight: Optional[float] = None) -> torch.Tensor:
         """
         Given uniq_props [K] (long), return weights [K] (float) via searchsorted on cached sorted ids.
         """
+        if default_weight is None:
+            default_weight = self.unsampled_property_weight  # ← Use configured default
+        
         device = uniq_props.device
         if self._ema_prop_ids_sorted is None or self._ema_prop_ids_sorted.numel() == 0:
             return torch.full((uniq_props.numel(),), default_weight, device=device, dtype=torch.float32)
 
         idx = torch.searchsorted(self._ema_prop_ids_sorted, uniq_props)
-        # Clamp, then check exact match
         idx_clamped = idx.clamp_max(self._ema_prop_ids_sorted.numel() - 1)
         exact = self._ema_prop_ids_sorted.index_select(0, idx_clamped).eq(uniq_props)
         weights = torch.full((uniq_props.numel(),), default_weight, device=device, dtype=torch.float32)
@@ -401,6 +406,15 @@ class AccumulatedStratifiedPropertyWeightedTrainer(TrainerCore):
 
         # Look up one weight per unique property
         weights_k = self._lookup_weights_for_props(uniq_props, default_weight=1.0).to(per_prop_means.dtype)  # [K]
+
+        # log weights occasionally
+        if self._batches_processed % 100 == 0:
+            logging.info(
+                f"Batch {self._batches_processed}: "
+                f"Properties in batch: {K}, "
+                f"Weight stats: min={weights_k.min().item():.4f}, max={weights_k.max().item():.4f}, "
+                f"mean={weights_k.mean().item():.4f}, std={weights_k.std(unbiased=False).item():.4f}"
+            )
 
         # --- Core objective with random sampling ---
         numerator = (per_prop_means * weights_k).sum()

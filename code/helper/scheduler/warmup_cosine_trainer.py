@@ -7,8 +7,8 @@ class WarmupCosineScheduler(_LRScheduler):
     Learning-rate schedule that does NOT depend on optimizer.base_lrs.
 
     Behavior:
-      - Step 0..warmup_steps: linear from min_lr -> max_lr
-      - Then: cosine annealing with warm restarts between max_lr and min_lr
+      - Step 0..warmup_steps: linear from warmup_start_lr -> warmup_end_lr
+      - Then: cosine annealing with warm restarts between cosine_start_lr and cosine_end_lr
               using initial cycle length T_0 and multiplier T_mult.
     """
 
@@ -17,8 +17,10 @@ class WarmupCosineScheduler(_LRScheduler):
         optimizer,
         warmup_steps: int,
         cosine_cycle_length: int,
-        min_lr: float,
-        max_lr: float,
+        warmup_start_lr: float,
+        warmup_end_lr: float,
+        cosine_start_lr: float = None,  # defaults to warmup_end_lr
+        cosine_end_lr: float = None,    # defaults to warmup_start_lr
         cosine_t_mult: int = 2,
         last_epoch: int = -1,
     ):
@@ -26,33 +28,38 @@ class WarmupCosineScheduler(_LRScheduler):
             raise ValueError("warmup_steps must be >= 0")
         if cosine_cycle_length <= 0:
             raise ValueError("cosine_cycle_length (T_0) must be > 0")
-        if not (min_lr >= 0 and max_lr > 0 and max_lr >= min_lr):
-            raise ValueError("Require 0 <= min_lr <= max_lr and max_lr > 0")
+        if warmup_start_lr < 0 or warmup_end_lr <= 0:
+            raise ValueError("warmup_start_lr must be >= 0 and warmup_end_lr must be > 0")
         if cosine_t_mult < 1:
             raise ValueError("cosine_t_mult must be >= 1")
 
         self.warmup_steps = int(warmup_steps)
         self.T_0 = int(cosine_cycle_length)
         self.T_mult = int(cosine_t_mult)
-        self.min_lr = float(min_lr)
-        self.max_lr = float(max_lr)
+        self.warmup_start_lr = float(warmup_start_lr)
+        self.warmup_end_lr = float(warmup_end_lr)
+        self.cosine_start_lr = float(cosine_start_lr if cosine_start_lr is not None else warmup_end_lr)
+        self.cosine_end_lr = float(cosine_end_lr if cosine_end_lr is not None else warmup_start_lr)
+
+        if self.cosine_start_lr < 0 or self.cosine_end_lr < 0:
+            raise ValueError("cosine_start_lr and cosine_end_lr must be >= 0")
 
         # Cosine cycle tracking (relative to the start of cosine phase)
         self._cycle_start = 0           # offset (in cosine-phase steps) where current cycle began
         self._cycle_length = self.T_0   # length of the current cycle in steps
 
-        # Set optimizer LR to min_lr immediately to avoid any dependence on base LR
+        # Set optimizer LR to warmup_start_lr immediately
         for group in optimizer.param_groups:
-            group["lr"] = self.min_lr
+            group["lr"] = self.warmup_start_lr
 
         super().__init__(optimizer, last_epoch=last_epoch)
 
     def _lr_linear_warmup(self, step: int) -> float:
         # step ranges 0..warmup_steps
         if self.warmup_steps == 0:
-            return self.max_lr
+            return self.warmup_end_lr
         progress = step / self.warmup_steps
-        return self.min_lr + (self.max_lr - self.min_lr) * progress
+        return self.warmup_start_lr + (self.warmup_end_lr - self.warmup_start_lr) * progress
 
     def _lr_cosine(self, cos_step: int) -> float:
         """
@@ -66,8 +73,8 @@ class WarmupCosineScheduler(_LRScheduler):
 
         # Position within current cycle [0, 1)
         t = (cos_step - self._cycle_start) / self._cycle_length
-        # Cosine from max_lr (t=0) to min_lr (t=1)
-        return self.min_lr + 0.5 * (self.max_lr - self.min_lr) * (1 + math.cos(math.pi * t))
+        # Cosine from cosine_start_lr (t=0) to cosine_end_lr (t=1)
+        return self.cosine_end_lr + 0.5 * (self.cosine_start_lr - self.cosine_end_lr) * (1 + math.cos(math.pi * t))
 
     def get_lr(self):
         """
@@ -80,10 +87,10 @@ class WarmupCosineScheduler(_LRScheduler):
         if step <= self.warmup_steps:
             lr = self._lr_linear_warmup(step)
         else:
-            cos_step = step - self.warmup_steps - 1  # after reaching exactly max at warmup end
-            # Ensure the very first post-warmup step starts at max_lr
+            cos_step = step - self.warmup_steps - 1  # after reaching exactly warmup_end_lr at warmup end
+            # Ensure the very first post-warmup step starts at cosine_start_lr
             if cos_step < 0:
-                lr = self.max_lr
+                lr = self.cosine_start_lr
             else:
                 lr = self._lr_cosine(cos_step)
 
@@ -98,8 +105,10 @@ class WarmupCosineScheduler(_LRScheduler):
             "warmup_steps": self.warmup_steps,
             "T_0": self.T_0,
             "T_mult": self.T_mult,
-            "min_lr": self.min_lr,
-            "max_lr": self.max_lr,
+            "warmup_start_lr": self.warmup_start_lr,
+            "warmup_end_lr": self.warmup_end_lr,
+            "cosine_start_lr": self.cosine_start_lr,
+            "cosine_end_lr": self.cosine_end_lr,
         })
         return state
 
@@ -109,8 +118,10 @@ class WarmupCosineScheduler(_LRScheduler):
         self.warmup_steps = state_dict.pop("warmup_steps", self.warmup_steps)
         self.T_0 = state_dict.pop("T_0", self.T_0)
         self.T_mult = state_dict.pop("T_mult", self.T_mult)
-        self.min_lr = state_dict.pop("min_lr", self.min_lr)
-        self.max_lr = state_dict.pop("max_lr", self.max_lr)
+        self.warmup_start_lr = state_dict.pop("warmup_start_lr", self.warmup_start_lr)
+        self.warmup_end_lr = state_dict.pop("warmup_end_lr", self.warmup_end_lr)
+        self.cosine_start_lr = state_dict.pop("cosine_start_lr", self.cosine_start_lr)
+        self.cosine_end_lr = state_dict.pop("cosine_end_lr", self.cosine_end_lr)
         super().load_state_dict(state_dict)
 
 
@@ -119,10 +130,10 @@ class WarmupCosineThenPlateau(_LRScheduler):
     Learning-rate schedule that does NOT depend on optimizer.base_lrs.
 
     Phases:
-      1) Warmup (steps 0..warmup_steps): linear from min_lr -> max_lr
-      2) Cosine (single cycle of length cosine_cycle_length): max_lr -> min_lr
-      3) Reduce-on-Plateau: starts at min_lr (from cosine), can decay further
-         down to plateau_min_lr using ReduceLROnPlateau semantics.
+      1) Warmup (steps 0..warmup_steps): linear from warmup_start_lr -> warmup_end_lr
+      2) Cosine (single cycle of length cosine_cycle_length): cosine_start_lr -> cosine_end_lr
+      3) Reduce-on-Plateau: starts at plateau_start_lr, can decay further
+         down to plateau_end_lr using ReduceLROnPlateau semantics.
 
     Notes:
       - This intentionally uses a SINGLE cosine cycle (no warm restarts).
@@ -136,8 +147,12 @@ class WarmupCosineThenPlateau(_LRScheduler):
         optimizer,
         warmup_steps: int,
         cosine_cycle_length: int,
-        min_lr: float,
-        max_lr: float,
+        warmup_start_lr: float,
+        warmup_end_lr: float,
+        cosine_start_lr: float = None,   # defaults to warmup_end_lr
+        cosine_end_lr: float = None,     # defaults to warmup_start_lr
+        plateau_start_lr: float = None,  # defaults to cosine_end_lr
+        plateau_end_lr: float = 0.0,     # final floor
         # Plateau settings
         plateau_mode: str = "min",          # "min" or "max"
         plateau_factor: float = 0.5,        # multiplicative decay when plateau
@@ -145,7 +160,6 @@ class WarmupCosineThenPlateau(_LRScheduler):
         plateau_threshold: float = 1e-4,
         plateau_threshold_mode: str = "rel",# "rel" or "abs"
         plateau_cooldown: int = 0,
-        plateau_min_lr: float = 0.0,        # final floor for plateau phase
         plateau_eps: float = 1e-8,
         plateau_verbose: bool = False,
         last_epoch: int = -1,
@@ -154,8 +168,8 @@ class WarmupCosineThenPlateau(_LRScheduler):
             raise ValueError("warmup_steps must be >= 0")
         if cosine_cycle_length <= 0:
             raise ValueError("cosine_cycle_length must be > 0")
-        if not (min_lr >= 0 and max_lr > 0 and max_lr >= min_lr):
-            raise ValueError("Require 0 <= min_lr <= max_lr and max_lr > 0")
+        if warmup_start_lr < 0 or warmup_end_lr <= 0:
+            raise ValueError("warmup_start_lr must be >= 0 and warmup_end_lr must be > 0")
         if plateau_factor <= 0.0 or plateau_factor >= 1.0:
             raise ValueError("plateau_factor must be in (0,1)")
 
@@ -165,9 +179,18 @@ class WarmupCosineThenPlateau(_LRScheduler):
         self.warmup_steps = int(warmup_steps)
         self.cosine_len = int(cosine_cycle_length)
 
-        # Cosine endpoints
-        self.min_lr = float(min_lr)
-        self.max_lr = float(max_lr)
+        # Learning rates for each phase
+        self.warmup_start_lr = float(warmup_start_lr)
+        self.warmup_end_lr = float(warmup_end_lr)
+        self.cosine_start_lr = float(cosine_start_lr if cosine_start_lr is not None else warmup_end_lr)
+        self.cosine_end_lr = float(cosine_end_lr if cosine_end_lr is not None else warmup_start_lr)
+        self.plateau_start_lr = float(plateau_start_lr if plateau_start_lr is not None else self.cosine_end_lr)
+        self.plateau_end_lr = float(plateau_end_lr)
+
+        if self.cosine_start_lr < 0 or self.cosine_end_lr < 0:
+            raise ValueError("cosine_start_lr and cosine_end_lr must be >= 0")
+        if self.plateau_start_lr < 0 or self.plateau_end_lr < 0:
+            raise ValueError("plateau_start_lr and plateau_end_lr must be >= 0")
 
         # Plateau config
         self.plateau_cfg = dict(
@@ -177,16 +200,16 @@ class WarmupCosineThenPlateau(_LRScheduler):
             threshold=plateau_threshold,
             threshold_mode=plateau_threshold_mode,
             cooldown=plateau_cooldown,
-            min_lr=plateau_min_lr,
+            min_lr=plateau_end_lr,
             eps=plateau_eps,
         )
 
         # Phase tracking
         self._phase = "warmup"  # "warmup" | "cosine" | "plateau"
         self._plateau = None    # created lazily at transition
-        self._current_lr = self.min_lr
+        self._current_lr = self.warmup_start_lr
 
-        # Initialize optimizer LR to min_lr to avoid dependence on base_lrs
+        # Initialize optimizer LR to warmup_start_lr
         for g in self.optimizer.param_groups:
             g["lr"] = self._current_lr
 
@@ -201,17 +224,17 @@ class WarmupCosineThenPlateau(_LRScheduler):
 
     def _warmup_lr(self, step: int) -> float:
         if self.warmup_steps == 0:
-            return self.max_lr
+            return self.warmup_end_lr
         progress = step / self.warmup_steps
-        return self.min_lr + (self.max_lr - self.min_lr) * progress
+        return self.warmup_start_lr + (self.warmup_end_lr - self.warmup_start_lr) * progress
 
     def _cosine_lr(self, k: int) -> float:
         """
         k = number of steps completed within cosine phase (0..cosine_len)
-        t in [0,1]: 0 -> max_lr, 1 -> min_lr
+        t in [0,1]: 0 -> cosine_start_lr, 1 -> cosine_end_lr
         """
         t = min(max(k / self.cosine_len, 0.0), 1.0)
-        return self.min_lr + 0.5 * (self.max_lr - self.min_lr) * (1 + math.cos(math.pi * t))
+        return self.cosine_end_lr + 0.5 * (self.cosine_start_lr - self.cosine_end_lr) * (1 + math.cos(math.pi * t))
 
     def _maybe_update_phase(self):
         step = self.last_epoch  # after super().step() increments
@@ -223,10 +246,10 @@ class WarmupCosineThenPlateau(_LRScheduler):
         if self._phase == "cosine":
             cos_k = step - (self.warmup_steps + 1)  # 0-based within cosine
             if cos_k >= self.cosine_len:
-                # Lock LR to cosine minimum, then switch to plateau
-                self._set_lr(self.min_lr)
+                # Set LR to plateau_start_lr, then switch to plateau
+                self._set_lr(self.plateau_start_lr)
                 self._phase = "plateau"
-                # Create ReduceLROnPlateau starting from current LR
+                # Create ReduceLROnPlateau starting from plateau_start_lr
                 self._plateau = ReduceLROnPlateau(self.optimizer, **self.plateau_cfg)
 
     # ---------- public API ----------
@@ -244,10 +267,10 @@ class WarmupCosineThenPlateau(_LRScheduler):
             self._set_lr(lr)
 
         elif self._phase == "cosine":
-            # Ensure first post-warmup step is exactly max_lr
+            # Ensure first post-warmup step is exactly cosine_start_lr
             k = step - (self.warmup_steps + 1)
             if k < 0:
-                lr = self.max_lr
+                lr = self.cosine_start_lr
             else:
                 lr = self._cosine_lr(k)
             self._set_lr(lr)
@@ -290,8 +313,12 @@ class WarmupCosineThenPlateau(_LRScheduler):
             "_current_lr": self._current_lr,
             "warmup_steps": self.warmup_steps,
             "cosine_len": self.cosine_len,
-            "min_lr": self.min_lr,
-            "max_lr": self.max_lr,
+            "warmup_start_lr": self.warmup_start_lr,
+            "warmup_end_lr": self.warmup_end_lr,
+            "cosine_start_lr": self.cosine_start_lr,
+            "cosine_end_lr": self.cosine_end_lr,
+            "plateau_start_lr": self.plateau_start_lr,
+            "plateau_end_lr": self.plateau_end_lr,
             "plateau_cfg": self.plateau_cfg,
             "_plateau_state": (self._plateau.state_dict() if self._plateau is not None else None),
         })
@@ -299,11 +326,15 @@ class WarmupCosineThenPlateau(_LRScheduler):
 
     def load_state_dict(self, state_dict):
         self._phase = state_dict.pop("_phase", "warmup")
-        self._current_lr = state_dict.pop("_current_lr", self.min_lr)
+        self._current_lr = state_dict.pop("_current_lr", self.warmup_start_lr)
         self.warmup_steps = state_dict.pop("warmup_steps", self.warmup_steps)
         self.cosine_len = state_dict.pop("cosine_len", self.cosine_len)
-        self.min_lr = state_dict.pop("min_lr", self.min_lr)
-        self.max_lr = state_dict.pop("max_lr", self.max_lr)
+        self.warmup_start_lr = state_dict.pop("warmup_start_lr", self.warmup_start_lr)
+        self.warmup_end_lr = state_dict.pop("warmup_end_lr", self.warmup_end_lr)
+        self.cosine_start_lr = state_dict.pop("cosine_start_lr", self.cosine_start_lr)
+        self.cosine_end_lr = state_dict.pop("cosine_end_lr", self.cosine_end_lr)
+        self.plateau_start_lr = state_dict.pop("plateau_start_lr", self.plateau_start_lr)
+        self.plateau_end_lr = state_dict.pop("plateau_end_lr", self.plateau_end_lr)
         self.plateau_cfg = state_dict.pop("plateau_cfg", self.plateau_cfg)
         plateau_state = state_dict.pop("_plateau_state", None)
 

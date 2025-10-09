@@ -21,9 +21,10 @@ import cvae.models.adapter_model as adapter_model
 from helper.trainer.selfies_properties_values_trainer import SelfiesPropertiesValuesTrainer
 from helper.scheduler.warmup_cosine_trainer import WarmupCosineScheduler, WarmupCosineThenPlateau
 from helper.trainer.invfreq_trainer import InverseFrequencyWeightedTrainer
-from helper.trainer import PropertyWeightedTrainer, StratifiedEvaluatorAdapter, StratifiedPropertyWeightedTrainer, AccumulatedStratifiedPropertyWeightedTrainer
-from helper.trainer.evaluator import StratifiedEvaluator, DefaultEvaluator
-from cvae.models.datasets import InMemorySelfiesPropertiesValuesDataset
+from helper.trainer import AccumulatedStratifiedPropertyWeightedTrainer
+from helper.trainer.evaluator import StratifiedGroupEvaluator
+
+from cvae.models.datasets import InMemorySelfiesPropertiesValuesDataset, SimplePropertyMappedDataset
 from code.helper.utils import find_optimal_batch_size
 import random
 
@@ -78,6 +79,25 @@ def create_model_and_optimizer(tokenizer, benchmark_properties, shared_base_path
     )
     
     return model, optimizer
+
+def create_testing_datasets(tokenizer):
+    tmppaths = list(pathlib.Path("cache/build_tensordataset/multitask_tensors/trn").glob("*.pt"))
+    trnds = InMemorySelfiesPropertiesValuesDataset(tmppaths[:30], tokenizer, nprops=5)
+    valds = InMemorySelfiesPropertiesValuesDataset(tmppaths[:10], tokenizer, nprops=1)
+    return trnds, valds
+    
+def create_datasets(tokenizer, rank):
+    trnpaths = list(pathlib.Path("cache/build_tensordataset/multitask_tensors/trn").glob("*.pt"))
+    tstpaths = list(pathlib.Path("cache/build_tensordataset/multitask_tensors/hld").glob("*.pt"))
+    trnds = SimplePropertyMappedDataset(
+        paths=trnpaths,
+        tokenizer=tokenizer,
+        target_properties=list(range(tokenizer.num_assays)),
+        nprops=5,
+        seed=rank
+    )
+    valds = InMemorySelfiesPropertiesValuesDataset(tokenizer=tokenizer, paths=tstpaths, nprops=1)
+    return trnds, valds
 
 def create_dataloaders(tokenizer, trnds, valds, batch_size, world_size, rank):
     """Create training and validation dataloaders."""
@@ -194,8 +214,8 @@ def main(rank, world_size):
     logging.info(f"Loaded {len(benchmark_properties)} benchmark properties")
     
     # Create model and optimizer
-    min_lr = 1e-5
-    max_lr = 5e-4  # Lower learning rate for adapters
+    min_lr = 1e-4
+    max_lr = 1e-3  # Lower learning rate for adapters
     # Note: 3_1_1 saves MultitaskTransformer under MoE path due to incorrect save path
     shared_base_path = "cache/train_multitask_transformer_parallel/models/MoE/best_loss"
     
@@ -210,18 +230,9 @@ def main(rank, world_size):
     trnpaths = [path for path in allpaths if path not in tstpaths]
     
     # Use all properties (no filtering) - let find_unused_parameters handle unused adapters
-    trnds = InMemorySelfiesPropertiesValuesDataset(trnpaths, tokenizer, nprops=50)
-    logging.info("Built training set")
-    valds = InMemorySelfiesPropertiesValuesDataset(tstpaths, tokenizer, nprops=50)
-    logging.info("Built validation set")
-
-    logging.info("Getting optimal batch size")
-    batch_size = find_optimal_batch_size(
-        model=model, dataset=trnds, min_batch_size=16, max_batch_size=512, target_memory_percent=80.0
-    )[0]
-    
-    # Create dataloaders
-    logging.info("Creating dataloaders")
+    batch_size = 1000
+    # trnds, valds = create_datasets(tokenizer, rank)    
+    trnds, valds = create_testing_datasets(tokenizer)  # For quick testing
     trndl, valdl = create_dataloaders(tokenizer, trnds, valds, batch_size, world_size, rank)
 
     # Calculate training parameters
@@ -244,11 +255,7 @@ def main(rank, world_size):
     # Log training info
     log_training_info(rank, model, trnds, valdl, trndl, params, batch_size, world_size)
 
-    stratified_eval = StratifiedEvaluator(rank=rank, num_tasks=len(tokenizer.assay_indexes()))
-    
-    desired_training_samples_before_eval = 250_000  # More frequent evaluation for adapters
-    eval_every = desired_training_samples_before_eval // (batch_size * world_size)
-
+    stratified_eval = StratifiedGroupEvaluator(tokenizer=tokenizer, rank=rank)
     trainer = AccumulatedStratifiedPropertyWeightedTrainer(
         model=model,
         rank=rank,
@@ -259,14 +266,31 @@ def main(rank, world_size):
         max_steps=params['training_max_steps'],
         effective_accum_batch_size=params['effective_accum_batch_size'],
         eval_samples=params["validation_batches"],
-        first_eval=5,
-        eval_every=eval_every,
-        find_unused_parameters=True,  # Enable for unused adapters
+        first_eval=0,
+        eval_every=1250,
+        find_unused_parameters=False,
         evaluator=stratified_eval,
-        ema_alpha=0.2,
-        max_score=5.0,  # Lower for adapter training
-        min_score=0.1,
-        skip_initial_batches=50
+        
+        # No accumulation needed
+        acc_coalesce_every=1,
+        
+        # Moderate weighting
+        max_score=1.0,
+        min_score=1.0,
+        
+        # Balanced sampling
+        property_sample_rate=1.0,
+        sample_bias_strength=0.0,
+        
+        # Faster EMA due to large batch
+        ema_alpha=0.1,
+        
+        # Adjust for large batch size
+        skip_initial_batches=10,
+        sampling_warmup=20,
+        
+        label_smoothing=0.15,
+        unsampled_property_weight=0.0
     )
 
     # Setup trainer
@@ -285,7 +309,7 @@ if __name__ == "__main__":
     # Setup distributed training
     torch.cuda.set_device(rank)
     dist.init_process_group(
-        backend="nccl",
+        backend="gloo",
         init_method="env://",
         rank=rank,
         world_size=world_size,

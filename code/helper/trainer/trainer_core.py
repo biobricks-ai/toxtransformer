@@ -158,6 +158,10 @@ class TrainerCore(nn.Module):
             self.model.train()
 
             for i, batch in enumerate(self.trn_iterator):
+
+                if self.global_step >= self.max_steps:
+                    break
+                
                 loss = self._train_batch(batch)
                 logging.info(f"Step {self.global_step}: Loss: {loss:.4f}")
 
