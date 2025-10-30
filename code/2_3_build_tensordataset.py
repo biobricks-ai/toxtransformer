@@ -15,7 +15,7 @@ from pyspark.sql.functions import pandas_udf, udf, explode, array, col
 
 logpath = pathlib.Path('cache/build_tensordataset/log')
 logpath.mkdir(parents=True, exist_ok=True)
-logging.basicConfig(filename=logpath / 'build_tensordataset_augmented.log', level=logging.INFO, filemode='w')
+logging.basicConfig(filename=logpath / 'build_tensordataset_augmented_5fold.log', level=logging.INFO, filemode='w')
 
 spark = cvae.utils.get_spark_session()
 
@@ -64,75 +64,54 @@ data_filtered = data.join(valid_assay_values, on=["assay_index", "value"])
 window = Window.partitionBy('assay_index', 'value').orderBy(F.rand(seed=42))
 data_with_row_nums = data_filtered.withColumn("row_number", F.row_number().over(window))
 
-# Assign splits
-@pandas_udf(StringType())
-def assign_split_with_min_hold_udf(row_number: pd.Series, total_count: pd.Series) -> pd.Series:
-    result = pd.Series([""] * len(row_number))
+# Assign 5-fold cross-validation splits
+N_FOLDS = 5
+
+@pandas_udf(IntegerType())
+def assign_fold_udf(row_number: pd.Series, total_count: pd.Series) -> pd.Series:
+    """Assign each sample to a fold (0-4) for 5-fold cross-validation."""
+    result = pd.Series([0] * len(row_number))
     
     for i in range(len(row_number)):
         total = total_count.iloc[i]
         row_num = row_number.iloc[i]
         
-        min_hold = MIN_EXAMPLES_PER_CLASS
-        target_hold_pct = 0.1
-        MAX_HOLD = 1000
-        hold_size = max(min_hold, min(int(total * target_hold_pct), MAX_HOLD))
+        # Ensure each fold gets approximately 20% of the data
+        fold_size = total // N_FOLDS
+        remainder = total % N_FOLDS
         
-        if row_num <= hold_size:
-            result.iloc[i] = 'hld'
-        else:
-            result.iloc[i] = 'trn'
+        # Distribute remainder across first few folds
+        cumulative = 0
+        for fold in range(N_FOLDS):
+            fold_count = fold_size + (1 if fold < remainder else 0)
+            cumulative += fold_count
+            if row_num <= cumulative:
+                result.iloc[i] = fold
+                break
     
     return result
 
-data_with_splits = data_with_row_nums.withColumn("split", 
-    assign_split_with_min_hold_udf("row_number", "total_count")).cache()
+data_with_folds = data_with_row_nums.withColumn("fold", 
+    assign_fold_udf("row_number", "total_count")).cache()
 
-logging.info("Split assignment complete")
+logging.info("5-fold assignment complete")
 
-# =============================================================================
-# EXPAND TRAINING DATA WITH ALTERNATIVES
-# =============================================================================
+# Log fold distribution
+fold_counts = data_with_folds.groupBy("fold").count().orderBy("fold").collect()
+for row in fold_counts:
+    logging.info(f"Fold {row['fold']}: {row['count']} examples")
 
-# Separate training and hold sets
-train_data = data_with_splits.filter(F.col("split") == "trn")
-hold_data = data_with_splits.filter(F.col("split") == "hld")
-
-logging.info(f"Original training set size: {train_data.count()}")
-logging.info(f"Hold set size: {hold_data.count()}")
-
-# For training data, explode the alternative encoded SELFIES to create augmented samples
-# Each alternative is already an encoded SELFIES array
-train_augmented = train_data.select(
-    F.explode(F.col("alternative_encoded_selfies")).alias("encoded_selfies"),
-    "assay_index",
-    "value",
-    "split"
-)
-
-logging.info(f"Augmented training set size: {train_augmented.count()}")
-
-# For hold data, keep original encoded_selfies (no augmentation)
-hold_data_clean = hold_data.select("encoded_selfies", "assay_index", "value", "split")
-
-# Combine augmented training with original hold data
-final_data = train_augmented.unionAll(hold_data_clean)
-
-logging.info(f"Final combined dataset size: {final_data.count()}")
-
-# Calculate augmentation factor
-augmentation_factor = train_augmented.count() / train_data.count() if train_data.count() > 0 else 1
-logging.info(f"Training set augmentation factor: {augmentation_factor:.2f}x")
+# Verify stratification
+fold_assay_dist = data_with_folds.groupBy("fold", "assay_index", "value").count() \
+    .orderBy("fold", "assay_index", "value").collect()
+logging.info("\nFold stratification check:")
+for fold in range(N_FOLDS):
+    fold_data = [row for row in fold_assay_dist if row['fold'] == fold]
+    logging.info(f"Fold {fold} has {len(fold_data)} distinct assay-value combinations")
 
 # =============================================================================
-# CREATE TENSOR DATASETS
+# CREATE CROSS-VALIDATION SPLITS AND TENSOR DATASETS
 # =============================================================================
-
-# Group data for tensor creation
-grouped_data = final_data.select("encoded_selfies", "assay_index", "value", "split") \
-        .groupby("encoded_selfies", "split") \
-        .agg(F.collect_list(F.struct("assay_index", "value")).alias("assay_val_pairs")) \
-        .cache()
 
 def create_tensors_separated(partition, outdir):
     """Create tensor batches with separated components (selfies, properties, values)."""
@@ -172,26 +151,97 @@ def create_tensors_separated(partition, outdir):
         logging.error(f"Error processing partition: {str(e)}")
         raise
 
-# Build tensor datasets for splits
-for split in ['trn', 'hld']:
-    logging.info(f'Building {split} augmented tensor dataset')
-    output_dir = cvae.utils.mk_empty_directory(
-        f'cache/build_tensordataset/multitask_tensors_augmented/{split}', 
+# Process each fold combination
+for test_fold in range(N_FOLDS):
+    logging.info(f"\n{'='*60}")
+    logging.info(f"Processing fold {test_fold} as test set")
+    logging.info(f"{'='*60}")
+    
+    # Define train folds (all except test fold)
+    train_folds = [i for i in range(N_FOLDS) if i != test_fold]
+    
+    # Separate train and test data
+    train_data = data_with_folds.filter(F.col("fold").isin(train_folds))
+    test_data = data_with_folds.filter(F.col("fold") == test_fold)
+    
+    train_count_orig = train_data.count()
+    test_count = test_data.count()
+    
+    logging.info(f"Fold {test_fold} - Original training set size: {train_count_orig}")
+    logging.info(f"Fold {test_fold} - Test set size: {test_count}")
+    
+    # Verify class distribution in test set
+    test_class_dist = test_data.groupBy("assay_index", "value").count() \
+        .filter(F.col("count") < MIN_EXAMPLES_PER_CLASS // N_FOLDS).collect()
+    
+    if test_class_dist:
+        logging.warning(f"Fold {test_fold} - Warning: {len(test_class_dist)} classes have very few test examples")
+        for row in test_class_dist[:5]:  # Show first 5
+            logging.warning(f"  Assay {row['assay_index']}, Value {row['value']}: {row['count']} test examples")
+    
+    # For training data, explode the alternative encoded SELFIES to create augmented samples
+    train_augmented = train_data.select(
+        F.explode(F.col("alternative_encoded_selfies")).alias("encoded_selfies"),
+        "assay_index",
+        "value"
+    ).withColumn("split", F.lit("train"))
+    
+    train_count_aug = train_augmented.count()
+    logging.info(f"Fold {test_fold} - Augmented training set size: {train_count_aug}")
+    
+    # For test data, keep original encoded_selfies (no augmentation)
+    test_data_clean = test_data.select(
+        "encoded_selfies", 
+        "assay_index", 
+        "value"
+    ).withColumn("split", F.lit("test"))
+    
+    # Calculate augmentation factor
+    augmentation_factor = train_count_aug / train_count_orig if train_count_orig > 0 else 1
+    logging.info(f"Fold {test_fold} - Training set augmentation factor: {augmentation_factor:.2f}x")
+    
+    # Group data for tensor creation
+    train_grouped = train_augmented.groupby("encoded_selfies") \
+        .agg(F.collect_list(F.struct("assay_index", "value")).alias("assay_val_pairs"))
+    
+    test_grouped = test_data_clean.groupby("encoded_selfies") \
+        .agg(F.collect_list(F.struct("assay_index", "value")).alias("assay_val_pairs"))
+    
+    # Create tensor datasets for this fold
+    # Training set
+    train_output_dir = cvae.utils.mk_empty_directory(
+        f'cache/build_tensordataset/cv_tensors_augmented/fold_{test_fold}/train', 
         overwrite=True
     )
     
-    split_grouped = grouped_data.filter(F.col("split") == split)
-    split_count = split_grouped.count()
-    logging.info(f'{split} split has {split_count} unique SELFIES molecules')
+    train_unique_count = train_grouped.count()
+    logging.info(f'Fold {test_fold} - Training set has {train_unique_count} unique SELFIES molecules')
+    train_grouped.foreachPartition(lambda part: create_tensors_separated(part, train_output_dir))
     
-    split_grouped.foreachPartition(lambda part: create_tensors_separated(part, output_dir))
-    logging.info(f'Completed building {split} tensors')
+    # Test set
+    test_output_dir = cvae.utils.mk_empty_directory(
+        f'cache/build_tensordataset/cv_tensors_augmented/fold_{test_fold}/test', 
+        overwrite=True
+    )
+    
+    test_unique_count = test_grouped.count()
+    logging.info(f'Fold {test_fold} - Test set has {test_unique_count} unique SELFIES molecules')
+    test_grouped.foreachPartition(lambda part: create_tensors_separated(part, test_output_dir))
+    
+    logging.info(f'Completed building tensors for fold {test_fold}')
+    
+    # Log fold summary
+    logging.info(f"\nFold {test_fold} Summary:")
+    logging.info(f"  Train: {train_count_orig} original -> {train_count_aug} augmented ({train_unique_count} unique)")
+    logging.info(f"  Test:  {test_count} examples ({test_unique_count} unique)")
 
 # =============================================================================
 # BUILD FINAL TRAINING SET (ALL DATA, NO SPLITS)
 # =============================================================================
 
+logging.info('\n' + '='*60)
 logging.info('Building final training set with augmentation (no splits)')
+logging.info('='*60)
 
 # For final training, use all data with augmentation
 final_all_data = data_filtered.select('alternative_encoded_selfies', 'assay_index', 'value')
@@ -222,47 +272,56 @@ final_grouped.foreachPartition(lambda part: create_tensors_separated(part, final
 # SUMMARY STATISTICS
 # =============================================================================
 
-logging.info("=== FINAL AUGMENTED DATASET SUMMARY ===")
+logging.info("\n" + "="*60)
+logging.info("FINAL 5-FOLD CV DATASET SUMMARY")
+logging.info("="*60)
 
-# Final split counts
-final_split_counts = final_data.groupBy("split").count().collect()
-final_total = sum(row['count'] for row in final_split_counts)
+# Overall fold statistics
+logging.info(f"\nCross-validation configuration:")
+logging.info(f"  Number of folds: {N_FOLDS}")
+logging.info(f"  Train/test split ratio: {(N_FOLDS-1)}/{N_FOLDS} : 1/{N_FOLDS} (~{100*(N_FOLDS-1)/N_FOLDS:.0f}%/{100/N_FOLDS:.0f}%)")
 
-for row in final_split_counts:
-    pct = (row['count'] / final_total) * 100
-    logging.info(f"Final {row['split']} split: {row['count']} examples ({pct:.1f}%)")
+# Per-fold statistics
+logging.info(f"\nPer-fold data distribution:")
+for row in fold_counts:
+    pct = (row['count'] / sum(fc['count'] for fc in fold_counts)) * 100
+    logging.info(f"  Fold {row['fold']}: {row['count']} examples ({pct:.1f}%)")
 
-logging.info(f"Final total dataset size: {final_total} examples")
+# Verify minimum examples per class in each fold
+logging.info(f"\nVerifying minimum examples per class-fold combination:")
+fold_class_min = data_with_folds.groupBy("fold", "assay_index", "value") \
+    .count().groupBy("fold").agg(F.min("count").alias("min_count")).orderBy("fold").collect()
 
-# Verify hold set requirements
-hold_verification = final_data.filter(F.col("split") == "hld") \
-    .groupBy("assay_index", "value") \
-    .count() \
-    .withColumnRenamed("count", "hold_count")
+for row in fold_class_min:
+    expected_min = MIN_EXAMPLES_PER_CLASS // N_FOLDS
+    status = "✓" if row['min_count'] >= expected_min else "⚠"
+    logging.info(f"  Fold {row['fold']}: minimum {row['min_count']} examples per class {status}")
 
-insufficient_hold = hold_verification.filter(F.col("hold_count") < MIN_EXAMPLES_PER_CLASS).collect()
+# Find longest assay-val sequence across all folds
+max_seq_query = data_with_folds.groupby("encoded_selfies") \
+    .agg(F.collect_list(F.struct("assay_index", "value")).alias("assay_val_pairs")) \
+    .withColumn("seq_length", F.size("assay_val_pairs"))
 
-if insufficient_hold:
-    logging.error(f"CRITICAL: Found {len(insufficient_hold)} assay-value combinations with < {MIN_EXAMPLES_PER_CLASS} examples in hold set")
-    for row in insufficient_hold:
-        logging.error(f"  Assay {row['assay_index']}, Value {row['value']}: only {row['hold_count']} in hold set")
-else:
-    logging.info(f"SUCCESS: All assay-value combinations have at least {MIN_EXAMPLES_PER_CLASS} examples in hold set")
+max_assay_val_count = max_seq_query.agg(F.max("seq_length")).collect()[0][0]
+avg_assay_val_count = max_seq_query.agg(F.avg("seq_length")).collect()[0][0]
 
-# Find longest assay-val sequence
-max_assay_val_count = grouped_data.withColumn("seq_length", F.size("assay_val_pairs")) \
-    .agg(F.max("seq_length")).collect()[0][0]
-logging.info(f"Longest assay-value sequence: {max_assay_val_count}")
+logging.info(f"\nSequence statistics:")
+logging.info(f"  Longest assay-value sequence: {max_assay_val_count}")
+logging.info(f"  Average assay-values per example: {avg_assay_val_count:.2f}")
 
-# Find average number of assay-values per example
-avg_assay_val_count = grouped_data.withColumn("seq_length", F.size("assay_val_pairs")) \
-    .agg(F.avg("seq_length")).collect()[0][0]
-logging.info(f"Average assay-values per example: {avg_assay_val_count:.2f}")
+# Final summary
+total_original = data_filtered.count()
+total_augmented_estimate = total_original * augmentation_factor  # Using last fold's factor as estimate
 
-logging.info("=== AUGMENTATION SUMMARY ===")
-logging.info(f"✓ Training set augmented by {augmentation_factor:.2f}x")
-logging.info(f"✓ Hold set kept unchanged (no augmentation)")
-logging.info(f"✓ All assay-value combinations meet minimum hold set requirements")
-logging.info(f"✓ Augmented tensor datasets created successfully")
+logging.info(f"\n{'='*60}")
+logging.info("AUGMENTATION SUMMARY")
+logging.info(f"{'='*60}")
+logging.info(f"✓ Created {N_FOLDS}-fold cross-validation splits")
+logging.info(f"✓ Each fold serves as test set once, with remaining {N_FOLDS-1} folds as training")
+logging.info(f"✓ Training sets augmented by ~{augmentation_factor:.2f}x")
+logging.info(f"✓ Test sets kept unchanged (no augmentation)")
+logging.info(f"✓ Original dataset: {total_original} examples")
+logging.info(f"✓ Estimated augmented training size: ~{int(total_augmented_estimate)} examples per fold")
+logging.info(f"✓ All tensor datasets created successfully in cache/build_tensordataset/cv_tensors_augmented/")
 
-logging.info("Augmented dataset build completed successfully!")
+logging.info("\n5-Fold CV augmented dataset build completed successfully!")
