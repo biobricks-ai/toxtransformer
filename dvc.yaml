@@ -1,73 +1,235 @@
 stages:
-  
-  preprocess:
-    cmd: PYTHONPATH=./ python code/1_preprocess.py
+  # Stage 1: Initial substance preprocessing
+  preprocess_substances:
+    cmd: >
+      spark-submit 
+      --master local[240] 
+      --driver-memory 512g 
+      --conf spark.eventLog.enabled=true 
+      --conf spark.eventLog.dir=file:///tmp/spark-events 
+      code/1_1_preprocess.py
     deps:
-    - code/1_preprocess.py
+      - code/1_1_preprocess.py
+      - cvae/tokenizer/selfies_tokenizer.py
+      - cvae/utils.py
+      - cvae/spark_helpers.py
     outs:
-    - cache/preprocess/
+      - cache/preprocess/substances.parquet
+      - cache/preprocess/substances2.parquet
+    params:
+      - total_cores
+      - total_ram_gb
+    metrics:
+      - cache/preprocess/log/preprocess.log
 
+  # Stage 2: Create basic SELFIES tokenizer
   preprocess_tokenizer:
-    cmd: PYTHONPATH=./ python code/1_2_preprocess_tokenizer.py
+    cmd: >
+      spark-submit 
+      --master local[240] 
+      --driver-memory 512g 
+      --conf spark.eventLog.enabled=true 
+      --conf spark.eventLog.dir=file:///tmp/spark-events 
+      code/1_2_preprocess_tokenizer.py
     deps:
-    - code/1_2_preprocess_tokenizer.py
-    - cache/preprocess/
+      - code/1_2_preprocess_tokenizer.py
+      - cache/preprocess/substances2.parquet
+      - cvae/tokenizer/selfies_tokenizer.py
+      - cvae/utils.py
+      - cvae/spark_helpers.py
     outs:
-    - cache/preprocess_tokenizer/
+      - cache/preprocess_tokenizer/selfies_tokenizer.json
+      - cache/preprocess_tokenizer/substances.parquet
+    metrics:
+      - cache/preprocess_tokenizer/log/preprocess_tokenizer.log
 
-  build_tensordataset:
-    cmd: python code/2_build_tensordataset.py
+  # Stage 3: Preprocess activities with augmentation
+  preprocess_activities:
+    cmd: >
+      spark-submit 
+      --master local[240] 
+      --driver-memory 512g 
+      --conf spark.eventLog.enabled=true 
+      --conf spark.eventLog.dir=file:///tmp/spark-events 
+      --conf spark.local.dir=/tmp/spark-local 
+      code/1_3_preprocess_activities.py
     deps:
-    - code/2_build_tensordataset.py
-    - cache/preprocess/
+      - code/1_3_preprocess_activities.py
+      - cache/preprocess_tokenizer/substances.parquet
+      - cache/preprocess_tokenizer/selfies_tokenizer.json
+      - cvae/tokenizer/selfies_tokenizer.py
+      - cvae/utils.py
     outs:
-    - data/tensordataset/
-    - brick/selfies_property_val_tokenizer/
-  
-  pack_tensordataset:
-    cmd: PYTHONPATH=./ python code/3_0_pack_multitask_tensors.py
+      - cache/preprocess_activities/activities_augmented.parquet
+    params:
+      - num_alternatives: 3
+      - min_examples_per_class: 50
+      - max_attempts: 50
+      - seed: 42
+    metrics:
+      - cache/preprocess_activities/log/preprocess_activities_augmented.log
+
+  # Stage 4: Create comprehensive property-value tokenizer (missing step)
+  create_property_tokenizer:
+    cmd: >
+      python -c "
+      import cvae.tokenizer.selfies_property_val_tokenizer as spt;
+      import pyspark.sql;
+      import cvae.utils;
+      spark = cvae.utils.get_spark_session();
+      activities = spark.read.parquet('cache/preprocess_activities/activities_augmented.parquet');
+      tokenizer = spt.SelfiesPropertyValTokenizer();
+      tokenizer.fit_from_activities_df(activities);
+      tokenizer.save('brick/selfies_property_val_tokenizer');
+      print(f'Created tokenizer with {tokenizer.num_assays} assays');
+      spark.stop()
+      "
     deps:
-    - cache/build_multitask_tensors/
+      - cache/preprocess_activities/activities_augmented.parquet
+      - cvae/tokenizer/selfies_property_val_tokenizer.py
+      - cvae/utils.py
     outs:
-    - cache/pack_multitask_tensors/
-
-  train:
-    cmd: python code/3_train_multitask_transformer.py
-    deps:
-    - code/3_train_multitask_transformer.py
-    - cache/preprocess/
-    - data/tensordataset/
-    - brick/selfies_property_val_tokenizer/
-    outs:
-    - brick/moe
-
-  # evaluate:
-  #   cmd: python code/5_1_eval_multi_properties.py
-  #   deps:
-  #     - code/5_1_eval_multi_properties.py
-  #     - brick/moe
-  #     - data/tensordataset/multitask_tensors/hld
-  #   outs:
-  #     - data/metrics/temp
-  #     - data/metrics/multitask_predictions.parquet
-  #     - data/metrics/multitask_metrics.parquet
-
-  sqlite:
-    cmd: python code/6_build_sqlite.py
-    deps:
-      - code/6_build_sqlite.py
       - brick/selfies_property_val_tokenizer
-      - cache/preprocess/activities.parquet
-    outs:
-      - brick/cvae.sqlite
-  
-  evaluate_benchmarks:
-    cmd: python code/7.1_2_property_benchmarks_parallel.py
+
+  # Stage 5: Build SQLite database
+  build_sqlite:
+    cmd: >
+      PYTHONPATH=./ spark-submit 
+      --master local[240] 
+      --driver-memory 512g 
+      --conf spark.eventLog.enabled=true 
+      --conf spark.eventLog.dir=/tmp/spark-events 
+      --conf spark.local.dir=/tmp/spark-local 
+      code/2_2_build_sqlite.py 2> cache/build_sqlite/err.log
     deps:
-      - code/7.1_2_property_benchmarks_parallel.py
-      - brick/moe
-      - data/tensordataset/multitask_tensors/hld
+      - code/2_2_build_sqlite.py
+      - cache/preprocess_activities/activities_augmented.parquet
+      - cache/preprocess/substances2.parquet
+      - brick/selfies_property_val_tokenizer
+      - cvae/tokenizer/selfies_property_val_tokenizer.py
     outs:
-      - data/metrics/temp
-      - data/metrics/multitask_predictions.parquet
-      - data/metrics/multitask_metrics.parquet
+      - cache/build_sqlite/cvae.sqlite
+      - brick/cvae.sqlite
+    metrics:
+      - cache/build_sqlite/build_sqlite.log
+      - cache/build_sqlite/err.log
+
+  # Stage 6: Build tensor datasets with cross-validation splits
+  build_tensordataset:
+    cmd: >
+      PYTHONPATH=./ spark-submit 
+      --master local[240] 
+      --driver-memory 512g 
+      --conf spark.eventLog.enabled=true 
+      --conf spark.eventLog.dir=/tmp/spark-events 
+      --conf spark.local.dir=/tmp/spark-local 
+      code/2_3_build_tensordataset.py
+    deps:
+      - code/2_3_build_tensordataset.py
+      - cache/preprocess_activities/activities_augmented.parquet
+      - brick/selfies_property_val_tokenizer
+      - cvae/tokenizer/selfies_property_val_tokenizer.py
+      - cvae/tokenizer/selfies_tokenizer.py
+      - cvae/utils.py
+    outs:
+      - cache/build_tensordataset/cv_tensors_augmented/
+      - cache/build_tensordataset/final_tensors_augmented/
+    params:
+      - n_folds: 5
+      - min_examples_per_class: 30
+      - augmentation_factor: 3
+    metrics:
+      - cache/build_tensordataset/log/build_tensordataset_augmented_5fold.log
+
+  # Stage 7: Train multitask transformer (parallel)
+  train_multitask_transformer:
+    cmd: >
+      PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 torchrun 
+      --standalone 
+      --nproc-per-node=8 
+      --master-port=29500 
+      code/3_1_1_train_multitask_transformer_parallel.py 2> cache/train_multitask_transformer_parallel/logs/err.log
+    deps:
+      - code/3_1_1_train_multitask_transformer_parallel.py
+      - cache/build_tensordataset/final_tensors_augmented/
+      - brick/selfies_property_val_tokenizer
+      - cvae/tokenizer/selfies_property_val_tokenizer.py
+      - cvae/models/multitask_transformer.py
+      - cvae/models/multitask_encoder.py
+      - cvae/models/mixture_experts.py
+      - cvae/models/datasets/
+      - helper/scheduler/
+      - helper/trainer/
+    outs:
+      - cache/train_multitask_transformer_parallel/models/me_roundrobin_property_dropout_V3/
+    params:
+      - batch_size: 1000
+      - world_size: 8
+      - training_max_steps: 1200000
+      - warmup_steps: 1000
+      - base_lr: 0.000001
+      - max_lr: 0.0001
+      - min_lr: 0.00001
+      - label_smoothing: 0.15
+      - weight_decay: 0.01
+      - nprops: 20
+    metrics:
+      - cache/train_multitask_transformer_parallel/metrics/multitask_loss.tsv
+      - cache/train_multitask_transformer_parallel/logs/train_multitask_transformer_parallel.log
+      - cache/train_multitask_transformer_parallel/logs/err.log
+
+# Global parameters
+params:
+  # System configuration
+  total_cores: 240
+  total_ram_gb: 512
+  
+  # Preprocessing parameters
+  num_alternatives: 3
+  min_examples_per_class: 50
+  max_attempts: 50
+  seed: 42
+  
+  # Cross-validation parameters
+  n_folds: 5
+  min_examples_per_class: 30
+  augmentation_factor: 3
+  
+  # Training parameters
+  batch_size: 1000
+  world_size: 8
+  training_max_steps: 1200000
+  warmup_steps: 1000
+  base_lr: 0.000001
+  max_lr: 0.0001
+  min_lr: 0.00001
+  label_smoothing: 0.15
+  weight_decay: 0.01
+  nprops: 20
+
+# Artifacts and remote storage configuration
+artifacts:
+  models:
+    path: cache/train_multitask_transformer_parallel/models/
+    desc: "Trained transformer models"
+  
+  datasets:
+    path: cache/build_tensordataset/
+    desc: "Processed tensor datasets for training"
+  
+  databases:
+    path: brick/
+    desc: "SQLite databases and tokenizers"
+
+# Data validation rules
+plots:
+  - cache/train_multitask_transformer_parallel/metrics/multitask_loss.tsv:
+      x: step
+      y: 
+        - train_loss
+        - val_loss
+      title: "Training vs Validation Loss"
+  
+  - cache/preprocess_activities/log/preprocess_activities_augmented.log:
+      template: confusion_matrix
+      title: "Data Augmentation Statistics"

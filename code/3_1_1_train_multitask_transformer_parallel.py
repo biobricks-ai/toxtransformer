@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=8 --master-port=29500 code/3_1_1_train_multitask_transformer_parallel.py 2> cache/train_multitask_transformer_parallel/logs/err.log
-
+"""
+FOLD=0 PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=8 \
+--master-port=29500 code/3_1_1_train_multitask_transformer_parallel.py 2> \
+cache/train_multitask_transformer_parallel/logs/err.log
+"""
 # Increase file descriptor limit
 import resource
 resource.setrlimit(resource.RLIMIT_NOFILE, (65536, 65536))
@@ -89,8 +92,9 @@ def create_testing_datasets(tokenizer):
     return trnds, valds
     
 def create_datasets(tokenizer, rank, nprops=20):
-    trnpaths = list(pathlib.Path("cache/build_tensordataset/multitask_tensors/trn").glob("*.pt"))
-    tstpaths = list(pathlib.Path("cache/build_tensordataset/multitask_tensors/hld").glob("*.pt"))
+    split = os.getenv('SPLIT')
+    trnpaths = list(pathlib.Path(f"cache/build_tensordataset/bootstrap/split_{split}/train").glob("*.pt"))
+    tstpaths = list(pathlib.Path(f"cache/build_tensordataset/bootstrap/split_{split}/test").glob("*.pt"))
     trnds = SimplePropertyMappedDataset(
         paths=trnpaths,
         tokenizer=tokenizer,

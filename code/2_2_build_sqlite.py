@@ -1,5 +1,5 @@
 # PYTHONPATH=./ spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///tmp/spark-events code/2_build_sqlite.py 2> cache/build_sqlite/err.log
-# PYTHONPATH=./ spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///data/tmp/spark-events --conf spark.local.dir=/data/tmp/spark-local code/2_2_build_sqlite.py 2> cache/build_sqlite/err.log
+# PYTHONPATH=./ spark-submit --master local[240] --driver-memory 512g --conf spark.eventLog.enabled=true --conf spark.eventLog.dir=file:///data/tmp/spark-events --conf spark.local.dir=/data/tmp/spark-local code/2_2_build_sqlite.py 2> cache/build_sqlite/err.log; ./slackmsg 'Build sqlite finished'
 
 import os, sys, biobricks as bb, pandas as pd, shutil, sqlite3, pathlib
 import pyspark.sql, pyspark.sql.functions as F
@@ -32,7 +32,7 @@ pytorch_id_to_property_token_udf = F.udf(pytorch_id_to_property_token, pyspark.s
 binval_to_value_token = lambda x : broadcast_tokenizer.value.value_id_to_token_idx(int(x))
 binval_to_value_token_udf = F.udf(binval_to_value_token, pyspark.sql.types.LongType())
 
-raw_activities = spark.read.parquet("cache/preprocess_activities/activities.parquet")\
+raw_activities = spark.read.parquet("cache/preprocess_activities/activities_augmented.parquet")\
     .withColumnRenamed('assay','property_id')\
     .withColumnRenamed('sid','substance_id')\
     .withColumn("property_token", pytorch_id_to_property_token_udf("assay_index"))\

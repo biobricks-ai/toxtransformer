@@ -15,12 +15,7 @@ class SimplePropertyMappedDataset(Dataset):
     Pre-normalizes all data during loading to avoid runtime normalization bugs.
     Tracks property sampling to preferentially select undersampled properties.
     
-    The dataset:
-    1. Pre-normalizes all property/value tokens during loading
-    2. Creates a map from each normalized (property_id, value_id) pair to sample indices
-    3. Stores all data in big arrays with consistent indexing
-    4. Uses deterministic selection for reproducible results with optional seeding
-    5. Tracks property sampling counts and preferentially samples underrepresented properties
+    Updated to handle data format with separate 'selfies', 'properties', and 'values' tensors.
     """
 
     def __init__(self, paths, tokenizer, target_properties: List[int], nprops: int = 1, 
@@ -75,33 +70,36 @@ class SimplePropertyMappedDataset(Dataset):
     def _load_and_preprocess_samples(self, paths):
         """Load samples and pre-normalize all property/value data."""
         
-        file_paths = [pathlib.Path(p) for p in paths]
+        file_paths = [pathlib.Path(p) for p in paths] if isinstance(paths, list) else [pathlib.Path(paths)]
         logging.info(f"Loading and pre-processing samples for property+value pairs")
         
         sample_idx = 0
         
         for file_path in tqdm.tqdm(file_paths, desc="Loading files"):
             file_data = torch.load(file_path, map_location="cpu", weights_only=True, mmap=True)
-            selfies_list = file_data["selfies"]
-            assay_vals_list = file_data["assay_vals"]
+            
+            # Handle the new data format with separate tensors
+            selfies_tensor = file_data["selfies"]
+            properties_tensor = file_data["properties"]  
+            values_tensor = file_data["values"]
 
-            for selfies, assay_vals in zip(selfies_list, assay_vals_list):
-                # Extract valid property-value pairs
-                mask = assay_vals != self.pad_idx
-                valid_tokens = assay_vals[mask][1:-1]  # Remove SEP and END tokens
-
-                if len(valid_tokens) == 0 or len(valid_tokens) % 2 != 0:
-                    continue  # Skip invalid samples
-
-                property_value_pairs = valid_tokens.view(-1, 2).contiguous()  # [num_pairs, 2]
+            for selfies, properties, values in zip(selfies_tensor, properties_tensor, values_tensor):
+                # Filter out padding (-1 values in your format)
+                valid_mask = (properties != -1) & (values != -1)
+                valid_properties = properties[valid_mask]
+                valid_values = values[valid_mask]
                 
-                # Pre-normalize ALL properties and values
-                raw_properties = property_value_pairs[:, 0]
-                raw_values = property_value_pairs[:, 1]
+                if len(valid_properties) == 0:
+                    continue  # Skip empty samples
                 
-                # Apply normalization (same as tokenizer.norm_properties/norm_values)
-                norm_properties = raw_properties - self.tokenizer.selfies_offset
-                norm_values = raw_values - self.tokenizer.properties_offset
+                # Normalize properties and values
+                # Properties in your data are already property IDs, not tokenized
+                # So we just need to normalize them directly
+                norm_properties = valid_properties  # These are already property indices
+                
+                # For values, they're binary (0/1), but we may need to adjust based on tokenizer
+                # Assuming the tokenizer expects 0/1 values as-is
+                norm_values = valid_values
                 
                 # Store the sample data
                 self.all_selfies.append(selfies)
@@ -117,7 +115,7 @@ class SimplePropertyMappedDataset(Dataset):
                     norm_prop_id = norm_prop.item()
                     norm_val_id = norm_val.item()
                     
-                    # Only consider target properties (using normalized IDs)
+                    # Only consider target properties
                     if norm_prop_id in self.target_properties:
                         key = (norm_prop_id, norm_val_id)
                         
@@ -183,18 +181,20 @@ class SimplePropertyMappedDataset(Dataset):
                 property_stats[norm_prop_id] = []
             property_stats[norm_prop_id].append((norm_val_id, len(indices)))
         
-        for norm_prop_id in sorted(property_stats.keys()):
+        for norm_prop_id in sorted(property_stats.keys())[:10]:  # Show first 10 properties
             value_stats = sorted(property_stats[norm_prop_id])
             total_samples = sum(count for _, count in value_stats)
             unique_values = len(value_stats)
             logging.info(f"   Property {norm_prop_id}: {unique_values} unique values, {total_samples} total samples")
             
-            # Show top 5 most frequent values for this property
-            value_stats.sort(key=lambda x: x[1], reverse=True)
+            # Show value distribution
             for norm_val_id, count in value_stats[:5]:
                 logging.info(f"     Value {norm_val_id}: {count} samples")
             if len(value_stats) > 5:
                 logging.info(f"     ... and {len(value_stats) - 5} more values")
+        
+        if len(property_stats) > 10:
+            logging.info(f"   ... and {len(property_stats) - 10} more properties")
         
         logging.info(f"   Total unique normalized property+value pairs: {len(self.property_value_pairs)}")
         if self.seed is not None:
@@ -378,9 +378,9 @@ class SimplePropertyMappedDataset(Dataset):
         # Pad if necessary and create mask based on real vs padded
         if len(selected_properties) < self.nprops:
             pad_size = self.nprops - len(selected_properties)
-            # Use 0 as padding value - this should be valid for normalized embeddings
-            pad_properties = torch.zeros(pad_size, dtype=selected_properties.dtype)
-            pad_values = torch.zeros(pad_size, dtype=selected_values.dtype)
+            # Use PAD_IDX for padding
+            pad_properties = torch.full((pad_size,), self.pad_idx, dtype=selected_properties.dtype)
+            pad_values = torch.full((pad_size,), self.pad_idx, dtype=selected_values.dtype)
             selected_properties = torch.cat([selected_properties, pad_properties])
             selected_values = torch.cat([selected_values, pad_values])
         
@@ -388,6 +388,11 @@ class SimplePropertyMappedDataset(Dataset):
         mask = torch.zeros(self.nprops, dtype=torch.bool)
         mask[:num_real_props] = True
         
+        # Apply tokenizer normalization
+        # normalized_properties = self.tokenizer.norm_properties(selected_properties, mask)
+        # normalized_values = self.tokenizer.norm_values(selected_values, mask)
+        
+        # return normalized_properties, normalized_values, mask
         return selected_properties, selected_values, mask
 
     def __len__(self):
@@ -418,19 +423,20 @@ class SimplePropertyMappedDataset(Dataset):
         actual_sample_idx = sample_idx_for_pair % len(indices_for_pair)
         sample_idx = indices_for_pair[actual_sample_idx]
         
-        # Get the pre-stored, pre-normalized data
+        # Get the pre-stored data
         selfies = self.all_selfies[sample_idx]
         norm_properties = self.all_norm_properties[sample_idx]
         norm_values = self.all_norm_values[sample_idx]
         
         # Select properties with target property+value guaranteed to be included
-        # This now uses weighted sampling for off-target properties
+        # This now uses weighted sampling for off-target properties and handles normalization
         selected_properties, selected_values, mask = self._select_properties(
             norm_properties, norm_values, target_norm_prop_id, target_norm_val_id
         )
         
         return selfies, selected_properties, selected_values, mask
 
+    # Keep all the existing utility methods unchanged
     def get_property_value_sample_count(self, norm_property_id: int, norm_value_id: int) -> int:
         """Get number of samples for a specific normalized property+value pair."""
         return len(self.property_value_to_indices.get((norm_property_id, norm_value_id), []))

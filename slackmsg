@@ -1,0 +1,26 @@
+#!/bin/bash
+# Simple Slack notification script
+
+# Load webhook URL from .env or use environment variable
+if [ -f /data/toxtransformer/.env ]; then
+    export $(grep SLACK_WEBHOOK_URL /data/toxtransformer/.env | xargs)
+fi
+
+if [ -z "$SLACK_WEBHOOK_URL" ]; then
+    echo "Error: SLACK_WEBHOOK_URL not set" >&2
+    exit 1
+fi
+
+# Get message from arguments
+MESSAGE="$1"
+if [ -z "$MESSAGE" ]; then
+    echo "Usage: slackmsg <message>" >&2
+    exit 1
+fi
+
+# Send to Slack
+curl -X POST -H 'Content-type: application/json' \
+    --data "{\"text\":\"$MESSAGE\"}" \
+    "$SLACK_WEBHOOK_URL" 2>/dev/null
+
+echo "Message sent: $MESSAGE"

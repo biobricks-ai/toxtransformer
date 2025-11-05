@@ -21,3 +21,4 @@ notes.md
 *.log
 *.pem
 .aws/secrets/*
+.env

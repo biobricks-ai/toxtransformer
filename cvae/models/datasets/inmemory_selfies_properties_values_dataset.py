@@ -19,8 +19,8 @@ class InMemorySelfiesPropertiesValuesDataset(Dataset):
         self.pad_idx = tokenizer.PAD_IDX
         self.assay_filter_tensor = torch.tensor(assay_filter, dtype=torch.long) if assay_filter else None
 
-        # Each sample is (selfies_tensor, reshaped_valid_tokens [N x 2])
-        self.samples: List[Tuple[Tensor, Tensor]] = []
+        # Each sample is (selfies_tensor, properties_tensor, values_tensor)
+        self.samples: List[Tuple[Tensor, Tensor, Tensor]] = []
 
         # Handle both directory path, list of file paths, and single pt file
         if isinstance(paths, list):
@@ -33,62 +33,80 @@ class InMemorySelfiesPropertiesValuesDataset(Dataset):
                 file_paths = list(path.glob("*.pt"))
 
         for file_path in tqdm.tqdm(file_paths, desc="Loading dataset into RAM"):
-            file_data = torch.load(file_path, map_location="cpu")
-            selfies_list = file_data["selfies"]
-            assay_vals_list = file_data["assay_vals"]
+            file_data = torch.load(file_path, map_location="cpu", weights_only=True)
+            
+            # Your data format has these keys
+            selfies_tensor = file_data["selfies"]
+            properties_tensor = file_data["properties"]
+            values_tensor = file_data["values"]
 
-            for selfies, assay_vals in zip(selfies_list, assay_vals_list):
-                mask = assay_vals != self.pad_idx
-                valid_tokens = assay_vals[mask][1:-1]  # Remove SEP and END tokens
-
+            # Process each sample in the batch
+            for selfies, properties, values in zip(selfies_tensor, properties_tensor, values_tensor):
+                # Filter out padding (-1 values)
+                valid_mask = (properties != -1) & (values != -1)
+                valid_properties = properties[valid_mask]
+                valid_values = values[valid_mask]
+                
+                # Apply assay filter if provided
                 if self.assay_filter_tensor is not None and self.assay_filter_tensor.numel() > 0:
-                    assay_ids = valid_tokens[::2]  # Property tokens at even indices
-                    assay_mask = torch.isin(assay_ids, self.assay_filter_tensor)
-                    expanded_mask = torch.zeros_like(valid_tokens, dtype=torch.bool)
-                    expanded_mask[::2] = assay_mask  # Properties
-                    expanded_mask[1::2] = assay_mask  # Values
-                    valid_tokens = valid_tokens[expanded_mask]
-
-                if valid_tokens.numel() >= 2:
-                    reshaped = valid_tokens.view(-1, 2).contiguous()  # [num_pairs, 2]
-                    self.samples.append((selfies, reshaped))
+                    filter_mask = torch.isin(valid_properties, self.assay_filter_tensor)
+                    valid_properties = valid_properties[filter_mask]
+                    valid_values = valid_values[filter_mask]
+                
+                # Only keep samples with at least one valid property-value pair
+                if valid_properties.numel() > 0:
+                    self.samples.append((selfies, valid_properties, valid_values))
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        selfies, property_value_pairs = self.samples[idx]
-        properties, values = self._process_property_values(property_value_pairs)
-        mask = properties != self.pad_idx
-        normproperties = self.tokenizer.norm_properties(properties, mask)
-        normvalues = self.tokenizer.norm_values(values, mask)
-        return selfies, normproperties, normvalues, mask
+        selfies, properties, values = self.samples[idx]
+        
+        # Process and pad properties and values
+        processed_properties, processed_values = self._process_property_values(properties, values)
+        
+        # Create mask for non-padded elements
+        mask = processed_properties != self.pad_idx
+        
+        # Normalize properties and values
+        # normproperties = self.tokenizer.norm_properties(processed_properties, mask)
+        # normvalues = self.tokenizer.norm_values(processed_values, mask)
+        
+        # return selfies, normproperties, normvalues, mask
+        return selfies, processed_properties, processed_values, mask
 
-    def _process_property_values(self, property_value_pairs: Tensor) -> Tuple[Tensor, Tensor]:
+    def _process_property_values(self, properties: Tensor, values: Tensor) -> Tuple[Tensor, Tensor]:
         """
-        Process property-value pairs into separate properties and values tensors.
+        Process property and value tensors, randomly sampling nprops pairs.
         
         Args:
-            property_value_pairs: [num_pairs, 2] tensor where each row is [property, value]
+            properties: tensor of property indices
+            values: tensor of corresponding values
             
         Returns:
             properties: [nprops] tensor of property tokens, padded if necessary
             values: [nprops] tensor of value tokens, padded if necessary
         """
-        # Randomly shuffle and truncate to nprops
-        perm = torch.randperm(property_value_pairs.size(0))
-        shuffled_pairs = property_value_pairs[perm]
-        truncated_pairs = shuffled_pairs[:self.nprops]
+        num_available = properties.size(0)
         
-        # Split into properties and values
-        actual_pairs = truncated_pairs.size(0)
+        # Randomly sample indices if we have more than nprops
+        if num_available > self.nprops:
+            # Random sampling without replacement
+            perm = torch.randperm(num_available)[:self.nprops]
+            sampled_properties = properties[perm]
+            sampled_values = values[perm]
+        else:
+            sampled_properties = properties
+            sampled_values = values
         
         # Create padded tensors
-        properties = torch.full((self.nprops,), self.pad_idx, dtype=torch.long)
-        values = torch.full((self.nprops,), self.pad_idx, dtype=torch.long)
+        actual_count = min(num_available, self.nprops)
+        padded_properties = torch.full((self.nprops,), self.pad_idx, dtype=torch.long)
+        padded_values = torch.full((self.nprops,), self.pad_idx, dtype=torch.long)
         
-        if actual_pairs > 0:
-            properties[:actual_pairs] = truncated_pairs[:, 0]  # Property tokens
-            values[:actual_pairs] = truncated_pairs[:, 1]      # Value tokens
+        if actual_count > 0:
+            padded_properties[:actual_count] = sampled_properties[:actual_count]
+            padded_values[:actual_count] = sampled_values[:actual_count]
         
-        return properties, values
+        return padded_properties, padded_values

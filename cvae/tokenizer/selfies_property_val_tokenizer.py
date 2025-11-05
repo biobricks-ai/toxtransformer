@@ -71,9 +71,10 @@ class SelfiesPropertyValTokenizer:
         else:
             raise ValueError(f"Symbol {symbol} not in tokenizer")
 
-    def norm_properties(self, properties, bool_mask):
+    def norm_properties(self, properties, bool_mask = None):
         properties = properties - self.selfies_offset
-        properties[~bool_mask] = 0
+        if bool_mask is not None:
+            properties[~bool_mask] = 0
         return properties
 
     def norm_values(self, values, bool_mask):

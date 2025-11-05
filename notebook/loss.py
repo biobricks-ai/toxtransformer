@@ -19,8 +19,10 @@ update_interval = int(args[2]) if len(args) > 2 else 3  # seconds between update
 # metrics_file = 'cache/train_adapters/metrics/multitask_loss.tsv'
 # metrics_file = 'cache/finetune_benchmarks/metrics/multitask_loss.tsv'
 
-metrics_file = 'cache/train_multitask_transformer_parallel/metrics/multitask_loss.tsv'
+# metrics_file = 'cache/train_multitask_transformer_parallel/metrics/multitask_loss.tsv'
+metrics_file = 'cache/train_multitask_transformer_parallel/metrics/fold_0/multitask_loss.tsv'
 # metrics_file = 'cache/full_train/metrics/multitask_loss.tsv'
+# metrics_file = 'cache/train_adapters_all_props/metrics/fold_0/adapter_loss.tsv'
 
 # --- Core plotting function ---
 def draw_plot(last_scheduler_length=0):

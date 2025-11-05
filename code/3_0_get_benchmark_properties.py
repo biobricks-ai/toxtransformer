@@ -1,9 +1,9 @@
-# PYTHONPATH=./ python code/3_2_get_benchmark_properties.py
+# PYTHONPATH=./ python code/3_0_get_benchmark_properties.py
 import sqlite3
 import pandas as pd
 import pathlib
 import logging
-
+from cvae.tokenizer.selfies_property_val_tokenizer import SelfiesPropertyValTokenizer
 
 outdir = pathlib.Path('cache/get_benchmark_properties')
 outdir.mkdir(parents=True, exist_ok=True)
@@ -26,6 +26,8 @@ FROM property p
 inner join source s on p.source_id = s.source_id 
 inner join property_summary_statistics pss on p.property_id = pss.property_id
 where s.source in ('{}')""".format("','".join(BENCHMARK_DATASETS)))
+
+propdf
 
 test = propdf[propdf['source'] == 'ctdbase']
 vc1 = propdf['source'].value_counts()

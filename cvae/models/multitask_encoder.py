@@ -553,6 +553,43 @@ class MultitaskEncoder(nn.Module):
         
         return logits
     
+    def extract_hidden_states(self, selfies: torch.Tensor, properties: torch.Tensor, 
+                            values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        """
+        Extract hidden representations at value positions without applying classification head.
+        
+        Args:
+            selfies: [batch_size, seq_len] SELFIES token indices
+            properties: [batch_size, num_props] property token indices
+            values: [batch_size, num_props] value token indices
+            mask: [batch_size, num_props] mask for valid property-value pairs
+            
+        Returns:
+            hidden_states: [batch_size, num_props, hdim] hidden representations at value positions
+        """
+        # Encode SELFIES tokens
+        molecule_mask = selfies != self.token_pad_idx
+        molecule_emb = self.embedding_selfies(selfies) * self.embed_scale
+        
+        # Create property-value sequence
+        pv_embeddings = self.create_pv_teacher_forcing(properties, values) * self.embed_scale
+
+        # Create property-value mask by repeating
+        pv_mask = mask.repeat_interleave(2, dim=1)
+        
+        # Concatenate sequences
+        full_sequence = torch.cat([molecule_emb, pv_embeddings], dim=1)
+        full_mask = torch.cat([molecule_mask, pv_mask], dim=1)
+        
+        # Decode with fast transformer
+        decoded = self.decoder(full_sequence, mask=full_mask)
+        
+        # Extract hidden states at value positions (every other token after SELFIES offset)
+        selfies_len = selfies.shape[1]
+        hidden_at_values = decoded[:, selfies_len::2]  # Start after SELFIES, take every 2nd
+        
+        return hidden_at_values
+        
     def _validate_inputs(self, selfies: torch.Tensor, properties: torch.Tensor,
                         values: torch.Tensor, mask: torch.Tensor):
         """Validate input tensors"""
