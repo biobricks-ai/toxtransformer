@@ -1,4 +1,17 @@
-# PYTHONPATH=./ torchrun --nproc_per_node=8 --nnodes=1 --node_rank=0 code/5_0_0_generate_evaluations.py 2> cache/generate_evaluations/logs/err.log
+"""
+rm -rf cache/generate_evaluations/
+for SPLIT in {0..5}; do
+  LOGDIR="cache/generate_evaluations/${SPLIT}/logs"
+  mkdir -p "$LOGDIR"
+
+  SPLIT=$SPLIT LOGDIR="$LOGDIR" PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 \
+  NCCL_DEBUG=INFO NCCL_ASYNC_ERROR_HANDLING=1 NCCL_IB_DISABLE=1 \
+  torchrun --nproc_per_node=8 --nnodes=1 \
+    --node_rank=0 code/5_0_0_generate_evaluations.py \
+    2> cache/generate_evaluations/$SPLIT/logs/err.log
+done
+
+"""
 import os, uuid
 import torch
 import pandas as pd
@@ -22,8 +35,20 @@ import random
 import hashlib
 from code.helper.utils import find_optimal_batch_size
 
+# Helper function to convert to hashable types
+def _to_hashable(x):
+    try:
+        if isinstance(x, (list, tuple)):
+            return tuple(x)
+        if hasattr(x, 'tolist') and not isinstance(x, (str, bytes)):
+            return tuple(x.tolist())
+    except Exception:
+        pass
+    return x
+
 # SETUP =================================================================================
-outdir = pathlib.Path("cache/generate_evaluations/")
+SPLIT = os.getenv("SPLIT")
+outdir = pathlib.Path(f"cache/generate_evaluations/{SPLIT}")
 outdir.mkdir(parents=True, exist_ok=True)
 
 parquetdir = outdir / "evaluations.parquet"
@@ -37,9 +62,13 @@ device = torch.device(f"cuda:{local_rank}")
 rank = dist.get_rank()
 world_size = dist.get_world_size()
 
+# Only rank 0 creates shared directories
+if rank == 0:
+    logdir = outdir / "logs"
+    logdir.mkdir(parents=True, exist_ok=True)
+dist.barrier()
 
-logdir = pathlib.Path("cache/generate_evaluations/logs")
-logdir.mkdir(parents=True, exist_ok=True)
+logdir = outdir / "logs"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -48,7 +77,8 @@ logging.basicConfig(
 )
 
 logging.info(f"Rank {rank} started evaluation process.")
-model = mte.MultitaskEncoder.load("cache/train_multitask_transformer_parallel/models/me_roundrobin_property_dropout/checkpoint_step_80000").to(device).eval()
+
+model = mte.MultitaskEncoder.load(f"cache/train_multitask_transformer_parallel/logs/split_{SPLIT}/models/me_roundrobin_property_dropout_V3/final_checkpoint").to(device).eval()
 tokenizer: SelfiesPropertyValTokenizer = model.tokenizer
 
 eval_props_df = pd.read_parquet("cache/get_benchmark_properties/benchmark_properties.parquet")
@@ -57,34 +87,23 @@ eval_props = sorted(eval_props)
 
 # GENERATE EVALUATIONS =================================================================================
 logging.info(f"Rank {rank} processing properties: {len(eval_props)}")
-preloaded_dataset = PreloadedTargetPropertyValuesDataset("cache/build_tensordataset/multitask_tensors/hld", tokenizer=tokenizer)
+preloaded_dataset = PreloadedTargetPropertyValuesDataset(f"cache/build_tensordataset/bootstrap/split_{SPLIT}/test", tokenizer=tokenizer)
 
-# Generate a log of the number of samples per property_token
-# Debug: Check what's in the preloaded dataset
 logging.info(f"Rank {rank}: Preloaded dataset has {len(preloaded_dataset.samples)} samples")
-logging.info(f"Rank {rank}: Properties in dataset: {list(preloaded_dataset.property_to_value_to_sample_idxs.keys())[:10]}...")  # Show first 10
+logging.info(f"Rank {rank}: Properties in dataset: {list(preloaded_dataset.property_to_value_to_sample_idxs.keys())[:10]}...")
 logging.info(f"Rank {rank}: Properties to evaluate: {eval_props}")
 
 # START EVALUATION ==================================================================================
-# nprops_list = [1,2,3,4,5]
-nprops_list = [1]
+nprops_list = [1,2,3,4,5]
+minprops = [1,2,3,4,5]
 
 # Pair and shuffle (nprops, prop) for load balancing
 tasks = [(n, p) for n in nprops_list for p in eval_props]
 random.seed(rank)  # Ensure different shuffle per rank
 random.shuffle(tasks)
 
-# import numpy as np; prop = np.int64(14044); nprops = 5
-# minprops = [1,2,3,4,5]
-minprops = [1]
-minprop_prop_iter = list(enumerate((minprop, task) for task in tasks for minprop in minprops))
-
-total_tasks = len(minprop_prop_iter)
-start_time = time.time()
-logging.info(f"Rank {rank} has {total_tasks} tasks to process.")
-
 # Build flattened task list: tuples of (nprops, property_token, minprops)
-task_tuples = [(nprops, prop, minp) for (minp, (nprops, prop)) in (t[1] for t in minprop_prop_iter)]
+task_tuples = [(nprops, prop, minp) for (nprops, prop) in tasks for minp in minprops]
 logging.info(f"Rank {rank}: built task_tuples, count={len(task_tuples)}")
 
 # Create a single flattened dataset and DataLoader with DistributedSampler
@@ -133,12 +152,10 @@ with torch.no_grad():
 
             true_values = values[batch_indices, target_indices].cpu()
 
-
             props_list = properties.view(batch_size_local, -1).cpu().tolist()
             properties_repr = ["-".join(map(str, p)) if isinstance(p, (list, tuple)) else str(p) for p in props_list]
 
-            # Ensure list-like fields are converted to hashable types (tuples) so
-            # that drop_duplicates() works without TypeError: unhashable type: 'list'.
+            # Ensure list-like fields are converted to hashable types (tuples)
             chemical_ids = [tuple(x) if isinstance(x, (list, tuple)) else x for x in selfies.view(selfies.shape[0], -1).cpu().tolist()]
             df = pd.DataFrame({
                 "chemical_id": chemical_ids,
@@ -158,49 +175,32 @@ with torch.no_grad():
                 'Batch': batch_size_local
             })
 
+            # Checkpoint saving inside the batch loop
+            if len(batch_accum) > 500_000:
+                df = pd.DataFrame(batch_accum)
+                # Convert list-like and ndarray cells to tuples
+                for col in df.columns:
+                    df[col] = df[col].apply(_to_hashable)
+
+                df = df.drop_duplicates()
+                path = f"{parquetdir}/partial_rank{rank}_{uuid.uuid4()}.parquet"
+                df.to_parquet(path, index=False)
+                batch_accum = []
+                logging.info(f"Rank {rank}: Saved {len(df)} records to {path}")
+
             if batch_idx % 10 == 0:
                 torch.cuda.empty_cache()
                 logging.info(f"Rank {rank}: processed flattened batch {batch_idx}/{len(loader)} (accum={len(batch_accum)})")
 
         pbar.close()
-        
-        if len(batch_accum) > 500_000:
-            df = pd.DataFrame(batch_accum)
-            # Convert list-like and ndarray cells to tuples so drop_duplicates can hash them
-            def _to_hashable(x):
-                try:
-                    if isinstance(x, (list, tuple)):
-                        return tuple(x)
-                    if hasattr(x, 'tolist') and not isinstance(x, (str, bytes)):
-                        return tuple(x.tolist())
-                except Exception:
-                    pass
-                return x
 
-            for col in df.columns:
-                df[col] = df[col].apply(_to_hashable)
-
-            df = df.drop_duplicates()
-            path = f"{parquetdir}/partial_rank{rank}_{uuid.uuid4()}.parquet"
-            df.to_parquet(path, index=False)
-            batch_accum = []
-            logging.info(f"Rank {rank}: Saved {len(df)} records to {path}")
-
+# Final save
 if batch_accum:
     logging.info(f"Rank {rank} finalizing results, total records: {len(batch_accum)}")
     df = pd.DataFrame(batch_accum)
     logging.info(f"Rank {rank}: final batch dataframe size before dedup: {len(df)}")
-    # Drop duplicates before writing the final chunk for this rank
-    def _to_hashable(x):
-        try:
-            if isinstance(x, (list, tuple)):
-                return tuple(x)
-            if hasattr(x, 'tolist') and not isinstance(x, (str, bytes)):
-                return tuple(x.tolist())
-        except Exception:
-            pass
-        return x
-
+    
+    # Convert to hashable and drop duplicates
     for col in df.columns:
         df[col] = df[col].apply(_to_hashable)
 

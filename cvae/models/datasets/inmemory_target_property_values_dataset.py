@@ -15,32 +15,39 @@ class PreloadedTargetPropertyValuesDataset:
     """Preloaded version for more efficient access patterns."""
     
     def __init__(self, path, tokenizer):
-        self.samples: List[Tuple[Tensor, Tensor, int]] = []
+        self.samples: List[Tuple[Tensor, Tensor, Tensor, int]] = []
         self.tokenizer = tokenizer
-        self.pad_idx = tokenizer.PAD_IDX
+        self.pad_idx = 0  # Use 0 as pad index to avoid embedding lookup errors
         self.property_to_value_to_sample_idxs: Dict[int, Dict[int, List[int]]] = defaultdict(lambda: defaultdict(list))
         self.sample_to_numprops: Dict[int, int] = defaultdict(int)
 
         sample_idx = 0
         for file_path in tqdm.tqdm(pathlib.Path(path).glob("*.pt"), desc="Preloading dataset"):
-            file_data = torch.load(file_path, map_location="cpu")
-            selfies_list = file_data["selfies"]
-            assay_vals_list = file_data["assay_vals"]
+            file_data = torch.load(file_path, map_location="cpu", weights_only=True, mmap=True)
+            
+            # Handle new data format with separate tensors
+            selfies_tensor = file_data["selfies"]
+            properties_tensor = file_data["properties"]
+            values_tensor = file_data["values"]
 
-            for selfies, assay_vals in zip(selfies_list, assay_vals_list):
-                mask = assay_vals != self.pad_idx
-                valid_tokens = assay_vals[mask][1:-1]
-                if valid_tokens.numel() >= 2:
-                    reshaped = valid_tokens.view(-1, 2).contiguous()
-                    num_properties = reshaped.size(0)
-                    self.samples.append((selfies, reshaped, num_properties))
-                    
-                    # Map property values to sample indices
-                    for prop, value in zip(reshaped[:, 0].tolist(), reshaped[:, 1].tolist()):
-                        self.property_to_value_to_sample_idxs[prop][value].append(sample_idx)
+            for selfies, properties, values in zip(selfies_tensor, properties_tensor, values_tensor):
+                # Filter out padding (-1 values)
+                valid_mask = (properties != -1) & (values != -1)
+                valid_properties = properties[valid_mask]
+                valid_values = values[valid_mask]
+                
+                if len(valid_properties) == 0:
+                    continue  # Skip empty samples
+                
+                num_properties = len(valid_properties)
+                self.samples.append((selfies, valid_properties, valid_values, num_properties))
+                
+                # Map property values to sample indices
+                for prop, value in zip(valid_properties.tolist(), valid_values.tolist()):
+                    self.property_to_value_to_sample_idxs[prop][value].append(sample_idx)
 
-                    self.sample_to_numprops[sample_idx] = num_properties
-                    sample_idx += 1
+                self.sample_to_numprops[sample_idx] = num_properties
+                sample_idx += 1
 
 
 class TargetPropertyValuesWrapper(torch.utils.data.Dataset):
@@ -50,7 +57,7 @@ class TargetPropertyValuesWrapper(torch.utils.data.Dataset):
         self.base = base
         self.tokenizer = base.tokenizer
         self.nprops = nprops
-        self.pad_idx = self.tokenizer.PAD_IDX
+        self.pad_idx = 0  # Use 0 instead of -1
         self.target_property_token = target_property_token
 
         self.base_samples = base.samples
@@ -80,78 +87,76 @@ class TargetPropertyValuesWrapper(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         base_idx = self.samples[idx]
-        bselfies, reshaped, num_properties = self.base_samples[base_idx]
-        properties, values, mask = self._process_property_values(reshaped)
-        normproperties = self.base.tokenizer.norm_properties(properties, mask)
-        normvalues = self.base.tokenizer.norm_values(values, mask)
-        return bselfies, normproperties, normvalues, mask, num_properties
+        bselfies, properties, values, num_properties = self.base_samples[base_idx]
+        properties, values, mask = self._process_property_values(properties, values)
+        return bselfies, properties, values, mask, num_properties
 
-    def _process_property_values(self, property_value_pairs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+    def _process_property_values(self, properties: Tensor, values: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Process property-value pairs ensuring target property is in the last position.
         
         Args:
-            property_value_pairs: [num_pairs, 2] tensor where each row is [property, value]
+            properties: [num_pairs] tensor of property tokens
+            values: [num_pairs] tensor of value tokens
             
         Returns:
             properties: [nprops] tensor of property tokens, padded if necessary
             values: [nprops] tensor of value tokens, padded if necessary  
-            mask: [nprops] tensor indicating valid positions
+            mask: [nprops] tensor indicating valid positions (1 for valid, 0 for padding)
         """
-        device = property_value_pairs.device
+        device = properties.device
 
-        # Split out the target row and other rows
-        target_rows = property_value_pairs[property_value_pairs[:, 0] == self.target_property_token]
-        other_rows = property_value_pairs[property_value_pairs[:, 0] != self.target_property_token]
+        # Find target and other properties
+        target_mask = properties == self.target_property_token
+        other_mask = ~target_mask
 
-        if target_rows.size(0) == 0:
-            raise ValueError("Target property token not found in property_value_pairs tensor.")
+        target_properties = properties[target_mask]
+        target_values = values[target_mask]
+        other_properties = properties[other_mask]
+        other_values = values[other_mask]
 
-        # Shuffle other rows and take up to (nprops - 1)
-        if other_rows.size(0) > 0:
-            perm = torch.randperm(other_rows.size(0))
-            shuffled_others = other_rows[perm]
-            n_other = min(self.nprops - 1, shuffled_others.size(0))
-            selected_others = shuffled_others[:n_other]
+        if target_properties.size(0) == 0:
+            raise ValueError("Target property token not found in properties tensor.")
+
+        # Shuffle other properties and take up to (nprops - 1)
+        if other_properties.size(0) > 0:
+            perm = torch.randperm(other_properties.size(0))
+            shuffled_other_properties = other_properties[perm]
+            shuffled_other_values = other_values[perm]
+            n_other = min(self.nprops - 1, shuffled_other_properties.size(0))
+            selected_other_properties = shuffled_other_properties[:n_other]
+            selected_other_values = shuffled_other_values[:n_other]
         else:
-            selected_others = torch.empty(0, 2, dtype=property_value_pairs.dtype, device=device)
+            selected_other_properties = torch.empty(0, dtype=properties.dtype, device=device)
+            selected_other_values = torch.empty(0, dtype=values.dtype, device=device)
             n_other = 0
 
         # Combine: other properties first, then target property last
         if n_other > 0:
-            combined_pairs = torch.cat([selected_others, target_rows[0:1]], dim=0)
+            combined_properties = torch.cat([selected_other_properties, target_properties[0:1]], dim=0)
+            combined_values = torch.cat([selected_other_values, target_values[0:1]], dim=0)
         else:
-            combined_pairs = target_rows[0:1]
+            combined_properties = target_properties[0:1]
+            combined_values = target_values[0:1]
         
-        actual_pairs = combined_pairs.size(0)
+        actual_pairs = combined_properties.size(0)
         
-        # Create padded tensors
-        properties = torch.full((self.nprops,), self.pad_idx, dtype=torch.long, device=device)
-        values = torch.full((self.nprops,), self.pad_idx, dtype=torch.long, device=device)
+        # Create padded tensors with 0 as pad value (safe for embedding lookup)
+        out_properties = torch.full((self.nprops,), self.pad_idx, dtype=torch.long, device=device)
+        out_values = torch.full((self.nprops,), self.pad_idx, dtype=torch.long, device=device)
+        # Mask: 1 for valid, 0 for padding
         mask = torch.zeros(self.nprops, dtype=torch.bool, device=device)
         
         if actual_pairs > 0:
-            properties[:actual_pairs] = combined_pairs[:, 0]  # Property tokens
-            values[:actual_pairs] = combined_pairs[:, 1]      # Value tokens
+            out_properties[:actual_pairs] = combined_properties
+            out_values[:actual_pairs] = combined_values
             mask[:actual_pairs] = True
         
-        return properties, values, mask
+        return out_properties, out_values, mask
 
 
 class MultiTargetPropertyValuesWrapper(torch.utils.data.Dataset):
-    """Wrapper that supports many (property, target_position) pairs.
-
-    For each (property_token, target_position) pair this dataset selects up to
-    `nsamples` sample indices from `base` that contain the property and have
-    at least `minprops` properties. The dataset iterates sequentially through
-    the provided pairs, producing one example per selected sample per pair.
-
-    Each returned sample is processed so that the target property for that
-    step is placed at `target_position` (0-based) within the `nprops` slots.
-    Other properties are shuffled before insertion to provide randomness.
-    The returned tensors are normalized via the base tokenizer to match the
-    model's expected input (properties, values, mask).
-    """
+    """Wrapper that supports many (property, target_position) pairs."""
 
     def __init__(
         self,
@@ -164,7 +169,7 @@ class MultiTargetPropertyValuesWrapper(torch.utils.data.Dataset):
     ):
         self.base = base
         self.tokenizer = base.tokenizer
-        self.pad_idx = self.tokenizer.PAD_IDX
+        self.pad_idx = 0  # Use 0 instead of -1
         self.nprops = nprops
         self.nsamples = nsamples
         self.minprops = minprops
@@ -199,82 +204,75 @@ class MultiTargetPropertyValuesWrapper(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         prop_token, target_pos, base_idx = self.index_map[idx]
-        bselfies, reshaped, num_properties = self.base.samples[base_idx]
+        bselfies, properties, values, num_properties = self.base.samples[base_idx]
 
-        properties, values, mask = self._process_property_values(reshaped, prop_token, target_pos)
+        properties, values, mask = self._process_property_values(properties, values, prop_token, target_pos)
 
-        # Normalize using tokenizer to be consistent with other wrappers
-        normproperties = self.base.tokenizer.norm_properties(properties, mask)
-        normvalues = self.base.tokenizer.norm_values(values, mask)
+        return bselfies, properties, values, mask, num_properties
 
-        return bselfies, normproperties, normvalues, mask, num_properties
+    def _process_property_values(self, properties: Tensor, values: Tensor, target_property_token: int, target_pos: int) -> Tuple[Tensor, Tensor, Tensor]:
+        """Shuffle non-target properties and place the target at requested position."""
+        device = properties.device
 
-    def _process_property_values(self, property_value_pairs: Tensor, target_property_token: int, target_pos: int) -> Tuple[Tensor, Tensor, Tensor]:
-        """
-        Shuffle non-target property-value pairs and place the target pair at
-        the requested `target_pos` (0-based) within the `nprops` window.
+        # Locate target and other properties
+        target_mask = properties == target_property_token
+        other_mask = ~target_mask
 
-        Behavior:
-        - Find the first occurrence of the target property in `property_value_pairs`.
-        - Shuffle the other property rows and select up to `nprops-1` of them.
-        - Insert the target row at `target_pos` among the selected rows.
-        - Pad properties/values to length `nprops` using PAD_IDX and build mask.
-        """
-        device = property_value_pairs.device
+        target_properties = properties[target_mask]
+        target_values = values[target_mask]
+        other_properties = properties[other_mask]
+        other_values = values[other_mask]
 
-        # Locate target and other rows
-        target_rows = property_value_pairs[property_value_pairs[:, 0] == target_property_token]
-        other_rows = property_value_pairs[property_value_pairs[:, 0] != target_property_token]
+        if target_properties.size(0) == 0:
+            raise ValueError("Target property token not found in properties tensor.")
 
-        if target_rows.size(0) == 0:
-            raise ValueError("Target property token not found in property_value_pairs tensor.")
-
-        # Shuffle other rows
-        if other_rows.size(0) > 0:
-            perm = torch.randperm(other_rows.size(0))
-            shuffled_others = other_rows[perm]
-            n_other = min(self.nprops - 1, shuffled_others.size(0))
-            selected_others = shuffled_others[:n_other]
+        # Shuffle other properties
+        if other_properties.size(0) > 0:
+            perm = torch.randperm(other_properties.size(0))
+            shuffled_other_properties = other_properties[perm]
+            shuffled_other_values = other_values[perm]
+            n_other = min(self.nprops - 1, shuffled_other_properties.size(0))
+            selected_other_properties = shuffled_other_properties[:n_other]
+            selected_other_values = shuffled_other_values[:n_other]
         else:
-            selected_others = torch.empty(0, 2, dtype=property_value_pairs.dtype, device=device)
+            selected_other_properties = torch.empty(0, dtype=properties.dtype, device=device)
+            selected_other_values = torch.empty(0, dtype=values.dtype, device=device)
             n_other = 0
 
-        # We'll insert the target row at target_pos (clamped)
+        # Insert target at target_pos
         target_pos = max(0, min(target_pos, self.nprops - 1))
 
         # Determine how many others to place to the left of the target
         left_space = target_pos
         left_count = min(n_other, left_space)
+        
         # Split selected others into left and right portions
-        left = selected_others[:left_count]
-        right = selected_others[left_count:]
+        left_properties = selected_other_properties[:left_count]
+        left_values = selected_other_values[:left_count]
+        right_properties = selected_other_properties[left_count:]
+        right_values = selected_other_values[left_count:]
 
         # Build combined sequence: left, target, right
-        combined = torch.cat([left, target_rows[0:1].to(device), right], dim=0)
+        combined_properties = torch.cat([left_properties, target_properties[0:1].to(device), right_properties], dim=0)
+        combined_values = torch.cat([left_values, target_values[0:1].to(device), right_values], dim=0)
 
-        actual_pairs = combined.size(0)
+        actual_pairs = combined_properties.size(0)
 
-        properties = torch.full((self.nprops,), self.pad_idx, dtype=torch.long, device=device)
-        values = torch.full((self.nprops,), self.pad_idx, dtype=torch.long, device=device)
+        out_properties = torch.full((self.nprops,), self.pad_idx, dtype=torch.long, device=device)
+        out_values = torch.full((self.nprops,), self.pad_idx, dtype=torch.long, device=device)
         mask = torch.zeros(self.nprops, dtype=torch.bool, device=device)
 
         if actual_pairs > 0:
-            # If combined is longer than nprops (shouldn't happen), truncate
             take = min(actual_pairs, self.nprops)
-            properties[:take] = combined[:take, 0]
-            values[:take] = combined[:take, 1]
+            out_properties[:take] = combined_properties[:take]
+            out_values[:take] = combined_values[:take]
             mask[:take] = True
 
-        return properties, values, mask
+        return out_properties, out_values, mask
 
 
 class MultiTaskPropertySamplesDataset(torch.utils.data.Dataset):
-    """Flattened dataset that covers many (nprops, property_token, minprops) tasks.
-
-    Each item corresponds to one sample drawn for a particular task. All returned
-    property/value tensors are padded to `max_nprops` so batches have consistent
-    shapes and can be collated by DataLoader.
-    """
+    """Flattened dataset that covers many (nprops, property_token, minprops) tasks."""
 
     def __init__(
         self,
@@ -294,7 +292,7 @@ class MultiTaskPropertySamplesDataset(torch.utils.data.Dataset):
         """
         self.base = base
         self.tokenizer = base.tokenizer
-        self.pad_idx = self.tokenizer.PAD_IDX
+        self.pad_idx = 0  # Use 0 instead of -1
         self.nsamples = nsamples
 
         if seed is not None:
@@ -331,9 +329,9 @@ class MultiTaskPropertySamplesDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         base_idx, prop_token, nprops, minprops = self.index_map[idx]
-        bselfies, reshaped, num_properties = self.base.samples[base_idx]
+        bselfies, properties, values, num_properties = self.base.samples[base_idx]
 
-        properties, values, mask = self._process_property_values(reshaped, prop_token, nprops)
+        properties, values, mask = self._process_property_values(properties, values, prop_token, nprops)
 
         # Pad to max_nprops if needed
         if properties.size(0) < self.max_nprops:
@@ -344,50 +342,54 @@ class MultiTaskPropertySamplesDataset(torch.utils.data.Dataset):
             values = torch.cat([values, vals_pad], dim=0)
             mask = torch.cat([mask, mask_pad], dim=0)
 
-        normproperties = self.base.tokenizer.norm_properties(properties, mask)
-        normvalues = self.base.tokenizer.norm_values(values, mask)
-
         # Return extra task metadata so caller can group/log by property/nprops/minprops
-        return bselfies, normproperties, normvalues, mask, num_properties, torch.tensor(prop_token, dtype=torch.long), torch.tensor(nprops, dtype=torch.long), torch.tensor(minprops, dtype=torch.long)
+        return bselfies, properties, values, mask, num_properties, torch.tensor(prop_token, dtype=torch.long), torch.tensor(nprops, dtype=torch.long), torch.tensor(minprops, dtype=torch.long)
 
-    def _process_property_values(self, property_value_pairs: Tensor, target_property_token: int, target_nprops: int) -> Tuple[Tensor, Tensor, Tensor]:
-        """Select up to target_nprops properties, place the target property at the last valid slot.
+    def _process_property_values(self, properties: Tensor, values: Tensor, target_property_token: int, target_nprops: int) -> Tuple[Tensor, Tensor, Tensor]:
+        """Select up to target_nprops properties, place the target property at the last valid slot."""
+        device = properties.device
 
-        Returns tensors sized target_nprops (not padded to max here).
-        """
-        device = property_value_pairs.device
+        target_mask = properties == target_property_token
+        other_mask = ~target_mask
 
-        target_rows = property_value_pairs[property_value_pairs[:, 0] == target_property_token]
-        other_rows = property_value_pairs[property_value_pairs[:, 0] != target_property_token]
+        target_properties = properties[target_mask]
+        target_values = values[target_mask]
+        other_properties = properties[other_mask]
+        other_values = values[other_mask]
 
-        if target_rows.size(0) == 0:
-            raise ValueError("Target property token not found in property_value_pairs tensor.")
+        if target_properties.size(0) == 0:
+            raise ValueError("Target property token not found in properties tensor.")
 
-        if other_rows.size(0) > 0:
-            perm = torch.randperm(other_rows.size(0))
-            shuffled_others = other_rows[perm]
-            n_other = min(target_nprops - 1, shuffled_others.size(0))
-            selected_others = shuffled_others[:n_other]
+        if other_properties.size(0) > 0:
+            perm = torch.randperm(other_properties.size(0))
+            shuffled_other_properties = other_properties[perm]
+            shuffled_other_values = other_values[perm]
+            n_other = min(target_nprops - 1, shuffled_other_properties.size(0))
+            selected_other_properties = shuffled_other_properties[:n_other]
+            selected_other_values = shuffled_other_values[:n_other]
         else:
-            selected_others = torch.empty(0, 2, dtype=property_value_pairs.dtype, device=device)
+            selected_other_properties = torch.empty(0, dtype=properties.dtype, device=device)
+            selected_other_values = torch.empty(0, dtype=values.dtype, device=device)
             n_other = 0
 
         # Place target at last valid position (target_nprops - 1)
         if n_other > 0:
-            combined_pairs = torch.cat([selected_others, target_rows[0:1].to(device)], dim=0)
+            combined_properties = torch.cat([selected_other_properties, target_properties[0:1].to(device)], dim=0)
+            combined_values = torch.cat([selected_other_values, target_values[0:1].to(device)], dim=0)
         else:
-            combined_pairs = target_rows[0:1].to(device)
+            combined_properties = target_properties[0:1].to(device)
+            combined_values = target_values[0:1].to(device)
 
-        actual_pairs = combined_pairs.size(0)
+        actual_pairs = combined_properties.size(0)
 
-        properties = torch.full((target_nprops,), self.pad_idx, dtype=torch.long)
-        values = torch.full((target_nprops,), self.pad_idx, dtype=torch.long)
+        out_properties = torch.full((target_nprops,), self.pad_idx, dtype=torch.long)
+        out_values = torch.full((target_nprops,), self.pad_idx, dtype=torch.long)
         mask = torch.zeros(target_nprops, dtype=torch.bool)
 
         if actual_pairs > 0:
             take = min(actual_pairs, target_nprops)
-            properties[:take] = combined_pairs[:take, 0]
-            values[:take] = combined_pairs[:take, 1]
+            out_properties[:take] = combined_properties[:take]
+            out_values[:take] = combined_values[:take]
             mask[:take] = True
 
-        return properties, values, mask
+        return out_properties, out_values, mask

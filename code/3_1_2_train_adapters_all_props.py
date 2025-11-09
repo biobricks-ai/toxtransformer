@@ -1,17 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-mkdir -p cache/train_adapters_all_props/logs
-PYTHONPATH=./ FOLD=0 CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=8 \
---master-port=29500 code/3_1_2_train_adapters_all_props.py \
-2> cache/train_adapters_all_props/logs/err.log
-./slackmsg "Finished training adapters on all benchmark properties."
+rm -rf cache/train_adapters_all_props/
+for SPLIT in {0..3}; do
+  LOGDIR="cache/train_adapters_all_props/logs/split_${SPLIT}"
+  mkdir -p "$LOGDIR"
+  
+  SPLIT=$SPLIT LOGDIR="$LOGDIR" PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 \
+  torchrun --standalone --nproc-per-node=8 --master-port=29500 \
+    code/3_1_2_train_adapters_all_props.py \
+    1> "${LOGDIR}/out.log" \
+    2> "${LOGDIR}/err.log"
+done
+./slackmsg "Finished training adapters on all benchmark properties for all splits."
 """
 
 # Increase file descriptor limit
 import resource
 resource.setrlimit(resource.RLIMIT_NOFILE, (65536, 65536))
 
+import sys
 import os
 import pathlib
 import logging
@@ -50,18 +58,37 @@ os.environ.update({
     'NCCL_P2P_DISABLE': '1'
 })
 
+def _resolve_run_dirs():
+    """Resolve per-run directories from LOGDIR/SPLIT and ensure they exist."""
+    base = pathlib.Path(
+        os.getenv("LOGDIR",
+                  f"cache/train_adapters_all_props/logs/split_{os.getenv('SPLIT','0')}")
+    )
+    models = base / "models"
+    metrics = base / "metrics"
+    for d in (base, models, metrics):
+        d.mkdir(parents=True, exist_ok=True)
+    return base, models, metrics
+
 def init_logging(rank):
-    """Initialize logging for rank 0 only."""
-    if rank == 0:
-        logdir = pathlib.Path("cache/train_adapters_all_props/logs")
-        logdir.mkdir(exist_ok=True, parents=True)
-        logging.basicConfig(
-            filename=logdir / "train_adapters_all_props.log", 
-            level=logging.INFO, 
-            format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', 
-            filemode='w'
-        )
-        logging.info("Logging initialized.")
+    """Initialize logging for rank 0 only into LOGDIR."""
+    if rank != 0:
+        return
+    logdir, _, _ = _resolve_run_dirs()
+    logfile = logdir / "train_adapters_all_props.log"
+    logdir.mkdir(parents=True, exist_ok=True)
+
+    logging.basicConfig(
+        filename=logfile,
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        filemode="w",
+    )
+    console = logging.StreamHandler(sys.stdout)
+    console.setLevel(logging.INFO)
+    console.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logging.getLogger().addHandler(console)
+    logging.info("Logging initialized in %s", str(logfile))
 
 def create_model_and_optimizer(tokenizer, num_benchmark_properties, shared_base_path, base_lr):
     """Create adapter model and optimizer."""
@@ -91,20 +118,21 @@ def create_model_and_optimizer(tokenizer, num_benchmark_properties, shared_base_
     
     return model, optimizer
 
-def create_datasets(tokenizer, rank, fold, world_size, nprops=20, min_samples=8):
-    """Create datasets for a specific CV fold.
+def create_datasets(tokenizer, rank, split, world_size, nprops=20, min_samples=8):
+    """Create datasets for a specific split.
     - Each training file is assigned to exactly min_samples different ranks (no duplicates per rank)
     - Test files are divided across ranks WITHOUT overlap so each rank gets a unique subset.
     - Each rank receives a disjoint subset of target_properties (round-robin by property index).
     """
     assert min_samples <= world_size, f"min_samples ({min_samples}) must be <= world_size ({world_size})"
     
-    base_path = pathlib.Path(f"cache/build_tensordataset/cv_tensors/fold_{fold}")
+    # Use bootstrap split data (matching base model training)
+    base_path = pathlib.Path(f"cache/build_tensordataset/bootstrap/split_{split}")
     trnpaths_all = sorted((base_path / "train").glob("*.pt"))
     tstpaths_all = sorted((base_path / "test").glob("*.pt"))
 
-    # Deterministic shuffle for train for each fold
-    rng = random.Random(fold)
+    # Deterministic shuffle for train for each split
+    rng = random.Random(split)
     rng.shuffle(trnpaths_all)
 
     # Assign each file to exactly min_samples different ranks
@@ -137,7 +165,7 @@ def create_datasets(tokenizer, rank, fold, world_size, nprops=20, min_samples=8)
     val_nprops = min(1, max(1, len(assigned_properties)))
 
     logging.info(
-        f"Fold {fold} | Rank {rank}/{world_size} | "
+        f"Split {split} | Rank {rank}/{world_size} | "
         f"{len(trnpaths)} training files (from {len(trnpaths_all)}) | "
         f"{len(tstpaths)} test files (of {n_tst}) | "
         f"{len(assigned_properties)} assigned properties: {assigned_properties}"
@@ -148,7 +176,7 @@ def create_datasets(tokenizer, rank, fold, world_size, nprops=20, min_samples=8)
         tokenizer=tokenizer,
         target_properties=assigned_properties,
         nprops=train_nprops,
-        seed=rank + fold * 1000,
+        seed=rank + split * 1000,
     )
 
     valds = SimplePropertyMappedDataset(
@@ -167,9 +195,6 @@ def create_dataloaders(tokenizer, trnds, valds, batch_size, world_size, rank):
     train_workers = max(2, min(12, cpus_per_rank))
     val_workers = max(1, min(8, cpus_per_rank))
     prefetch_factor = 20
-    
-    # Create custom collate function
-    # collate_fn = create_collate_fn(tokenizer.PAD_IDX)
 
     trndl = torch.utils.data.DataLoader(
         trnds, 
@@ -210,21 +235,21 @@ def calculate_training_params(trnds, valds, batch_size, world_size, all_properti
     scheduler_accum_steps_in_first_cycle = 30_000
     
     return {
-        'training_max_steps': 200_000 * 2,
+        'training_max_steps': 20_000,
         'effective_accum_batch_size': effective_accum_batch_size,
         'scheduler_warmup_accum_steps': scheduler_warmup_accum_steps,
         'scheduler_accum_steps_in_first_cycle': scheduler_accum_steps_in_first_cycle,
         'validation_batches': validation_batches,
     }
 
-def log_training_info(rank, model, trnds, valdl, trndl, params, batch_size, world_size, fold):
+def log_training_info(rank, model, trnds, valdl, trndl, params, batch_size, world_size, split):
     """Log training information."""
     if rank != 0:
         return
     
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
-    logging.info(f"=== Training Configuration for Fold {fold} ===")
+    logging.info(f"=== Training Configuration for Split {split} ===")
     logging.info(f"Model parameters: {num_params/1e6:.2f} million")
     logging.info(f"Training samples: {len(trnds)}")
     logging.info(f"Batch size: {batch_size}, World size: {world_size}")
@@ -235,35 +260,67 @@ def log_training_info(rank, model, trnds, valdl, trndl, params, batch_size, worl
     logging.info(f"Validation batches: {len(valdl)}")
     logging.info(f"Warmup as % of total: {(params['scheduler_warmup_accum_steps'] / params['training_max_steps']) * 100:.2f}%")
 
-def main(rank, world_size, fold):
+def find_best_checkpoint(base_model_dir, split):
+    """Find the best checkpoint from base model training.
+    
+    Looks for:
+    1. best_loss checkpoint (preferred)
+    2. Latest checkpoint_step_* if best_loss doesn't exist
+    """
+    # Expected location based on base model training script
+    base_path = pathlib.Path(f"cache/train_multitask_transformer_parallel/logs/split_{split}/models/me_roundrobin_property_dropout_V3")
+    
+    # First try best_loss
+    best_loss_path = base_path / "best_loss"
+    if best_loss_path.exists():
+        logging.info(f"Found best_loss checkpoint at {best_loss_path}")
+        return str(best_loss_path)
+    
+    # Otherwise find latest checkpoint
+    checkpoints = list(base_path.glob("checkpoint_step_*"))
+    if not checkpoints:
+        raise FileNotFoundError(f"No checkpoints found in {base_path}")
+    
+    # Sort by step number
+    checkpoints.sort(key=lambda p: int(p.name.split("_")[-1]))
+    latest = checkpoints[-1]
+    logging.info(f"Using latest checkpoint: {latest}")
+    return str(latest)
+
+def main(rank, world_size, split):
     """Main training function."""
     init_logging(rank)
-    logging.info(f"Rank {rank} starting setup.")
+    logging.info(f"Rank {rank} starting setup for split {split}.")
 
-    # Setup directories - fix to use adapter-specific paths
-    outdir = pathlib.Path("cache/train_adapters_all_props")
-    modeldir = outdir / "models" / f"fold_{fold}"
-    metricsdir = outdir / "metrics" / f"fold_{fold}"
+    # Use LOGDIR for outputs
+    logdir, modeldir, metricsdir = _resolve_run_dirs()
+    logging.info("Run directories: logdir=%s models=%s metrics=%s", logdir, modeldir, metricsdir)
 
     # Load tokenizer
     tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer.load('brick/selfies_property_val_tokenizer')
     
-    # trnds, valds = create_testing_datasets(tokenizer)
-    trnds, valds = create_datasets(tokenizer, rank, fold, world_size)
+    # Create datasets
+    trnds, valds = create_datasets(tokenizer, rank, split, world_size)
 
     # Create dataloaders
     logging.info("Creating dataloaders...")
     batch_size = 1000
     trndl, valdl = create_dataloaders(tokenizer, trnds, valds, batch_size, world_size, rank)
 
-    # Calculate training parameters - remove all_properties parameter
+    # Calculate training parameters
     logging.info("Calculating training params...")
     params = calculate_training_params(trnds, valds, batch_size, world_size, all_properties=range(tokenizer.num_assays))
 
-    # Create model, optimizer and scheduler - fix function call
+    # Find best checkpoint from base model training
+    shared_base_path = find_best_checkpoint(
+        base_model_dir=f"cache/train_multitask_transformer_parallel/logs/split_{split}/models",
+        split=split
+    )
+    logging.info(f"Loading base model from: {shared_base_path}")
+    
+    # Create model, optimizer and scheduler
     min_lr = 1e-4
     max_lr = 1e-4
-    shared_base_path = f"cache/train_multitask_transformer_parallel/models/fold_{fold}/me_roundrobin_property_dropout_V3/checkpoint_step_120000"
     
     model, optimizer = create_model_and_optimizer(
         tokenizer, 
@@ -277,20 +334,20 @@ def main(rank, world_size, fold):
         warmup_steps=params["scheduler_warmup_accum_steps"],
         cosine_cycle_length=params["scheduler_accum_steps_in_first_cycle"],
         warmup_start_lr=min_lr,
-        warmup_end_lr=max_lr,  # Use max_lr for adapters
+        warmup_end_lr=max_lr,
         cosine_start_lr=max_lr,
         cosine_end_lr=min_lr,
         plateau_start_lr=min_lr,
         plateau_end_lr=min_lr / 10,
         plateau_mode="min",
-        plateau_factor=0.8,  # Less aggressive for adapters
-        plateau_patience=200,  # More patience for adapters
+        plateau_factor=0.8,
+        plateau_patience=200,
         plateau_verbose=True,
     )
     dist.barrier()
 
-    # Log training info - fix function call
-    log_training_info(rank, model, trnds, valdl, trndl, params, batch_size, world_size, fold)
+    # Log training info
+    log_training_info(rank, model, trnds, valdl, trndl, params, batch_size, world_size, split)
 
     # Setup evaluator and trainer
     label_smoothing = 0.15
@@ -306,7 +363,7 @@ def main(rank, world_size, fold):
         effective_accum_batch_size=params['effective_accum_batch_size'],
         eval_samples=params["validation_batches"],
         first_eval=0,
-        eval_every=500,  # More frequent evaluation for adapters
+        eval_every=500,
         find_unused_parameters=False,
         evaluator=stratified_eval,
         
@@ -332,25 +389,24 @@ def main(rank, world_size, fold):
         unsampled_property_weight=0.0
     )
 
-    # Setup trainer - fix paths
+    # Setup trainer
     trainer.set_validation_dataloader(valdl)
     trainer.set_model_savepath(modeldir / "adapter_model")
     trainer.set_metrics_file(metricsdir / "adapter_loss.tsv", overwrite=True)
     
-    logging.info(f"Rank {rank} starting adapter training for fold {fold}.")
+    logging.info(f"Rank {rank} starting adapter training for split {split}.")
     trainer.start()
 
 if __name__ == "__main__":
     RANK = int(os.environ.get("RANK", "0"))
     WORLD_SIZE = int(os.environ.get("WORLD_SIZE", "1"))
-    FOLD = int(os.environ.get("FOLD", "0"))
+    SPLIT = int(os.environ.get("SPLIT", "0"))
+    LOCAL_RANK = int(os.environ.get("LOCAL_RANK", str(RANK)))
 
     # Bind this process to its local GPU
-    torch.cuda.set_device(RANK)
-
+    torch.cuda.set_device(LOCAL_RANK)
 
     dist.init_process_group(
-        # backend="gloo",  # Changed from nccl due to segfaults
         backend="nccl",
         init_method="env://",
         rank=RANK,
@@ -358,5 +414,5 @@ if __name__ == "__main__":
         timeout=datetime.timedelta(minutes=30),
     )
 
-    print(f"[Init] RANK={RANK} WORLD_SIZE={WORLD_SIZE} GPU={RANK}")
-    main(rank=RANK, world_size=WORLD_SIZE, fold=FOLD)
+    print(f"[Init] RANK={RANK} LOCAL_RANK={LOCAL_RANK} WORLD_SIZE={WORLD_SIZE} GPU={LOCAL_RANK}")
+    main(rank=RANK, world_size=WORLD_SIZE, split=SPLIT)

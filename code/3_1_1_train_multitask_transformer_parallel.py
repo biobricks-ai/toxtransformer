@@ -1,14 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-FOLD=0 PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 torchrun --standalone --nproc-per-node=8 \
---master-port=29500 code/3_1_1_train_multitask_transformer_parallel.py 2> \
-cache/train_multitask_transformer_parallel/logs/err.log
+rm -rf cache/train_multitask_transformer_parallel/
+for SPLIT in {0..4}; do
+  LOGDIR="cache/train_multitask_transformer_parallel/logs/split_${SPLIT}"
+  mkdir -p "$LOGDIR"
+
+  SPLIT=$SPLIT LOGDIR="$LOGDIR" PYTHONPATH=./ CUDA_LAUNCH_BLOCKING=1 \
+  NCCL_DEBUG=INFO NCCL_ASYNC_ERROR_HANDLING=1 NCCL_IB_DISABLE=1 \
+  torchrun --standalone --nproc-per-node=8 --master-port=29500 \
+    code/3_1_1_train_multitask_transformer_parallel.py \
+    1> "${LOGDIR}/out.log" \
+    2> "${LOGDIR}/err.log"
+done
 """
 # Increase file descriptor limit
 import resource
 resource.setrlimit(resource.RLIMIT_NOFILE, (65536, 65536))
 
+import sys
 import os
 import pathlib
 import logging
@@ -52,18 +62,39 @@ os.environ.update({
 })
 
 
+def _resolve_run_dirs():
+    """Resolve per-run directories from LOGDIR/SPLIT and ensure they exist."""
+    base = pathlib.Path(
+        os.getenv("LOGDIR",
+                  f"cache/train_multitask_transformer_parallel/logs/split_{os.getenv('SPLIT','0')}")
+    )
+    models = base / "models"
+    metrics = base / "metrics"
+    for d in (base, models, metrics):
+        d.mkdir(parents=True, exist_ok=True)
+    return base, models, metrics
+
 def init_logging(rank):
-    """Initialize logging for rank 0 only."""
-    if rank == 0:
-        logdir = pathlib.Path("cache/train_multitask_transformer_parallel/logs")
-        logdir.mkdir(exist_ok=True, parents=True)
-        logging.basicConfig(
-            filename=logdir / "train_multitask_transformer_parallel.log", 
-            level=logging.INFO, 
-            format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', 
-            filemode='w'
-        )
-        logging.info("Logging initialized.")
+    """Initialize logging for rank 0 only into LOGDIR."""
+    if rank != 0:
+        return
+    logdir, _, _ = _resolve_run_dirs()
+    logfile = logdir / "train_multitask_transformer_parallel.log"
+    # Ensure parent exists (harmless if already created)
+    logdir.mkdir(parents=True, exist_ok=True)
+
+    # Configure root logger to file + stdout (stdout is also captured to out.log by bash)
+    logging.basicConfig(
+        filename=logfile,
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        filemode="w",
+    )
+    console = logging.StreamHandler(sys.stdout)
+    console.setLevel(logging.INFO)
+    console.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logging.getLogger().addHandler(console)
+    logging.info("Logging initialized in %s", str(logfile))
 
 
 def create_model_and_optimizer(tokenizer, base_lr):
@@ -165,7 +196,8 @@ def calculate_training_params(trnds, valds, batch_size, world_size, all_properti
     """Calculate training parameters."""
 
     # Calculate steps and accumulation
-    target_effective_batch_size = batch_size * world_size * 6
+    gradient_accum_steps = 6
+    target_effective_batch_size = batch_size * world_size * gradient_accum_steps
     num_batches_to_accumulate = max(target_effective_batch_size // (batch_size * world_size), 1)
     effective_accum_batch_size = batch_size * world_size * num_batches_to_accumulate
     
@@ -174,11 +206,11 @@ def calculate_training_params(trnds, valds, batch_size, world_size, all_properti
     validation_batches = max(desired_validation_samples // (batch_size * world_size), 1)
 
     # Scheduler parameters
-    scheduler_warmup_accum_steps = 1000
-    scheduler_accum_steps_in_first_cycle = 30_000
+    scheduler_warmup_accum_steps = 6000 // gradient_accum_steps
+    scheduler_accum_steps_in_first_cycle = 75_000 // gradient_accum_steps
     
     return {
-        'training_max_steps': 200_000 * 6,
+        'training_max_steps': 75_001,
         'effective_accum_batch_size': effective_accum_batch_size,
         'scheduler_warmup_accum_steps': scheduler_warmup_accum_steps,
         'scheduler_accum_steps_in_first_cycle': scheduler_accum_steps_in_first_cycle,
@@ -190,14 +222,12 @@ def main(rank, world_size):
     init_logging(rank)
     logging.info(f"Rank {rank} starting setup.")
 
-    # Setup directories
-    outdir = pathlib.Path("cache/train_multitask_transformer_parallel")
-    modeldir = outdir / "models"
-    metricsdir = outdir / "metrics"
+    # Use LOGDIR for *all* outputs (models, metrics, logs)
+    logdir, modeldir, metricsdir = _resolve_run_dirs()
+    logging.info("Run directories: logdir=%s models=%s metrics=%s", logdir, modeldir, metricsdir)
 
     # Load tokenizer
     tokenizer = cvae.tokenizer.SelfiesPropertyValTokenizer.load('brick/selfies_property_val_tokenizer')
-    # trnds, valds = create_testing_datasets(tokenizer)
     trnds, valds = create_datasets(tokenizer, rank)
 
     # Create dataloaders
@@ -250,25 +280,14 @@ def main(rank, world_size):
         eval_every=1250,
         find_unused_parameters=False,
         evaluator=stratified_eval,
-        
-        # No accumulation needed
         acc_coalesce_every=1,
-        
-        # Moderate weighting
         max_score=1.0,
         min_score=1.0,
-        
-        # Balanced sampling
         property_sample_rate=1.0,
         sample_bias_strength=0.0,
-        
-        # Faster EMA due to large batch
         ema_alpha=0.9,
-        
-        # Adjust for large batch size
         skip_initial_batches=10,
         sampling_warmup=20,
-
         label_smoothing=label_smoothing,
         unsampled_property_weight=0.0
     )
@@ -282,22 +301,23 @@ def main(rank, world_size):
     trainer.start()
 
 if __name__ == "__main__":
+    # ranks from torchrun
     RANK = int(os.environ.get("RANK", "0"))
     WORLD_SIZE = int(os.environ.get("WORLD_SIZE", "1"))
+    LOCAL_RANK = int(os.environ.get("LOCAL_RANK", str(RANK)))  # torchrun sets LOCAL_RANK
 
-    # Bind this process to its local GPU
-    torch.cuda.set_device(RANK)
+    # Bind to the correct local GPU
+    torch.cuda.set_device(LOCAL_RANK)
 
-    # Initialize the process group (using Gloo to avoid NCCL segfaults)
-    # TODO don't use gloo once off of lambdalabs
+    # Initialize the process group with NCCL
     dist.init_process_group(
-        backend="gloo",  # Changed from nccl due to segfaults
+        backend="nccl",
         init_method="env://",
         rank=RANK,
         world_size=WORLD_SIZE,
         timeout=datetime.timedelta(minutes=30),
     )
 
-    print(f"[Init] RANK={RANK} WORLD_SIZE={WORLD_SIZE} GPU={RANK}")
+    print(f"[Init] RANK={RANK} LOCAL_RANK={LOCAL_RANK} WORLD_SIZE={WORLD_SIZE} GPU={LOCAL_RANK}")
     main(rank=RANK, world_size=WORLD_SIZE)
     

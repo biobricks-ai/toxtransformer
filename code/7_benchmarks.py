@@ -23,7 +23,7 @@ prop_src['source'].value_counts()
 assert prop_src.groupby('property_token').size().max() == 1
 
 # pull in multitask_metrics
-evaldf = pd.read_parquet('cache/eval_multi_properties/multitask_metrics.parquet')[['property_token','nprops','minprops','AUC','cross_entropy_loss','NUM_POS','NUM_NEG']]
+evaldf = pd.read_parquet('cache/eval_multi_properties/0/multitask_metrics.parquet')[['property_token','nprops','minprops','AUC','cross_entropy_loss','NUM_POS','NUM_NEG']]
 evaldf = evaldf[evaldf['AUC'] > 0.0]
 
 # are there any property_tokens in evaldf that are not in prop_src?

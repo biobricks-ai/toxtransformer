@@ -1,5 +1,22 @@
-# PYTHONPATH=./ spark-submit --master local[*] --driver-memory 512g --conf spark.driver.maxResultSize=256g --conf spark.memory.offHeap.enabled=true --conf spark.memory.offHeap.size=256g code/5_0_1_consolidate_evaluations.py 2> cache/consolidate_evaluations/logs/err.log
+"""
+rm -rf cache/consolidate_evaluations/
+for SPLIT in {0..5}; do
+  INDIR="cache/generate_evaluations/${SPLIT}/evaluations.parquet"
+  OUTDIR="cache/consolidate_evaluations/${SPLIT}"
+  mkdir -p "$OUTDIR/logs"
+  
+  SPLIT=$SPLIT INDIR="$INDIR" OUTDIR="$OUTDIR" PYTHONPATH=./ \
+  spark-submit --master local[*] \
+    --driver-memory 512g \
+    --conf spark.driver.maxResultSize=256g \
+    --conf spark.memory.offHeap.enabled=true \
+    --conf spark.memory.offHeap.size=256g \
+    code/5_0_1_consolidate_evaluations.py \
+    2> "$OUTDIR/logs/err.log"
+done
+"""
 
+import os
 import pathlib
 import logging
 import shutil
@@ -7,9 +24,14 @@ import sklearn.metrics
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
+# Get environment variables
+SPLIT = os.getenv("SPLIT")
+INDIR = os.getenv("INDIR")
+OUTDIR = os.getenv("OUTDIR")
+
 # Set up directories
-outdir = pathlib.Path("cache/consolidate_evaluations")
-evalsdir = pathlib.Path("cache/generate_evaluations/evaluations.parquet")
+outdir = pathlib.Path(OUTDIR)
+evalsdir = pathlib.Path(INDIR)
 
 # Remove old output
 partitioned_dir = outdir / "multitask_predictions.parquet"
@@ -17,19 +39,19 @@ shutil.rmtree(partitioned_dir, ignore_errors=True)
 partitioned_dir.mkdir(parents=True, exist_ok=True)
 
 # Set up logging
-outdir.mkdir(parents=True, exist_ok=True)
+logdir = outdir / "logs"
+logdir.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    filename=outdir / "logs" / "consolidate_evaluations.log",
+    filename=logdir / "consolidate_evaluations.log",
     filemode="w"
 )
-logging.info("Starting consolidate_evaluations with Spark.")
+logging.info(f"Starting consolidate_evaluations for SPLIT={SPLIT} with Spark.")
 
-# Start Spark session with increased memory settings and custom temp directory
-# .config("spark.local.dir", "/data/toxtransformer/spark-temp") \
+# Start Spark session with increased memory settings
 spark = SparkSession.builder \
-    .appName("ConsolidateEvaluations") \
+    .appName(f"ConsolidateEvaluations_Split{SPLIT}") \
     .config("spark.sql.parquet.compression.codec", "zstd") \
     .config("spark.driver.memory", "512g") \
     .config("spark.driver.maxResultSize", "256g") \
@@ -43,17 +65,20 @@ spark = SparkSession.builder \
     .config("spark.sql.execution.arrow.pyspark.enabled", "true") \
     .getOrCreate()
 
-# Create temp directory on the larger filesystem
-# spark_temp_dir = pathlib.Path("/data/toxtransformer/spark-temp")
-# spark_temp_dir.mkdir(parents=True, exist_ok=True)
-
 # Log Spark UI URLs for monitoring
 ui_web_url = spark.sparkContext.uiWebUrl
 logging.info(f"Spark UI available at: {ui_web_url}")
 
 # Load parquet directory
+logging.info(f"Reading from {evalsdir}")
 df = spark.read.parquet(str(evalsdir))
-logging.info(f"{len(list(evalsdir.glob('*.parquet')))} Parquet files loaded.")
+parquet_files = list(evalsdir.glob('*.parquet'))
+logging.info(f"{len(parquet_files)} Parquet files loaded from split {SPLIT}.")
+logging.info(f"Total records before deduplication: {df.count()}")
+
+# Drop duplicates across all columns
+df = df.dropDuplicates()
+logging.info(f"Total records after deduplication: {df.count()}")
 
 # Write output with smaller partitions to reduce memory pressure
 df.write \
@@ -63,3 +88,7 @@ df.write \
     .parquet(str(partitioned_dir))
 
 logging.info(f"Partitioned dataset written to {partitioned_dir}")
+
+# Stop Spark session
+spark.stop()
+logging.info(f"Consolidation complete for SPLIT={SPLIT}")
