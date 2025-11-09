@@ -90,7 +90,7 @@ def init_logging(rank):
     logging.getLogger().addHandler(console)
     logging.info("Logging initialized in %s", str(logfile))
 
-def create_model_and_optimizer(tokenizer, num_benchmark_properties, shared_base_path, base_lr):
+def create_model_and_optimizer(tokenizer, num_benchmark_properties, shared_base_path, base_lr, weight_decay=0.01):
     """Create adapter model and optimizer."""
     # Enable optimizations
     torch.backends.cuda.matmul.allow_tf32 = True
@@ -100,22 +100,27 @@ def create_model_and_optimizer(tokenizer, num_benchmark_properties, shared_base_
 
     # Load the pre-trained encoder
     encoder = MultitaskEncoder.load(shared_base_path)
-    
+
     # Create adapter model with all benchmark properties
     model = SimpleAdapterModel(
         multitask_encoder=encoder,
         num_properties=num_benchmark_properties,
+        adapter_hidden_dim=256,
+        adapter_dropout=0.3,  # Higher dropout to combat overfitting
+        use_residual=True,
     )
 
     model = torch.compile(model, mode='default', fullgraph=True, dynamic=False)
 
     # Only optimize the adapter parameters (encoder is frozen)
+    # Add weight decay for regularization
     optimizer = torch.optim.AdamW(
-        [p for p in model.parameters() if p.requires_grad], 
-        lr=base_lr, 
+        [p for p in model.parameters() if p.requires_grad],
+        lr=base_lr,
         betas=(0.9, 0.99),
+        weight_decay=weight_decay,  # Add L2 regularization
     )
-    
+
     return model, optimizer
 
 def create_datasets(tokenizer, rank, split, world_size, nprops=20, min_samples=8):
@@ -230,12 +235,12 @@ def calculate_training_params(trnds, valds, batch_size, world_size, all_properti
     desired_validation_samples = len(all_properties) * 2 * 100 # 100 samples per property, positive and negative
     validation_batches = max(desired_validation_samples // (batch_size * world_size), 1)
 
-    # Scheduler parameters
-    scheduler_warmup_accum_steps = 1000
-    scheduler_accum_steps_in_first_cycle = 30_000
-    
+    # Scheduler parameters - reduced for adapter training
+    scheduler_warmup_accum_steps = 500  # Shorter warmup for adapters
+    scheduler_accum_steps_in_first_cycle = 15_000  # Reduced cycle length
+
     return {
-        'training_max_steps': 20_000,
+        'training_max_steps': 15_000,  # Reduced from 20k to prevent overfitting
         'effective_accum_batch_size': effective_accum_batch_size,
         'scheduler_warmup_accum_steps': scheduler_warmup_accum_steps,
         'scheduler_accum_steps_in_first_cycle': scheduler_accum_steps_in_first_cycle,
@@ -319,16 +324,19 @@ def main(rank, world_size, split):
     logging.info(f"Loading base model from: {shared_base_path}")
     
     # Create model, optimizer and scheduler
-    min_lr = 1e-4
-    max_lr = 1e-4
-    
+    # Use proper learning rate schedule with annealing for fine-tuning
+    min_lr = 5e-5  # Lower minimum for better convergence
+    max_lr = 5e-4  # Conservative max LR for adapter training
+    weight_decay = 0.05  # Stronger regularization to prevent overfitting
+
     model, optimizer = create_model_and_optimizer(
-        tokenizer, 
-        tokenizer.num_assays, 
-        shared_base_path, 
-        base_lr=min_lr
+        tokenizer,
+        tokenizer.num_assays,
+        shared_base_path,
+        base_lr=max_lr,  # Start with max_lr (will warm up from min_lr)
+        weight_decay=weight_decay
     )
-    
+
     scheduler = WarmupCosineThenPlateau(
         optimizer,
         warmup_steps=params["scheduler_warmup_accum_steps"],
@@ -336,7 +344,7 @@ def main(rank, world_size, split):
         warmup_start_lr=min_lr,
         warmup_end_lr=max_lr,
         cosine_start_lr=max_lr,
-        cosine_end_lr=min_lr,
+        cosine_end_lr=min_lr,  # Anneal down to min_lr
         plateau_start_lr=min_lr,
         plateau_end_lr=min_lr / 10,
         plateau_mode="min",
@@ -363,24 +371,24 @@ def main(rank, world_size, split):
         effective_accum_batch_size=params['effective_accum_batch_size'],
         eval_samples=params["validation_batches"],
         first_eval=0,
-        eval_every=500,
+        eval_every=250,  # More frequent evaluation to catch overfitting early
         find_unused_parameters=False,
         evaluator=stratified_eval,
-        
+
         # Minimal accumulation for adapters
         acc_coalesce_every=1,
-        
-        # Moderate weighting
-        max_score=1.0,
-        min_score=1.0,
-        
-        # Balanced sampling
+
+        # Enable moderate property weighting to focus on harder properties
+        max_score=1.5,  # Up-weight difficult properties
+        min_score=0.7,  # Down-weight easy properties
+
+        # Balanced sampling with slight bias
         property_sample_rate=1.0,
-        sample_bias_strength=0.0,
-        
+        sample_bias_strength=0.2,  # Slight bias toward harder properties
+
         # Faster EMA for adapters
         ema_alpha=0.9,
-        
+
         # Adjust for adapter training
         skip_initial_batches=0,
         sampling_warmup=20,
