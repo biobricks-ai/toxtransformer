@@ -372,7 +372,7 @@ def main(rank, world_size, split):
         eval_samples=params["validation_batches"],
         first_eval=0,
         eval_every=250,  # More frequent evaluation to catch overfitting early
-        find_unused_parameters=False,
+        find_unused_parameters=True,
         evaluator=stratified_eval,
 
         # Minimal accumulation for adapters

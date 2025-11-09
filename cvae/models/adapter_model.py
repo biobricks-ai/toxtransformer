@@ -58,7 +58,6 @@ class SimpleAdapterModel(nn.Module):
 
         # Initialize adapter heads to approximate the base model's classifier
         with torch.no_grad():
-            encoder_weight = self.encoder.classifier.weight.data  # [output_dim, hdim]
             encoder_bias = self.encoder.classifier.bias.data if self.encoder.classifier.bias is not None else torch.zeros(output_dim)
 
             for head in self.adapter_heads:
@@ -68,12 +67,8 @@ class SimpleAdapterModel(nn.Module):
                 # Initialize with small random weights
                 nn.init.normal_(final_linear.weight, mean=0.0, std=0.01)
                 if final_linear.bias is not None:
-                    nn.init.constant_(final_linear.bias, 0.0)
-
-                # Add a small component of the encoder's weights (scaled down)
-                final_linear.weight.data += encoder_weight * 0.1
-                if final_linear.bias is not None:
-                    final_linear.bias.data += encoder_bias * 0.1
+                    # Initialize bias with encoder's bias (provides good starting point)
+                    final_linear.bias.data.copy_(encoder_bias * 0.1)
     
     def forward(self, selfies, properties, values, mask):
         batch_size, num_props = properties.shape
@@ -98,16 +93,21 @@ class SimpleAdapterModel(nn.Module):
                                    device=hidden_states.device, dtype=hidden_states.dtype)
 
         # Group by property index for efficient batched processing
+        # Use torch.where to avoid data-dependent branching (required for torch.compile)
         for prop_idx in range(self.num_properties):
             # Find all positions with this property
             prop_mask = (flat_properties == prop_idx) & (flat_mask > 0)
-            if prop_mask.any():
-                # Get hidden states for this property
-                prop_hidden = flat_hidden[prop_mask]
-                # Apply the property-specific adapter head
-                prop_output = self.adapter_heads[prop_idx](prop_hidden)
-                # Place results back
-                flat_output[prop_mask] = prop_output
+
+            # Apply adapter head to all hidden states (avoids data-dependent branching)
+            # This is compile-friendly even though it processes all samples
+            all_outputs = self.adapter_heads[prop_idx](flat_hidden)
+
+            # Use torch.where to select only outputs for this property
+            flat_output = torch.where(
+                prop_mask.unsqueeze(-1).expand(-1, self.output_dim),
+                all_outputs,
+                flat_output
+            )
 
         # Reshape back to [B, P, output_dim]
         output = flat_output.reshape(batch_size, num_props, self.output_dim)
