@@ -378,10 +378,10 @@ status() {
     echo "📊 Current Status:"
     echo ""
     echo "🖥️  Instances:"
-    gcloud compute instances list --filter="name:$INSTANCE_NAME"
+    gcloud compute instances list --project=$PROJECT_ID --filter="name~$INSTANCE_NAME"
     echo ""
     echo "💾 Disks:"
-    gcloud compute disks list --filter="name:$DISK_NAME OR name:$INSTANCE_NAME"
+    gcloud compute disks list --project=$PROJECT_ID --filter="name~$DISK_NAME OR name~$INSTANCE_NAME"
 }
 
 # Configure local SSH for easier access
