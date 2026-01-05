@@ -23,7 +23,7 @@ RUN python -m pip install --upgrade pip
 # Install PyTorch and other dependencies
 RUN pip install \
     torch torchvision torchaudio \
-    pandas scikit-learn \
+    pandas scikit-learn pyarrow \
     biobricks dvc tqdm \
     matplotlib dask[distributed] \
     rdkit
@@ -43,10 +43,10 @@ COPY flask_cvae app/flask_cvae
 ENV FLASK_APP=flask_cvae.app
 ENV ROOT_URL=http://localhost:6515
 
-# Copy the necessary resources
-COPY brick/moe app/brick/moe
-COPY brick/cvae.sqlite app/brick/cvae.sqlite
-COPY brick/selfies_property_val_tokenizer app/brick/selfies_property_val_tokenizer
+# Data directories (brick/, cache/) are mounted from persistent disk at runtime
+# via docker run -v /mnt/data/brick:/app/brick -v /mnt/data/cache:/app/cache
+# This avoids copying 422GB+ of data into the image
+RUN mkdir -p app/brick app/cache
 
 # Expose the port the app runs on
 EXPOSE 6515
@@ -57,5 +57,5 @@ COPY cvae app/cvae
 # Start the container with a bash shell
 WORKDIR /app
 CMD ["gunicorn", "-b", "0.0.0.0:6515", "--timeout", "480", "--graceful-timeout", "480", \
-    "--workers", "1", "--keep-alive", "300", "flask_cvae.app:app"]
+    "--workers", "1", "--threads", "8", "--worker-class", "gthread", "--keep-alive", "300", "flask_cvae.app:app"]
 # gunicorn -b 0.0.0.0:6515 --timeout 480 --graceful-timeout 480 --workers 1 flask_cvae.app:app
