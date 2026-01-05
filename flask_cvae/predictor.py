@@ -58,7 +58,7 @@ class Predictor:
     def __init__(self, cache_path: str = "cache/predictions.sqlite", use_cache: bool = True):
         self.dburl = 'brick/cvae.sqlite'
         self.dblock = threading.Lock()
-        model_path = os.environ.get("MODEL_PATH", "brick/moe")
+        model_path = os.environ.get("MODEL_PATH", "cache/full_train/logs/models/final_model_V3/best_loss")
 
         logging.info(f"Loading model from {model_path}...")
         self.model = mte.MultitaskEncoder.load(model_path).to(DEVICE)
@@ -96,7 +96,7 @@ class Predictor:
         Load pairwise mutual information and build lookup.
         Returns: target_property -> [(context_property, mi_score), ...] sorted by MI descending.
         """
-        mi_path = os.environ.get("MI_PATH", "brick/pairwise_mi.parquet")
+        mi_path = os.environ.get("MI_PATH", "cache/token_information/pairwise_mi.parquet")
 
         try:
             mi_df = pd.read_parquet(mi_path)
@@ -283,7 +283,7 @@ class Predictor:
 
         # Run inference
         with torch.no_grad():
-            with torch.cuda.amp.autocast(enabled=USE_FP16):
+            with torch.amp.autocast('cuda', enabled=USE_FP16):
                 logits = self.model(selfies_batch, properties_batch, values_batch, mask_batch)
 
             # Get prediction at the last position (target)
@@ -410,7 +410,7 @@ class Predictor:
 
             # Run inference with autocast for FP16
             with torch.no_grad():
-                with torch.cuda.amp.autocast(enabled=USE_FP16):
+                with torch.amp.autocast('cuda', enabled=USE_FP16):
                     logits = self.model(selfies_padded, properties_padded, values_padded, mask_padded)
 
                 # Vectorized extraction of predictions
