@@ -53,12 +53,29 @@ class Prediction:
     property: Property
     value: float
 
+def find_path(env_var: str, candidates: list[str], required: bool = True) -> str:
+    """Find the first existing path from environment variable or candidates."""
+    if env_var in os.environ:
+        return os.environ[env_var]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    if required:
+        raise FileNotFoundError(f"None of the candidate paths exist: {candidates}")
+    return candidates[0]  # Return first candidate for error message
+
+
 class Predictor:
 
     def __init__(self, cache_path: str = "cache/predictions.sqlite", use_cache: bool = True):
         self.dburl = 'brick/cvae.sqlite'
         self.dblock = threading.Lock()
-        model_path = os.environ.get("MODEL_PATH", "cache/full_train/logs/models/final_model_V3/best_loss")
+
+        # Search for model in multiple locations (Docker mount vs local)
+        model_path = find_path("MODEL_PATH", [
+            "brick/multitask_encoder/best_loss",  # Docker: GCS mounted at /app/brick
+            "cache/full_train/logs/models/final_model_V3/best_loss",  # Local dev
+        ])
 
         logging.info(f"Loading model from {model_path}...")
         self.model = mte.MultitaskEncoder.load(model_path).to(DEVICE)
@@ -96,7 +113,11 @@ class Predictor:
         Load pairwise mutual information and build lookup.
         Returns: target_property -> [(context_property, mi_score), ...] sorted by MI descending.
         """
-        mi_path = os.environ.get("MI_PATH", "cache/token_information/pairwise_mi.parquet")
+        # Search for MI data in multiple locations (optional - will fallback gracefully)
+        mi_path = find_path("MI_PATH", [
+            "brick/pairwise_mi.parquet",  # Docker: GCS mounted at /app/brick
+            "cache/token_information/pairwise_mi.parquet",  # Local dev
+        ], required=False)
 
         try:
             mi_df = pd.read_parquet(mi_path)
@@ -222,7 +243,11 @@ class Predictor:
     def _encode_selfies(self, inchi):
         """Convert InChI to SELFIES token tensor."""
         smiles = H.inchi_to_smiles_safe(inchi)
+        if smiles is None:
+            raise ValueError(f"Could not convert InChI to SMILES: {inchi[:50]}...")
         selfies = H.smiles_to_selfies_safe(smiles)
+        if selfies is None:
+            raise ValueError(f"Could not convert SMILES to SELFIES: {smiles[:50]}...")
         selfies_tokens = self.tokenizer.selfies_tokenizer.selfies_to_indices(selfies)
         return torch.LongTensor(selfies_tokens)
 

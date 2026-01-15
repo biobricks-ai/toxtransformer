@@ -50,12 +50,19 @@ def predict():
     inchi = request.args.get('inchi')
     property_token = request.args.get('property_token', None)
     if inchi is None or property_token is None:
-        return jsonify({'error': 'inchi and property token parameters are required'})
+        return jsonify({'error': 'inchi and property token parameters are required'}), 400
 
-    with predict_lock:
-        prediction : Prediction = predictor.predict_property(inchi, int(property_token))
-
-    return jsonify(dataclasses.asdict(prediction))
+    try:
+        with predict_lock:
+            prediction : Prediction = predictor.predict_property(inchi, int(property_token))
+        if prediction is None:
+            return jsonify({'error': 'Prediction failed - invalid property token or molecule'}), 400
+        return jsonify(dataclasses.asdict(prediction))
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logging.exception(f"Prediction error: {e}")
+        return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
 
 # ============== Async Job Endpoints (new) ==============
 
