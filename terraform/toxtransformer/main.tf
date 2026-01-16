@@ -195,7 +195,8 @@ resource "google_compute_instance" "toxtransformer" {
     rm -f /etc/apt/sources.list.d/kubernetes.list 2>/dev/null || true
     sed -i '/backports/d' /etc/apt/sources.list 2>/dev/null || true
 
-    # Add gcsfuse repo
+    # Add gcsfuse repo (remove existing key first to prevent dearmor failure)
+    rm -f /usr/share/keyrings/gcsfuse.gpg 2>/dev/null || true
     echo "deb [signed-by=/usr/share/keyrings/gcsfuse.gpg] https://packages.cloud.google.com/apt $GCSFUSE_REPO main" | tee /etc/apt/sources.list.d/gcsfuse.list
     curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --batch --dearmor -o /usr/share/keyrings/gcsfuse.gpg
 

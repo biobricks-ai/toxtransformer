@@ -23,6 +23,7 @@ app = Flask(__name__)
 app.config['TIMEOUT'] = 300  # 5 minutes in seconds
 
 predict_lock = threading.Lock()
+LOCK_TIMEOUT = 120  # seconds - prevent deadlock if request times out
 predictor = Predictor()
 
 # Initialize job queue and worker
@@ -37,11 +38,16 @@ def predict_all():
     """Synchronous predict_all - blocks until complete."""
     logging.info(f"Predicting all properties for inchi: {request.args.get('inchi')}")
     inchi = request.args.get('inchi')
-    with predict_lock:
-        property_predictions : list[Prediction] = predictor.predict_all_properties(inchi)
 
-    json_predictions = [dataclasses.asdict(p) for p in property_predictions]
-    return jsonify(json_predictions)
+    if not predict_lock.acquire(timeout=LOCK_TIMEOUT):
+        return jsonify({'error': 'Server busy - try again later or use async /jobs endpoint'}), 503
+
+    try:
+        property_predictions : list[Prediction] = predictor.predict_all_properties(inchi)
+        json_predictions = [dataclasses.asdict(p) for p in property_predictions]
+        return jsonify(json_predictions)
+    finally:
+        predict_lock.release()
 
 @app.route('/predict', methods=['GET'])
 def predict():
@@ -52,9 +58,11 @@ def predict():
     if inchi is None or property_token is None:
         return jsonify({'error': 'inchi and property token parameters are required'}), 400
 
+    if not predict_lock.acquire(timeout=LOCK_TIMEOUT):
+        return jsonify({'error': 'Server busy - try again later or use async /jobs endpoint'}), 503
+
     try:
-        with predict_lock:
-            prediction : Prediction = predictor.predict_property(inchi, int(property_token))
+        prediction : Prediction = predictor.predict_property(inchi, int(property_token))
         if prediction is None:
             return jsonify({'error': 'Prediction failed - invalid property token or molecule'}), 400
         return jsonify(dataclasses.asdict(prediction))
@@ -63,6 +71,8 @@ def predict():
     except Exception as e:
         logging.exception(f"Prediction error: {e}")
         return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
+    finally:
+        predict_lock.release()
 
 # ============== Async Job Endpoints (new) ==============
 
