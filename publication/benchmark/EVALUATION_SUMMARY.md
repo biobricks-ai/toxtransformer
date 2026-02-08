@@ -2,7 +2,7 @@
 
 ## 1. Model Overview
 
-ToxTransformer is an encoder-decoder transformer that predicts **6,647 binary toxicity properties simultaneously** per compound. The encoder processes SELFIES molecular tokens; the decoder autoregressively generates property-value pairs (property1, value1, property2, value2, ...) with cross-attention to the encoded molecule. A single forward pass produces calibrated probabilities for all properties. The model accepts optional *context*: known property values for the same compound, provided as prefix tokens to the decoder, that improve predictions for unknown properties.
+ToxTransformer is a decoder-only transformer that predicts **6,647 binary toxicity properties simultaneously** per compound. It processes a single causal sequence: SELFIES molecular tokens followed by interleaved property-value pairs (property1, value1, property2, value2, ...). A single forward pass produces calibrated probabilities for all properties. The model accepts optional *context*: known property-value pairs earlier in the sequence improve predictions for subsequent properties.
 
 Evaluation uses 5-fold cross-validation with two protocols:
 - **Holdout** (out-of-sample): compounds in the test fold were never seen during training
