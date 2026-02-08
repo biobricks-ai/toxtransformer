@@ -1,0 +1,451 @@
+{
+  "_description": "Curated semantic mappings between external evaluation endpoints and ToxTransformer property tokens",
+  "_version": "1.0.0",
+  "_created": "2026-01-18",
+  "_note": "Each external endpoint is mapped ONLY to semantically equivalent ToxTransformer tokens. Endpoints without appropriate matches should NOT be evaluated.",
+
+  "cyp_isoform_specific": {
+    "_description": "CYP450 inhibition - isoform-specific mappings",
+
+    "cyp1a2": {
+      "description": "CYP1A2 inhibition",
+      "tokens": [1270, 1610, 5808, 5815],
+      "token_descriptions": {
+        "1270": "comprehensive small-molecule interaction with cyp1a2 assay",
+        "1610": "assessment of cyp1a2 antagonists using tox21 luciferase reporter qhts",
+        "5808": "comprehensive cyp1a2 inhibition assay response",
+        "5815": "cyp1a2 enzyme inhibition call assay"
+      },
+      "excluded_patterns": ["cyp2", "cyp3"],
+      "external_datasets": [
+        "cyp450_cyp1a2_*",
+        "CYP1A2_Veith",
+        "cld_cyp1a2_*"
+      ]
+    },
+
+    "cyp2c9": {
+      "description": "CYP2C9 inhibition",
+      "tokens": [701, 1582, 1854, 2219, 2800],
+      "token_descriptions": {
+        "701": "human cyp2c9 enzyme inhibition high-throughput screening assay",
+        "1582": "assessment of cyp2c9 inhibition using luciferase reporter assay in tox21 project",
+        "1854": "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay",
+        "2219": "assessment of cyp2c9 inhibition by active antagonists in tox21 assay",
+        "2800": "inhibition and substrate characterization of cyp2c9 via qhts assay"
+      },
+      "excluded_patterns": ["cyp1", "cyp2c19", "cyp2d", "cyp3"],
+      "external_datasets": [
+        "cyp450_cyp2c9_*",
+        "CYP2C9_Veith",
+        "CYP2C9_Substrate*",
+        "nvs_adme_hcyp2c9",
+        "pharmabench_cyp_2c9"
+      ]
+    },
+
+    "cyp2c19": {
+      "description": "CYP2C19 inhibition",
+      "tokens": [702, 1576, 2290],
+      "token_descriptions": {
+        "702": "comprehensive cyp2c19 activity screening in human models via molecular libraries",
+        "1576": "evaluation of small-molecule inhibitors on cyp2c19 activity using qhts luciferase reporter assay",
+        "2290": "evaluation of cyp2c19 inhibitory and substrate potency in human adme assay"
+      },
+      "excluded_patterns": ["cyp1", "cyp2c9", "cyp2d", "cyp3"],
+      "external_datasets": [
+        "cyp450_cyp2c19_*",
+        "CYP2C19_Veith",
+        "nvs_adme_hcyp2c19"
+      ]
+    },
+
+    "cyp2d6": {
+      "description": "CYP2D6 inhibition",
+      "tokens": [1585, 2295],
+      "token_descriptions": {
+        "1585": "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay",
+        "2295": "assay for cyp2d6 inhibition activity"
+      },
+      "excluded_patterns": ["cyp1", "cyp2c", "cyp3"],
+      "external_datasets": [
+        "cyp450_cyp2d6_*",
+        "CYP2D6_Veith",
+        "CYP2D6_Substrate*",
+        "nvs_adme_hcyp2d6",
+        "pharmabench_cyp_2d6"
+      ]
+    },
+
+    "cyp3a4": {
+      "description": "CYP3A4 inhibition",
+      "tokens": [1148, 1521, 1864, 2138, 2384],
+      "token_descriptions": {
+        "1148": "assay for screening small-molecule modulators of cyp3a4 enzyme activity",
+        "1521": "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay",
+        "1864": "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay",
+        "2138": "inhibition profiling of cyp3a4-mediated toxicity",
+        "2384": "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      },
+      "excluded_patterns": ["cyp1", "cyp2"],
+      "external_datasets": [
+        "cyp450_cyp3a4_*",
+        "CYP3A4_Veith",
+        "CYP3A4_Substrate*",
+        "nvs_adme_hcyp3a4",
+        "pharmabench_cyp_3a4",
+        "cld_cyp3a4_*"
+      ]
+    },
+
+    "cyp2e1": {
+      "description": "CYP2E1 - NO DIRECT INHIBITION ASSAY AVAILABLE",
+      "tokens": [],
+      "token_descriptions": {},
+      "notes": "Only expression assays available (3403, 4335 are downregulation assays, not inhibition). External CYP2E1 inhibition data cannot be properly evaluated.",
+      "skip_evaluation": true,
+      "external_datasets": [
+        "cyp450_cyp2e1_*"
+      ]
+    }
+  },
+
+  "mutagenicity": {
+    "_description": "Ames test / bacterial mutagenicity",
+
+    "ames_mutagenicity": {
+      "description": "Ames test bacterial mutagenicity",
+      "tokens": [1799, 2508, 2863, 3830],
+      "token_descriptions": {
+        "1799": "genotoxicity screening in ccris: mutagenicity assessment of small molecules",
+        "2508": "assessment of mutagenic potential in small molecules via gene-tox assay",
+        "2863": "in vitro bacterial mutagenicity assessment",
+        "3830": "salmonella mutagenicity assessment from cpdb carcinogenic database"
+      },
+      "excluded_patterns": ["cytotox", "viability", "cell death"],
+      "external_datasets": [
+        "pharmabench_ames_toxicity",
+        "ames-benchmark",
+        "tdc_ames"
+      ]
+    }
+  },
+
+  "cardiac_toxicity": {
+    "_description": "hERG channel inhibition / cardiac liability",
+
+    "herg_inhibition": {
+      "description": "hERG potassium channel inhibition (cardiac liability)",
+      "tokens": [213, 229, 396, 1252, 1438, 1866, 2105, 2547],
+      "token_descriptions": {
+        "213": "high-throughput screening for wildtype kchn2 inhibitors in human (herg)",
+        "229": "inhibitory screening of herg kchn2 3.1 mutant using qhts methodology",
+        "396": "screen for compounds mitigating herg channel blockade by proarrhythmic chemicals",
+        "1252": "assay for potassium channel herg inhibition (ic50 in nanomolar)",
+        "1438": "fluorescence assay for herg channel antagonists in human cells",
+        "1866": "characterization of small molecule modulators on human herg channel function using qhts",
+        "2105": "herg channel antagonist activity in u2os cells assay",
+        "2547": "comprehensive herg channel activity assay data from pdsp"
+      },
+      "excluded_patterns": [],
+      "external_datasets": [
+        "tdc-herg-central",
+        "admet/hERG",
+        "nvs_ic_hkhergch"
+      ]
+    }
+  },
+
+  "carcinogenicity": {
+    "_description": "Carcinogenic potential",
+
+    "carcinogenicity": {
+      "description": "Carcinogenic potency assessment",
+      "tokens": [2881, 3128, 3191, 3291, 3574],
+      "token_descriptions": {
+        "2881": "carcinogenic potency assessment from single cell analysis",
+        "3128": "comprehensive analysis of carcinogenic potential in small molecules",
+        "3191": "rat carcinogenicity potency assessment from dsstox database",
+        "3291": "carcinogenicity evaluation of small molecules via dsstox multi-cell analysis",
+        "3574": "mouse carcinogenic potency assessment from dsstox cpdbas data"
+      },
+      "excluded_patterns": ["mutagen"],
+      "external_datasets": [
+        "carcinogens-lagunin",
+        "Carcinogens_Lagunin",
+        "chempile-tox/tdc_carcinogens_lagunin"
+      ]
+    }
+  },
+
+  "solubility": {
+    "_description": "Aqueous solubility",
+
+    "aqueous_solubility": {
+      "description": "Aqueous solubility measurement",
+      "tokens": [872, 2184],
+      "token_descriptions": {
+        "872": "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis",
+        "2184": "kinetic solubility assessment in translational research"
+      },
+      "notes": "Token 4827 excluded - it's for soluble guanylate cyclase binding, NOT aqueous solubility",
+      "external_datasets": [
+        "solubility-aqsoldb",
+        "Solubility_AqSolDB",
+        "esol",
+        "computational-adme/log_solubility*",
+        "pharmabench_water_solubility"
+      ]
+    }
+  },
+
+  "aquatic_toxicity": {
+    "_description": "Environmental aquatic toxicity",
+
+    "aquatic_acute": {
+      "description": "Acute aquatic toxicity (fish, daphnia, algae)",
+      "tokens": [2229, 2244, 2247, 2307, 2572, 3179, 3269, 3779, 4355, 4512],
+      "token_descriptions": {
+        "2229": "chronic aquatic toxicity category 1 indicator",
+        "2244": "chronic aquatic toxicity h412 assay",
+        "2247": "chronic aquatic toxicity assessment",
+        "2307": "aquatic toxicity hazard assessment - h400 classification",
+        "2572": "acute oral toxicity lc assay in fish (mg/l)",
+        "3179": "chronic oral noec assessment in algae",
+        "3269": "chronic oral toxicity assessment of chemicals in algae with ec values in mg/l",
+        "3779": "chronic oral noec assessment in fish",
+        "4355": "acute oral toxicity assessment in algae using ec value (mg/l)",
+        "4512": "acute lc assay in fish via unknown exposure route"
+      },
+      "notes": "These are from REACH and ToxValDB - actual aquatic toxicity endpoints. NOT mammalian cytotoxicity.",
+      "external_datasets": [
+        "qsar-aquatic-tox/*",
+        "adore-ecotox/*",
+        "aquatic-moa-ecotox"
+      ]
+    },
+
+    "zebrafish_developmental": {
+      "description": "Zebrafish developmental toxicity",
+      "tokens": [3418, 3455, 3487, 3488, 3489, 3490, 3492, 4075],
+      "token_descriptions": {
+        "3418": "zebrafish 120hpf behavioral activity assay evaluation",
+        "3455": "assessment of zebrafish mortality post-120hpf due to chemical exposure",
+        "3487": "zebrafish 120hpf behavioral response to chemical exposure (yse) study results",
+        "3488": "zebrafish 120hpf neurological uplift assay",
+        "3489": "zebrafish embryo 120hpf developmental toxicity assay - pe induction analysis",
+        "3490": "zebrafish 120h post-fertilization: increased axis formation analysis",
+        "3492": "zebrafish 120h post-fertilization jaw development increase assay",
+        "4075": "zebrafish teratogenicity assessment via teratoscore at 144 hpf"
+      },
+      "external_datasets": [
+        "comptox-zebrafish/*"
+      ]
+    }
+  },
+
+  "hepatotoxicity": {
+    "_description": "Liver toxicity / DILI",
+
+    "hepatotoxicity": {
+      "description": "Hepatotoxicity / drug-induced liver injury",
+      "tokens": [4438],
+      "token_descriptions": {
+        "4438": "hepatotoxicity screening of small molecules in hepg2 cells"
+      },
+      "notes": "Limited direct hepatotoxicity assays available. Many liver-related assays are mechanistic (CYP induction, transporter activity) rather than direct toxicity endpoints.",
+      "external_datasets": [
+        "tdc-dili",
+        "liver_toxicity*"
+      ]
+    }
+  },
+
+  "nuclear_receptors": {
+    "_description": "Nuclear receptor activity - estrogen, androgen, PPAR",
+
+    "estrogen_receptor_agonist": {
+      "description": "Estrogen receptor alpha agonist activity",
+      "tokens": [1192, 1225, 1264, 1292],
+      "token_descriptions": {
+        "1192": "evaluation of estrogen receptor alpha activation via beta-lactamase reporter assay",
+        "1225": "assessment of estrogen receptor alpha agonist activity in vm7 cell line",
+        "1264": "estrogen receptor agonist detection assay",
+        "1292": "identification of agonistic activity in tox21 human receptor estrogen bioassay"
+      },
+      "excluded_patterns": ["antagon", "inhibit"],
+      "external_datasets": [
+        "*era*agonist*",
+        "*estrogen*agonist*",
+        "*_er_*agonist*"
+      ]
+    },
+
+    "estrogen_receptor_antagonist": {
+      "description": "Estrogen receptor alpha antagonist activity",
+      "tokens": [728, 1193, 1197, 1226, 1236],
+      "token_descriptions": {
+        "728": "assessment of small-molecule inhibitors targeting estrogen receptor-alpha coactivator interaction",
+        "1193": "assessment of estrogen receptor alpha antagonist activity in vm7 cells",
+        "1197": "estrogen receptor alpha antagonist assay for cell viability",
+        "1226": "estrogen receptor alpha antagonist with cellular viability assay",
+        "1236": "evaluation of estrogen receptor alpha antagonist activity via bla ratio assay"
+      },
+      "excluded_patterns": ["agonist"],
+      "external_datasets": [
+        "*era*antagonist*",
+        "*estrogen*antagonist*"
+      ]
+    },
+
+    "androgen_receptor_agonist": {
+      "description": "Androgen receptor agonist activity",
+      "tokens": [1184, 1214, 1215, 1216, 1248, 1256, 1285],
+      "token_descriptions": {
+        "1184": "androgen receptor agonist activity assay in tox21 dataset",
+        "1214": "androgen receptor agonist activity assay using beta-lactamase reporter ratio",
+        "1215": "androgen receptor agonist assay - bla format",
+        "1216": "androgen receptor agonist activity in mda-mb-453 cells via luciferase assay",
+        "1248": "high-throughput screening for androgen receptor agonists in mda cells",
+        "1256": "androgen receptor agonist detection assay",
+        "1285": "androgen receptor agonists detection using antagonist-enabled cell-based qhts assay"
+      },
+      "excluded_patterns": ["antagon", "inhibit"],
+      "external_datasets": [
+        "*ar*agonist*",
+        "*androgen*agonist*"
+      ]
+    },
+
+    "androgen_receptor_antagonist": {
+      "description": "Androgen receptor antagonist activity",
+      "tokens": [1190, 1204, 1218, 1227, 1242, 1258, 1296],
+      "token_descriptions": {
+        "1190": "androgen receptor antagonist activity assessment via tox21 ratio analysis",
+        "1204": "androgen receptor antagonist assay with viability endpoint",
+        "1218": "assessment of androgen receptor antagonism in tox21 assay",
+        "1227": "investigation of antagonistic effects on androgen receptor with viability assessment",
+        "1242": "assessment of antagonistic activity on androgen receptor via bla assay",
+        "1258": "androgen receptor binding affinity evaluation assay",
+        "1296": "assessment of antagonistic effects on androgen receptor via mda-kb2 cell viability"
+      },
+      "excluded_patterns": ["agonist"],
+      "external_datasets": [
+        "*ar*antagonist*",
+        "*androgen*antagonist*"
+      ]
+    },
+
+    "ppar_gamma_agonist": {
+      "description": "PPAR gamma agonist activity",
+      "tokens": [571, 572, 574, 1194, 1202, 1229, 1263],
+      "token_descriptions": {
+        "571": "biochemical hts for src-1 agonist interaction with ppargamma",
+        "572": "high throughput biochemical assay for activation of src-3 by ppargamma",
+        "574": "high-throughput biochemical screen for identifying src-2 agonists via ppargamma interaction",
+        "1194": "ppar gamma agonist detection via beta-lactamase assay",
+        "1202": "evaluation of ppar gamma agonistic activity using bla assay",
+        "1229": "assessment of ppargamma agonist activity via tox21 beta-lactamase assay",
+        "1263": "ppar-gamma modulation assay for metabolic regulation"
+      },
+      "excluded_patterns": ["antagon", "delta"],
+      "external_datasets": [
+        "*pparg*agonist*",
+        "*ppar_gamma*",
+        "*ppard_*agonist*"
+      ]
+    },
+
+    "aromatase_inhibition": {
+      "description": "Aromatase (CYP19A1) inhibition",
+      "tokens": [1187, 1241, 1254, 1281],
+      "token_descriptions": {
+        "1187": "assessment of aromatase inhibition and cell viability in tox21 assay",
+        "1241": "assessment of chemical interference with aromatase enzyme activity",
+        "1254": "aromatase inhibition activity assay",
+        "1281": "high-throughput screening for aromatase inhibitors in human cells"
+      },
+      "excluded_patterns": [],
+      "external_datasets": [
+        "*aromatase*",
+        "nr_aromatase",
+        "*cyp19*"
+      ]
+    }
+  },
+
+  "stress_response": {
+    "_description": "Cellular stress response pathways",
+
+    "nrf2_are_activation": {
+      "description": "NRF2/ARE antioxidant response pathway activation",
+      "tokens": [18, 238, 1257, 1477, 1962, 2509, 3928],
+      "token_descriptions": {
+        "18": "high-throughput screening for nrf2 pathway activators in human cells",
+        "238": "keap1-nrf2 interaction inhibition assay via fluorescence polarization",
+        "1257": "oxidative stress activation assay via are pathway detection",
+        "1477": "activation of antioxidant response element by chemical exposure",
+        "1962": "evaluation of chemical induction of nrf2-are pathway activation",
+        "2509": "nrf2/are pathway activation assay results",
+        "3928": "evaluation of small-molecule inducers of nrf2 pathway via fluc reporter assay"
+      },
+      "excluded_patterns": ["inhibit"],
+      "external_datasets": [
+        "*nrf2*",
+        "*are*agonist*",
+        "*antioxidant*",
+        "tox21_are_*"
+      ]
+    },
+
+    "p53_activation": {
+      "description": "p53 tumor suppressor pathway activation",
+      "tokens": [415, 1052, 1182, 1183, 1185, 1189, 1195, 1196, 1198, 1199, 1200, 1203, 1207, 1209, 1211],
+      "token_descriptions": {
+        "415": "high-throughput screening for small-molecule p53 reactivators",
+        "1052": "high-throughput luminescence assay for identification of p53 pathway reactivators",
+        "1182": "toxicity measurement: tox21 p53 pathway viability assay",
+        "1183": "assessment of chemical impact on p53 pathway and cell viability",
+        "1185": "assessment of chemical activation of p53 pathway in tox21 assay",
+        "1189": "assessment of chemical impact on p53 pathway via bla and viability",
+        "1195": "evaluating p53 pathway activation using tox21 assay system",
+        "1196": "assessment of chemical impacts on p53 pathway using bla ratio",
+        "1198": "detection of p53 pathway activation in tox21 assay for potential genotoxic agents",
+        "1199": "assessment of chemical-induced modulation of p53 pathway via bla assay",
+        "1200": "assessment of chemical impact on p53 pathway activity",
+        "1203": "p53 bioactivity assay in tox21 panel",
+        "1207": "assessment of chemical activation of p53 pathway in tox21 p53 bla assay",
+        "1209": "assessment of chemical impact on p53 pathway via bla p5 ratio assay",
+        "1211": "analysis of p53 pathway activation using tox21 bla assay"
+      },
+      "excluded_patterns": [],
+      "external_datasets": [
+        "*p53*",
+        "tox21_p53_*"
+      ]
+    }
+  },
+
+  "unmappable_endpoints": {
+    "_description": "External endpoints that CANNOT be properly evaluated because no semantically appropriate ToxTransformer tokens exist",
+
+    "endpoints": [
+      {
+        "external_name": "organ_specific_toxicity_unitox",
+        "reason": "UniTox organ-specific toxicity (cardio, dermal, pulmonary, renal, oto) maps to generic cytotoxicity assays - semantically inappropriate"
+      },
+      {
+        "external_name": "cyp2e1_inhibition",
+        "reason": "No CYP2E1 inhibition assays in training data - only expression/downregulation assays"
+      },
+      {
+        "external_name": "molecular_weight",
+        "reason": "Physical property, not a toxicity endpoint - no prediction needed"
+      },
+      {
+        "external_name": "daphnia_ec50_specific",
+        "reason": "Specific Daphnia EC50 values require regression on aquatic endpoints - current assays are primarily classification"
+      }
+    ]
+  }
+}

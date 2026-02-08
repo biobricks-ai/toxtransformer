@@ -1,0 +1,24 @@
+Task Type,Source,N Evaluations,Total Samples,Accuracy,F1,AUC,RMSE,R²,Pearson r
+Binary Classification,tdc-dili,1,33,0.424 ± nan,0.095 ± nan,0.577 ± nan,,,
+Binary Classification,chempile-tox,4,174,0.353 ± 0.046,0.124 ± 0.143,0.581 ± 0.250,,,
+Binary Classification,unitox,16,2260,0.573 ± 0.190,0.215 ± 0.058,0.530 ± 0.069,,,
+Binary Classification,ames-benchmark,2,1086,0.359 ± 0.000,0.216 ± 0.000,0.593 ± 0.000,,,
+Binary Classification,carcinogens-lagunin,1,49,0.306 ± nan,0.227 ± nan,0.596 ± nan,,,
+Binary Classification,admet-huggingface,2,115,0.290 ± 0.153,0.161 ± 0.086,0.567 ± 0.058,,,
+Binary Classification,aquatic-moa-ecotox,1,179,0.123 ± nan,0.113 ± nan,0.540 ± nan,,,
+Binary Classification,comptox-zebrafish,19,2417,0.842 ± 0.036,0.187 ± 0.087,0.615 ± 0.057,,,
+Binary Classification,pharmabench,1,70,0.514 ± nan,0.150 ± nan,0.625 ± nan,,,
+Binary Classification,cyp450,18,1716,0.809 ± 0.092,0.033 ± 0.075,0.528 ± 0.078,,,
+Continuous Regression,tdc-clearance-hepatocyte,1,195,,,,57.739 ± nan,-0.735 ± nan,-0.058 ± nan
+Continuous Regression,tdc-clearance-microsome,1,173,,,,51.981 ± nan,-0.709 ± nan,0.035 ± nan
+Continuous Regression,tdc-half-life,1,38,,,,21.771 ± nan,-0.729 ± nan,0.157 ± nan
+Continuous Regression,chempile-tox,2,131,,,,3.716 ± 1.257,-4.081 ± 2.653,-0.214 ± 0.057
+Continuous Regression,qsar-aquatic-tox,8,1668,,,,97.834 ± 131.317,-1.710 ± 1.424,0.139 ± 0.292
+Continuous Regression,admet-huggingface,2,120,,,,3.246 ± 1.515,-4.565 ± 1.713,-0.115 ± 0.271
+Continuous Regression,computational-adme,1,108,,,,1.181 ± nan,-2.245 ± nan,-0.072 ± nan
+Continuous Regression,solubility-aqsoldb,1,175,,,,4.387 ± nan,-2.328 ± nan,-0.154 ± nan
+Continuous Regression,esol,2,294,,,,4.684 ± 0.395,-3.486 ± 0.325,-0.437 ± 0.013
+Continuous Regression,withdrawn,1,42,,,,3191.026 ± nan,-0.374 ± nan,0.004 ± nan
+Continuous Regression,adore-ecotox,4,1750,,,,1.379 ± 0.629,-0.071 ± 0.018,-0.327 ± 0.159
+Continuous Regression,aquatic-moa-ecotox,4,692,,,,28.733 ± 46.262,-2.739 ± 2.963,-0.185 ± 0.067
+Continuous Regression,pharmabench,1,48,,,,5.629 ± nan,-6.320 ± nan,-0.424 ± nan

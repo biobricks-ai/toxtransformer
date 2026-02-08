@@ -1,0 +1,8 @@
+Approach,Mean AUC,N Properties,Source
+No context (baseline),0.817,65,Tox21
+GT context k=1-5,0.864,12,Tox21
+GT context k=6-10,0.87,11,Tox21
+GT context k=11-20,0.881,10,Tox21
+Autoregressive k=1-5,0.809,12,Tox21
+Autoregressive k=6-10,0.805,12,Tox21
+Augmented (GT+pred) k=1-5,0.83,12,Tox21

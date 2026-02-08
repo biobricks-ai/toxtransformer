@@ -1,0 +1,5649 @@
+{
+  "matched": [
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/axis",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_summary/conc_mg_l_min",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_water_solubility/value",
+      "data_type": "continuous",
+      "endpoint_name": "aqueous_solubility",
+      "category": "solubility",
+      "match_quality": "keyword_match",
+      "tokens": [
+        872,
+        2184
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_fish/conc_mol_l",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/jaw",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_mortality/duration_hours",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp1a2_6hr",
+      "data_type": "binary",
+      "endpoint_name": "cyp1a2",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1270,
+        1610,
+        5808,
+        5815
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2c19_testing/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c19",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        702,
+        1576,
+        2290
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_fish/molecular_weight",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp3a4",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/otic",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_crustacean/conc_mg_l",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_crustacean/conc_log",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_algae/water_solubility",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "tdc-herg-central",
+      "property": "tdc-herg-central/herg_central/herg_inhibitor",
+      "data_type": "binary",
+      "endpoint_name": "herg_inhibition",
+      "category": "cardiac_toxicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        213,
+        229,
+        396,
+        1252,
+        1438,
+        1866,
+        2105,
+        2547
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/activity_score",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "tdc-herg-central",
+      "property": "tdc-herg-central/herg_central/herg_inhibition_1uM_pct",
+      "data_type": "continuous",
+      "endpoint_name": "herg_inhibition",
+      "category": "cardiac_toxicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        213,
+        229,
+        396,
+        1252,
+        1438,
+        1866,
+        2105,
+        2547
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp3a4_testing/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_summary/logp",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp3a4_training/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2c9_training/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c9",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        701,
+        1582,
+        1854,
+        2219,
+        2800
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/pigmentation",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp3a4_24hr",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_summary/conc_log_mean",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Solubility_AqSolDB",
+      "data_type": "continuous",
+      "endpoint_name": "aqueous_solubility",
+      "category": "solubility",
+      "match_quality": "keyword_match",
+      "tokens": [
+        872,
+        2184
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/snout",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/touch_response",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Carcinogens_Lagunin",
+      "data_type": "binary",
+      "endpoint_name": "carcinogenicity",
+      "category": "carcinogenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        2881,
+        3128,
+        3191,
+        3291,
+        3574
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp2d6",
+      "data_type": "binary",
+      "endpoint_name": "cyp2d6",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1585,
+        2295
+      ]
+    },
+    {
+      "source": "esol",
+      "property": "esol/esol_solubility/measured_logsolubility_mol/l",
+      "data_type": "continuous",
+      "endpoint_name": "aqueous_solubility",
+      "category": "solubility",
+      "match_quality": "keyword_match",
+      "tokens": [
+        872,
+        2184
+      ]
+    },
+    {
+      "source": "carcinogens-lagunin",
+      "property": "carcinogens-lagunin/carcinogens_lagunin/label",
+      "data_type": "binary",
+      "endpoint_name": "carcinogenicity",
+      "category": "carcinogenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        2881,
+        3128,
+        3191,
+        3291,
+        3574
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/somite",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_fish/water_solubility",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_cyp2d6_veith/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2d6",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1585,
+        2295
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/notochord",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/brain",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/CYP2D6_Veith",
+      "data_type": "binary",
+      "endpoint_name": "cyp2d6",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1585,
+        2295
+      ]
+    },
+    {
+      "source": "qsar-aquatic-tox",
+      "property": "qsar-aquatic-tox/aquatic_toxicity/pec50_algae",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "qsar-aquatic-tox",
+      "property": "qsar-aquatic-tox/aquatic_toxicity/mgl_fish",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp1a2_training/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp1a2",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1270,
+        1610,
+        5808,
+        5815
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_algae/conc_mg_l",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_crustacean/molecular_weight",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_crustacean/water_solubility",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_cyp2c9_veith/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c9",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        701,
+        1582,
+        1854,
+        2219,
+        2800
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp1a2_combined/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp1a2",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1270,
+        1610,
+        5808,
+        5815
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_crustacean/conc_mol_l",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_mortality/conc_mol_l",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "ames-benchmark",
+      "property": "ames-benchmark/ames_cv_splits/ames_class",
+      "data_type": "binary",
+      "endpoint_name": "ames_mutagenicity",
+      "category": "mutagenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1799,
+        2508,
+        2863,
+        3830
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_summary/conc_mg_l_mean",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/CYP2D6_Substrate_CarbonMangels",
+      "data_type": "binary",
+      "endpoint_name": "cyp2d6",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1585,
+        2295
+      ]
+    },
+    {
+      "source": "qsar-aquatic-tox",
+      "property": "qsar-aquatic-tox/aquatic_toxicity/mgl_algae",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_solubility_aqsoldb/label",
+      "data_type": "continuous",
+      "endpoint_name": "aqueous_solubility",
+      "category": "solubility",
+      "match_quality": "keyword_match",
+      "tokens": [
+        872,
+        2184
+      ]
+    },
+    {
+      "source": "esol",
+      "property": "esol/esol_solubility/esol_predicted_logsolubility_mol/l",
+      "data_type": "continuous",
+      "endpoint_name": "aqueous_solubility",
+      "category": "solubility",
+      "match_quality": "keyword_match",
+      "tokens": [
+        872,
+        2184
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/trunk",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2d6_training/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2d6",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1585,
+        2295
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_summary/molecular_weight",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_algae/conc_mol_l",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "tdc-herg-central",
+      "property": "tdc-herg-central/herg_central/herg_inhibition_10uM_pct",
+      "data_type": "continuous",
+      "endpoint_name": "herg_inhibition",
+      "category": "cardiac_toxicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        213,
+        229,
+        396,
+        1252,
+        1438,
+        1866,
+        2105,
+        2547
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/CYP2C19_Veith",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c19",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        702,
+        1576,
+        2290
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp2c19",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c19",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        702,
+        1576,
+        2290
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/CYP3A4_Veith",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "ames-benchmark",
+      "property": "ames-benchmark/ames_cv_splits/compound_index",
+      "data_type": "continuous",
+      "endpoint_name": "ames_mutagenicity",
+      "category": "mutagenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1799,
+        2508,
+        2863,
+        3830
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp1a2_24hr",
+      "data_type": "binary",
+      "endpoint_name": "cyp1a2",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1270,
+        1610,
+        5808,
+        5815
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_fish/conc_log",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2c9_combined/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c9",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        701,
+        1582,
+        1854,
+        2219,
+        2800
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_summary/duration_hours_mean",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "solubility-aqsoldb",
+      "property": "solubility-aqsoldb/solubility_aqsoldb/label",
+      "data_type": "continuous",
+      "endpoint_name": "aqueous_solubility",
+      "category": "solubility",
+      "match_quality": "keyword_match",
+      "tokens": [
+        872,
+        2184
+      ]
+    },
+    {
+      "source": "qsar-aquatic-tox",
+      "property": "qsar-aquatic-tox/aquatic_toxicity/mgl_daphnia",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2d6_testing/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2d6",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1585,
+        2295
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/CYP2C9_Substrate_CarbonMangels",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c9",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        701,
+        1582,
+        1854,
+        2219,
+        2800
+      ]
+    },
+    {
+      "source": "qsar-aquatic-tox",
+      "property": "qsar-aquatic-tox/aquatic_toxicity/molecular_weight",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_cyp3a4_veith/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "qsar-aquatic-tox",
+      "property": "qsar-aquatic-tox/aquatic_toxicity/mol_weight",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp1a2_48hr",
+      "data_type": "binary",
+      "endpoint_name": "cyp1a2",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1270,
+        1610,
+        5808,
+        5815
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_crustacean/logp",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/eye",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2d6_combined/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2d6",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1585,
+        2295
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/circulation",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_ic_hkhergch",
+      "data_type": "binary",
+      "endpoint_name": "herg_inhibition",
+      "category": "cardiac_toxicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        213,
+        229,
+        396,
+        1252,
+        1438,
+        1866,
+        2105,
+        2547
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_mortality/logp",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "qsar-aquatic-tox",
+      "property": "qsar-aquatic-tox/aquatic_toxicity/pec50_daphnia",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "qsar-aquatic-tox",
+      "property": "qsar-aquatic-tox/aquatic_toxicity/plc50_fish",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_algae/duration_hours",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/yolk_sac_edema",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/CYP3A4_Substrate_CarbonMangels",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp3a4_6hr",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp3a4_combined/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_algae/molecular_weight",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/mortality",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_algae/logp",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp3a4_48hr",
+      "data_type": "binary",
+      "endpoint_name": "cyp3a4",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1148,
+        1521,
+        1864,
+        2138,
+        2384
+      ]
+    },
+    {
+      "source": "ames-benchmark",
+      "property": "ames-benchmark/ames_compounds/ames_class",
+      "data_type": "binary",
+      "endpoint_name": "ames_mutagenicity",
+      "category": "mutagenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1799,
+        2508,
+        2863,
+        3830
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/caudal_fin",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2c9_testing/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c9",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        701,
+        1582,
+        1854,
+        2219,
+        2800
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_fish/logp",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/CYP2C9_Veith",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c9",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        701,
+        1582,
+        1854,
+        2219,
+        2800
+      ]
+    },
+    {
+      "source": "computational-adme",
+      "property": "computational-adme/adme/log_solubility_ph68",
+      "data_type": "continuous",
+      "endpoint_name": "aqueous_solubility",
+      "category": "solubility",
+      "match_quality": "keyword_match",
+      "tokens": [
+        872,
+        2184
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_algae/conc_log",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_carcinogens_lagunin/label",
+      "data_type": "binary",
+      "endpoint_name": "carcinogenicity",
+      "category": "carcinogenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        2881,
+        3128,
+        3191,
+        3291,
+        3574
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp1a2_testing/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp1a2",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1270,
+        1610,
+        5808,
+        5815
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/hERG",
+      "data_type": "binary",
+      "endpoint_name": "herg_inhibition",
+      "category": "cardiac_toxicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        213,
+        229,
+        396,
+        1252,
+        1438,
+        1866,
+        2105,
+        2547
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_crustacean/duration_hours",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_fish/duration_hours",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_cyp1a2_veith/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp1a2",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1270,
+        1610,
+        5808,
+        5815
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2c19_training/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c19",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        702,
+        1576,
+        2290
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/pericardial_edema",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_summary/conc_mg_l_max",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_mortality/molecular_weight",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/CYP1A2_Veith",
+      "data_type": "binary",
+      "endpoint_name": "cyp1a2",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1270,
+        1610,
+        5808,
+        5815
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_summary/n_measurements",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_mortality/water_solubility",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/pectoral_fin",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_cyp2c19_veith/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c19",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        702,
+        1576,
+        2290
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_fish/conc_mg_l",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_ames_toxicity/value",
+      "data_type": "binary",
+      "endpoint_name": "ames_mutagenicity",
+      "category": "mutagenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1799,
+        2508,
+        2863,
+        3830
+      ]
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2c19_combined/label",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c19",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        702,
+        1576,
+        2290
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_mortality/conc_log",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/AMES",
+      "data_type": "binary",
+      "endpoint_name": "ames_mutagenicity",
+      "category": "mutagenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1799,
+        2508,
+        2863,
+        3830
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp2c9",
+      "data_type": "binary",
+      "endpoint_name": "cyp2c9",
+      "category": "cyp_isoform_specific",
+      "match_quality": "keyword_match",
+      "tokens": [
+        701,
+        1582,
+        1854,
+        2219,
+        2800
+      ]
+    },
+    {
+      "source": "adore-ecotox",
+      "property": "adore-ecotox/ecotox_mortality/conc_mg_l",
+      "data_type": "continuous",
+      "endpoint_name": "aquatic_acute",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        2229,
+        2244,
+        2247,
+        2307,
+        2572,
+        3179,
+        3269,
+        3779,
+        4355,
+        4512
+      ]
+    },
+    {
+      "source": "ames-benchmark",
+      "property": "ames-benchmark/ames_cv_splits/fold",
+      "data_type": "continuous",
+      "endpoint_name": "ames_mutagenicity",
+      "category": "mutagenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1799,
+        2508,
+        2863,
+        3830
+      ]
+    },
+    {
+      "source": "comptox-zebrafish",
+      "property": "comptox-zebrafish/zebrafish_toxicity/swim_bladder",
+      "data_type": "binary",
+      "endpoint_name": "zebrafish_developmental",
+      "category": "aquatic_toxicity",
+      "match_quality": "exact_pattern",
+      "tokens": [
+        3418,
+        3455,
+        3487,
+        3488,
+        3489,
+        3490,
+        3492,
+        4075
+      ]
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_ames/label",
+      "data_type": "binary",
+      "endpoint_name": "ames_mutagenicity",
+      "category": "mutagenicity",
+      "match_quality": "keyword_match",
+      "tokens": [
+        1799,
+        2508,
+        2863,
+        3830
+      ]
+    }
+  ],
+  "unmatched": [
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nrf1_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ppard_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ppre_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_elg1_luc_agonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_cmv_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ppard_bla_agonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_are_bla_agonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_tr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "computational-adme",
+      "property": "computational-adme/adme/log_ppb_rat",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/nr_aromatase",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_steatosis_24hr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/VDss_Lombardo",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p5_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_h5ht2a",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_estradiol_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rara_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_car",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/ototoxicity_binary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_eselectin_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nheerl_zf_144hpf_teratoscore_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_era_eregfp_0480",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p2_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/chemicals/S_AD",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_gr_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_ohprog_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_abcg2_48hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/liver_toxicity_confident_ternary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_vcam1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_mcp1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_lgic_rgabar_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_mitomass_72h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_are_bla_agonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_fxr_fxrsrc1_0480",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/PPBR_AZ",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_rv1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_myb_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_eye_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_car_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_myc_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/FISH_ECOTOXDB_GEOMEAN",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_snou_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_srb_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/PubChem_CID",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ere_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_mig_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_tr_hnet",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_gal4_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp1a1_48hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/liver_toxicity_binary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_cellcyclearrest_24h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ap_1_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_bdr_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/DAPHNIA_MAGNA_ACUTE_EC50_IRFMN_RECALCULATED_S_AD",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hm4",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_oxidativestress_24h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_gr_bla_antagonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ppard_bla_antagonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp2b6_24hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_ar_arsrc1_0960",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/infertility_binary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_il1a_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/infertility_confident_ternary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_bbb_penetration/value",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_errg_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_nfkb_bla_agonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_egfr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_lgic_h5ht3",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_upar_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_fxr_bla_antagonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_il8_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_gr_bla_antagonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_hse_bla_agonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_hia_hou/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_her",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_mmp1_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_dr4_lxr_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "cpdb",
+      "property": "cpdb/bioassays/td50",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_oct_mlp_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_luc_mdakb2_agonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/nr_ar_lbd",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_fxr_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_timp2_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/ALGAE_ECOTOXDB_P5",
+      "data_type": "continuous"
+    },
+    {
+      "source": "concawe-petrotox",
+      "property": "concawe-petrotox/hydrocarbon_library/logKow",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_bre_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_e2f_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hadora1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_oxidativestress_72h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_car_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_gli_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "tdc-clearance-microsome",
+      "property": "tdc-clearance-microsome/clearance_microsome/clearance_microsome",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_m_06_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp2b6_48hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_mitomass_24h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/dermatological_toxicity_confident_ternary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/keratinosens_ec15",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_microtubulecsk_72h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_era_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/ALGAE_ACUTE_EC50_IRFMN_RECALCULATED_S_AD",
+      "data_type": "continuous"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/usens_cv70",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_mitomass_24h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_4h_pselectin_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/FISH_ECOTOXDB_datapoints",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_mp_rpbr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_estrone_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_mmp1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_combined/value",
+      "data_type": "continuous"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Clearance_Microsome_AZ",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ppard_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hadra2c",
+      "data_type": "binary"
+    },
+    {
+      "source": "smiles-adr",
+      "property": "smiles-adr/smiles_adr/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_thrombomodulin_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_nfkb_bla_agonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_fxr_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hcasp5",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/DILI",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_pai1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/SR-p53",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p3_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_hse_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_hif1a_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/CRUSTACEAN_ECOTOXDB_datapoints",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hrar_antagonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/dermatological_toxicity_binary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_freesolv/label",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_ar_arsrc1_0480",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_thrombomodulin_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_era_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_icam1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/CRUSTACEAN_ECOTOXDB_P5_S_AD",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_icam1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hopiate_mu",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_il1a_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_tr_hsert",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p5_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_m_32_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_h5ht7",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_vdre_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/DAPHNIA_MAGNA_ACUTE_EC50_IRFMN_RECALCULATED",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_r5ht1_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_mre_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_tr_hadot",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_pparg_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_srb_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hh1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_helastase",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_rtrh",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_ic_rcabtzchl",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_testo_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_dnadamage_48hr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Lipophilicity_AstraZeneca",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_vcam1_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp19a1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_4h_upar_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hmmp2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_autofluor_hepg2_media_blue",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_cd69_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_vdr_bla_agonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_thra1_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hrara_agonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_era_bla_agonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_doc_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_xtt_cytotoxicity_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_timp1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/SR-MMP",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_proliferation_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_pai1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_4h_upar_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_cre_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_gata_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/dpra_cys_depletion",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hmmp13",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_g5ht4",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hat1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_sult2a_24hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_vdr_bla_antagonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ppara_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_bioavailability_ma/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_fxr_bla_antagonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_cellloss_72h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp1a1_24hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/sr_mmp",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hcar_antagonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_cellloss_48hr_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_er_eraera_1440",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hadra2a",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_hnf6_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_htra_antagonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_oct_mlp_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/SR-ARE",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/cardio_toxicity_binary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_lxrb_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_stat3_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_er_eraerb_1440",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/nr_er",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_radra2_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p3_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/sr_p53",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_il8_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_pbrem_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Clearance_Hepatocyte_AZ",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_gopiatek",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_mitofxni_1hr_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hpde5",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_stresskinase_24h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_il8_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p4_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_mcp1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_cd40_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hadrb1",
+      "data_type": "binary"
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2e1_training/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_swim_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rore_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_tgfb_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hpparg",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rarg_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_vis_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_aromatase_inhibition",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_fxr_bla_antagonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rore_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_il8_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_hse_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_mitomass_72h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ap_2_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_gr_bla_agonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rorg_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_egr_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ere_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_ip10_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_mmp_ratio_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hvegfr2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_tissuefactor_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_srb_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_sox_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/nrbonds",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ppard_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_fxr_bla_antagonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/FISH_ACUTE_LC50_IRFMN_RECALCULATED",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_eselectin_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_esre_bla_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_bla_antagonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_bla_agonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_lxra_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_il8_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hmmp3",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_mitomembpot_72h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ets_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_autofluor_hepg2_cell_blue",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Pgp_Broccatelli",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hptpn11",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_hif1a_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_era_luc_bg1_antagonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "bioavailability-ma",
+      "property": "bioavailability-ma/bioavailability_ma/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_pfin_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p4_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_isre_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_ld50_zhu/label",
+      "data_type": "continuous"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_rat_microsomal_clearance/value",
+      "data_type": "continuous"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Caco2_Wang",
+      "data_type": "continuous"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/adra_nal",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_lxra_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/NR-AR",
+      "data_type": "binary"
+    },
+    {
+      "source": "concawe-petrotox",
+      "property": "concawe-petrotox/hydrocarbon_library/HenryLC",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_gr_bla_antagonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_srb_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_autofluor_hek293_cell_blue",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_rcnos",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_mcsf_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hmmp9",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_lgic_rnnr_bungsens",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hgr",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_logd/value",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_nuclearsize_48hr_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/cardio_toxicity_confident_ternary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_upa_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p5_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nrf2_are_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/acea_t47d_80hr_positive",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p1_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_p5ht2c",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_cellloss_24hr_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/LD50_Zhu",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_nurr1_nurr1rxra_0480",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_nfkb_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/firstapproval",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_gr_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_andr_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_tr_hdat",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_or_gsigma_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_pxre_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_4h_vegfrii_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_tr_rnet",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ta_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_nuclearsize_72h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/firstdeath",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hdrd1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_upar_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hfxr_agonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/ALGAE_ACUTE_EC50_IRFMN_RECALCULATED",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_dr5_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/ALGAE_ECOTOXDB_P5_S_AD",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ahr_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ppara_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_bla_antagonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_bla_antagonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_mort_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/firstwithdrawn",
+      "data_type": "continuous"
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2e1_combined/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_tissuefactor_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/hclat_ec200",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_esre_bla_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_vdr_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_tgfb1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_e_box_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_mig_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_rmaobp",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hppara",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_mitofxni_24hr_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_era_eregfp_0120",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_nuclearsize_24hr_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/renal_toxicity_confident_ternary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_nuclearsize_24h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_pbmccytotoxicity_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_mmp1_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_era_bla_antagonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_ppb/value",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_ldlr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Bioavailability_Ma",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_er_erberb_0480",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/hclat_positive",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hbace",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_lxrb_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_ip10_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/FISH_ECOTOXDB_P5_S_AD",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p3_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rorb_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ppre_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/toxclass",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p5_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_ber",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_tissuefactor_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_brai_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rxrb_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_il8_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_gmperipheral_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_erra_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_sp1_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hopiate_d1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_foxo_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/sr_are",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_hse_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_er_eraerb_0480",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_microtubulecsk_72h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rara_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_egfr_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_microtubulecsk_24h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_ic_rnach_site2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_cortisol_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_mitofxni_48hr_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_isre_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ncct_hek293t_celltiterglo",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_mera",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ir1_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_4h_eotaxin3_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_pxr_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_thra1_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_upar_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hptprc",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_ldlr_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hm2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_upa_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "tdc-dili",
+      "property": "tdc-dili/dili/dili_positive",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_trun_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/adra_nac",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_pge2_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_p53_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_otic_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_srebp_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_hse_bla_agonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_eselectin_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_caco2_wang/label",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_ar_areluc_ag_1440",
+      "data_type": "binary"
+    },
+    {
+      "source": "concawe-petrotox",
+      "property": "concawe-petrotox/hydrocarbon_library/Molar_Weight",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rxra_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_microtubulecsk_24h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_eselectin_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_h5ht6",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rarb_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_skin_reaction/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_srebp_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/nr_ahr",
+      "data_type": "binary"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/hba",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_bpr",
+      "data_type": "binary"
+    },
+    {
+      "source": "computational-adme",
+      "property": "computational-adme/adme/log_ppb_human",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hadrb3",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_mmp_ratio_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "computational-adme",
+      "property": "computational-adme/adme/log_mdr1_mdck_er",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_fxr_fxrsrc1_1440",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_h5ht5a",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_gh2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_errg_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_cyp_2c9/value",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_saa_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_sox_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_cre_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_hladr_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_m_32_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_ic_rcadhprch_l",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_vdr_bla_antagonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_proliferation_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/sr_atad5",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/NR-ER-LBD",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rorg_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_axis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_prog_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/llna_positive",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_tr_rsert",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_stresskinase_1h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p2_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/dpra_lys_depletion",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ta_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_eselectin_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hadrb2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rarg_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hfxr_antagonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_circ_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/hematological_binary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_tcf_b_cat_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_esol/label",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ncct_quantilum_inhib_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_era_luc_bg1_agonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_upar_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_pxre_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_il1a_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_vcam1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hmmp1",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/il8_luc",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ir1_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_m_19_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_bla_antagonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_dr5_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_4h_mcp1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/HIA_Hou",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_rar",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_srb_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_cmv_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p1_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/keratinosens_positive",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_proliferation_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hnk2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_tissuefactor_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p3_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_m_32_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hpxr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p1_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_xbp1_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_mcp1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_abcb1_48hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_are_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/sr_hse",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_saa_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/ALGAE_ECOTOXDB_GEOMEAN_S_AD",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_ohpreg_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_jaw_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "concawe-petrotox",
+      "property": "concawe-petrotox/hydrocarbon_library/Class_Correction",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p2_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/pulmonary_toxicity_binary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_radra1_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "cpdb",
+      "property": "cpdb/bioassays/pval",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nrf1_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p4_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/nr_ppar_gamma",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_esre_bla_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_dnatexture_48hr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_mcsf_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/nr_er_lbd",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/pulmonary_toxicity_confident_ternary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_ohprog_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_hpr",
+      "data_type": "binary"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/hbd",
+      "data_type": "continuous"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/llna_ec3",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_pax6_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hes",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_tcf_b_cat_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_cyp_2d6/value",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_rmadra2b",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_4h_vcam1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/acea_t47d_80hr_negative",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_il6_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/dpra_positive",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ncct_tpo_aur_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_p53act_24h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rarb_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_pgp_broccatelli/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_pig_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/NR-ER",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p4_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_mmp_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_sp1_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_ip10_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_activityscore",
+      "data_type": "binary"
+    },
+    {
+      "source": "cyp450",
+      "property": "cyp450/cyp450_cyp2e1_testing/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_mitomembpot_1h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/lastwithdrawn",
+      "data_type": "continuous"
+    },
+    {
+      "source": "tdc-clearance-hepatocyte",
+      "property": "tdc-clearance-hepatocyte/clearance_hepatocyte/clearance_hepatocyte",
+      "data_type": "continuous"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/tpsa",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_tr_gdat",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_tgfb1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ppard_bla_agonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hdrd4.4",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_hse_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_vcam1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_ugt1a1_24hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hadora2a",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_er_erberb_1440",
+      "data_type": "binary"
+    },
+    {
+      "source": "tdc-half-life",
+      "property": "tdc-half-life/half_life/half_life_hours",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_pparg_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/ototoxicity_confident_ternary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_nurr1_nurr1rxra_1440",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_m_32_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-reaction",
+      "property": "skin-reaction/skin_reaction/label",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_mitomembpot_24h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_e2f_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_stat3_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_mcp1_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_tissuefactor_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/CRUSTACEAN_ECOTOXDB_P5",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_srb_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_mcsf_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_proliferation_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_11dcort_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_autofluor_hek293_media_blue",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_tnfa_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_stresskinase_72h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_nfkb_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_tgfb_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/NR-PPAR-gamma",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ar_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nfi_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/ALGAE_ECOTOXDB_GEOMEAN",
+      "data_type": "continuous"
+    },
+    {
+      "source": "computational-adme",
+      "property": "computational-adme/adme/log_rlm_clint",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_thrombomodulin_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_esre_bla_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/hematological_confident_ternary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_il8_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/FISH_ECOTOXDB_P5",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_ugt1a1_48hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nf_kb_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_era_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp2b6_6hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_mmp1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_rnk3",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ot_er_eraera_0480",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_mmp9_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_era_bla_antagonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/NR-AR-LBD",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_tr_luc_gh3_agonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "withdrawn",
+      "property": "withdrawn/withdrawn_drugs/ld50",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_4h_pselectin_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_e_box_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_era_bla_antagonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_mig_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_hladr_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_pge2_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_foxo_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "computational-adme",
+      "property": "computational-adme/adme/log_hlm_clint",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_cd38_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_collageniii_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_sult2a_48hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ppard_bla_antagonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_human_microsomal_clearance/value",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nrf2_are_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_vdr_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/ALGAE_ECOTOXDB_datapoints",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p1_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_mitoticarrest_72h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_ropiate_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_thrombomodulin_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_ropiate_nonselectivena",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_4h_srb_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ahr_luc_agonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_p53act_72h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_tpa_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_mitoticarrest_24h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_gre_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_mcp1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_pparg_bla_agonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "unitox",
+      "property": "unitox/unitox_small_molecules/renal_toxicity_binary_rating_0_1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_pxr_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hm1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_be3c_hladr_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_apoptosis_24hr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_gre_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ppard_bla_antagonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_dnadamage_24hr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_proliferation_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_vdr_bla_antagonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_il6_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_vdr_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_gsta2_48hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_cyp_3a4/value",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_pparg_bla_antagonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_somi_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_radrb_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/hclat_cv75",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/cld_cyp1a1_6hr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rxra_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/SR-ATAD5",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_cellloss_24h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ap_2_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_myc_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nurr1_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_nr_har",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ets_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_apoptosis_48hr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_hnf6_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_casm3c_upar_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_xbp1_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/CRUSTACEAN_ECOTOXDB_GEOMEAN",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_dr4_lxr_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nfi_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_gr_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_mouse_microsomal_clearance/value",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_rache",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_mcp1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_c_ebp_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/FISH_ACUTE_LC50_IRFMN_RECALCULATED_S_AD",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_hnf4a_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ar_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/NR-AhR",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/kdpra_log",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_pparg_bla_antagonist_viability",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_pbmccytotoxicity_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_cfin_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ahr_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_dnatexture_24hr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_srb_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_r5ht_nonselective",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepat_steatosis_48hr_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_hnf4a_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_tnfa_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_mp_hpbr",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nf_kb_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_pparg_bla_antagonist_ch1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_fxr_bla_agonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_doc_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_foxa2_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_autofluor_hepg2_media_green",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_are_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hpten",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_tal_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_autofluor_hepg2_cell_green",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_kf3ct_mcp1_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_luc_mdakb2_antagonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_m_19_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_sag_mig_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_mcsf_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_pe_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_radra1b",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Half_Life_Obach",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_vcam1_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_cd40_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hm3",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_pbrem_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "skin-sens-multiassay",
+      "property": "skin-sens-multiassay/skin_sensitization_multiassay/hclat_usens_ec150",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_nurr1_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_estradiol_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_combined/unnamed:_0",
+      "data_type": "continuous"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/SR-HSE",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/CRUSTACEAN_ECOTOXDB_GEOMEAN_S_AD",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_vdre_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_nuclearsize_72h_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_lipophilicity/label",
+      "data_type": "continuous"
+    },
+    {
+      "source": "pharmabench",
+      "property": "pharmabench/pharmabench_combined/index",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_ar_luc_mdakb2_antagonist2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_tal_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_3c_mig_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_enz_hache",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_rnk1",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_gli_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_gr_trans_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_hdrd2s",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/ClinTox",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_foxa2_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_rxrb_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/tdc_vdss_lombardo/label",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ceetox_h295r_estrone_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/NR-Aromatase",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/Skin_Reaction",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_myb_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_c_ebp_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "admet-huggingface",
+      "property": "admet-huggingface/admet/HydrationFreeEnergy_FreeSolv",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_cellcyclearrest_24h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_rsst",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_m_61_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_tox21/nr_ar",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_hdfcgf_ip10_down",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_p53_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_vdr_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tanguay_zf_120hpf_yse_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_m_19_trans_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/ncct_quantilum_inhib_2_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_pparg_bla_agonist_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/nvs_gpcr_rabpaf",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_bre_cis_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_ap_1_cis_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/bsk_lps_il1a_up",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_era_bla_antagonist_ch2",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_p53_bla_p2_ratio",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/tox21_tr_luc_gh3_antagonist",
+      "data_type": "binary"
+    },
+    {
+      "source": "aquatic-moa-ecotox",
+      "property": "aquatic-moa-ecotox/ecotox_combined/FISH_ECOTOXDB_GEOMEAN_S_AD",
+      "data_type": "continuous"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/apr_hepg2_cellcyclearrest_72h_dn",
+      "data_type": "binary"
+    },
+    {
+      "source": "chempile-tox",
+      "property": "chempile-tox/moleculenet_toxcast/atg_gata_cis_up",
+      "data_type": "binary"
+    }
+  ]
+}

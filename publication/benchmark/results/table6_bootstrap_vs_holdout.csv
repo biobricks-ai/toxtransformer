@@ -1,0 +1,7 @@
+Evaluation,nprops,Mean AUC,N Properties
+Bootstrap (in-sample),1,0.868,5041
+Bootstrap (in-sample),5,0.859,4598
+Bootstrap (in-sample),10,0.891,3553
+Bootstrap (in-sample),20,0.891,3309
+Holdout (out-of-sample),1,0.811,15961
+Holdout (out-of-sample),20,0.816,13885
