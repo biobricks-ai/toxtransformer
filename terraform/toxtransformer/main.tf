@@ -147,9 +147,9 @@ resource "google_compute_instance" "toxtransformer" {
 
   scheduling {
     on_host_maintenance = "TERMINATE"
-    automatic_restart   = false
-    preemptible         = true
-    provisioning_model  = "SPOT"
+    automatic_restart   = true
+    preemptible         = false
+    provisioning_model  = "STANDARD"
   }
 
   metadata = {
@@ -275,4 +275,234 @@ resource "google_compute_instance" "toxtransformer" {
   }
 
   depends_on = [null_resource.docker_build]
+}
+
+# ---------------------------------------------------------------------------
+# Streamlit UI - Cloud Run
+# ---------------------------------------------------------------------------
+
+# Build and push Streamlit Docker image
+resource "null_resource" "streamlit_docker_build" {
+  triggers = {
+    git_commit            = var.git_commit
+    dockerfile            = filesha256("${path.module}/../../Dockerfile.streamlit")
+    streamlit_app         = filesha256("${path.module}/../../streamlit_app.py")
+    streamlit_requirements = filesha256("${path.module}/../../requirements.streamlit.txt")
+  }
+
+  provisioner "local-exec" {
+    working_dir = "${path.module}/../.."
+    command     = <<-EOT
+      set -e
+      gcloud auth configure-docker us-docker.pkg.dev --quiet
+      docker build -f Dockerfile.streamlit -t us-docker.pkg.dev/${var.project_id}/toxindex-backend/toxtransformer-ui:${var.image_tag} .
+      docker push us-docker.pkg.dev/${var.project_id}/toxindex-backend/toxtransformer-ui:${var.image_tag}
+    EOT
+  }
+}
+
+# Cloud Run service for Streamlit
+resource "google_cloud_run_service" "streamlit" {
+  name     = "toxtransformer-ui"
+  location = var.region
+
+  template {
+    spec {
+      containers {
+        image = "us-docker.pkg.dev/${var.project_id}/toxindex-backend/toxtransformer-ui:${var.image_tag}"
+
+        env {
+          name  = "TOXTRANSFORMER_API_URL"
+          value = "http://${google_compute_address.toxtransformer.address}:6515"
+        }
+
+        resources {
+          limits = {
+            cpu    = "2"
+            memory = "2Gi"
+          }
+        }
+      }
+    }
+
+    metadata {
+      annotations = {
+        "autoscaling.knative.dev/maxScale" = "10"
+        "autoscaling.knative.dev/minScale" = "1"
+      }
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+
+  depends_on = [null_resource.streamlit_docker_build]
+}
+
+# IAM binding to allow Load Balancer to invoke Cloud Run
+resource "google_cloud_run_service_iam_member" "streamlit_invoker" {
+  service  = google_cloud_run_service.streamlit.name
+  location = google_cloud_run_service.streamlit.location
+  role     = "roles/run.invoker"
+  member   = "allUsers"  # Will be restricted by IAP at load balancer level
+}
+
+# ---------------------------------------------------------------------------
+# Load Balancer with IAP
+# ---------------------------------------------------------------------------
+
+# Reserve global static IP for load balancer
+resource "google_compute_global_address" "lb" {
+  name = "toxtransformer-lb-ip"
+}
+
+# SSL certificate (using Google-managed cert)
+resource "google_compute_managed_ssl_certificate" "default" {
+  name = "toxtransformer-cert"
+
+  managed {
+    domains = ["toxtransformer.toxindex.com"]
+  }
+}
+
+# Backend service for Streamlit (Cloud Run)
+resource "google_compute_backend_service" "streamlit" {
+  name                  = "toxtransformer-ui-backend"
+  port_name             = "http"
+  protocol              = "HTTP"
+  timeout_sec           = 30
+  enable_cdn            = false
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+
+  backend {
+    group = google_compute_region_network_endpoint_group.streamlit.id
+  }
+
+  iap {
+    oauth2_client_id     = var.iap_client_id
+    oauth2_client_secret = var.iap_client_secret
+  }
+}
+
+# Network Endpoint Group for Cloud Run
+resource "google_compute_region_network_endpoint_group" "streamlit" {
+  name                  = "toxtransformer-ui-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+
+  cloud_run {
+    service = google_cloud_run_service.streamlit.name
+  }
+}
+
+# Backend service for API (GCE instance)
+resource "google_compute_backend_service" "api" {
+  name                  = "toxtransformer-api-backend"
+  port_name             = "http"
+  protocol              = "HTTP"
+  timeout_sec           = 120
+  enable_cdn            = false
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+
+  backend {
+    group = google_compute_instance_group.api.id
+  }
+
+  health_check = [google_compute_health_check.api.id]
+
+  iap {
+    oauth2_client_id     = var.iap_client_id
+    oauth2_client_secret = var.iap_client_secret
+  }
+}
+
+# Instance group for GCE instance
+resource "google_compute_instance_group" "api" {
+  name      = "toxtransformer-api-group"
+  zone      = var.zone
+  instances = [google_compute_instance.toxtransformer.self_link]
+
+  named_port {
+    name = "http"
+    port = 6515
+  }
+}
+
+# Health check for API
+resource "google_compute_health_check" "api" {
+  name               = "toxtransformer-api-health"
+  check_interval_sec = 10
+  timeout_sec        = 5
+
+  http_health_check {
+    port         = 6515
+    request_path = "/health"
+  }
+}
+
+# URL map for routing
+resource "google_compute_url_map" "default" {
+  name            = "toxtransformer-lb"
+  default_service = google_compute_backend_service.streamlit.id
+
+  host_rule {
+    hosts        = ["toxtransformer.toxindex.com"]
+    path_matcher = "main"
+  }
+
+  path_matcher {
+    name            = "main"
+    default_service = google_compute_backend_service.streamlit.id
+
+    path_rule {
+      paths   = ["/api/*", "/predict_all", "/jobs", "/jobs/*", "/health"]
+      service = google_compute_backend_service.api.id
+    }
+  }
+}
+
+# HTTP to HTTPS redirect
+resource "google_compute_url_map" "https_redirect" {
+  name = "toxtransformer-https-redirect"
+
+  default_url_redirect {
+    https_redirect         = true
+    redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+    strip_query            = false
+  }
+}
+
+# Target HTTPS proxy
+resource "google_compute_target_https_proxy" "default" {
+  name             = "toxtransformer-https-proxy"
+  url_map          = google_compute_url_map.default.id
+  ssl_certificates = [google_compute_managed_ssl_certificate.default.id]
+}
+
+# Target HTTP proxy for redirect
+resource "google_compute_target_http_proxy" "https_redirect" {
+  name    = "toxtransformer-http-proxy"
+  url_map = google_compute_url_map.https_redirect.id
+}
+
+# Global forwarding rule for HTTPS
+resource "google_compute_global_forwarding_rule" "https" {
+  name                  = "toxtransformer-https"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  port_range            = "443"
+  target                = google_compute_target_https_proxy.default.id
+  ip_address            = google_compute_global_address.lb.id
+}
+
+# Global forwarding rule for HTTP (redirect to HTTPS)
+resource "google_compute_global_forwarding_rule" "http" {
+  name                  = "toxtransformer-http"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  port_range            = "80"
+  target                = google_compute_target_http_proxy.https_redirect.id
+  ip_address            = google_compute_global_address.lb.id
 }

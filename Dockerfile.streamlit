@@ -1,0 +1,24 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies for RDKit
+RUN apt-get update && apt-get install -y \
+    libxrender1 \
+    libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.streamlit.txt .
+RUN pip install --no-cache-dir -r requirements.streamlit.txt
+
+# Copy app
+COPY streamlit_app.py .
+
+# Streamlit config
+RUN mkdir -p ~/.streamlit && \
+    echo '[server]\nheadless = true\nport = 8080\nenableCORS = false\nenableXsrfProtection = false\n[browser]\ngatherUsageStats = false' > ~/.streamlit/config.toml
+
+EXPOSE 8080
+
+CMD ["streamlit", "run", "streamlit_app.py", "--server.port=8080", "--server.address=0.0.0.0"]

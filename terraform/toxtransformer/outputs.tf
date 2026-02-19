@@ -27,3 +27,18 @@ output "labels" {
   description = "Resource labels for traceability"
   value       = local.common_labels
 }
+
+output "load_balancer_ip" {
+  description = "Load balancer IP address (point toxtransformer.toxindex.com DNS A record here)"
+  value       = google_compute_global_address.lb.address
+}
+
+output "streamlit_url" {
+  description = "Streamlit UI URL (via load balancer)"
+  value       = "https://toxtransformer.toxindex.com"
+}
+
+output "cloud_run_url" {
+  description = "Direct Cloud Run URL (for debugging)"
+  value       = google_cloud_run_service.streamlit.status[0].url
+}

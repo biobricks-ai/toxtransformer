@@ -62,3 +62,15 @@ variable "data_bucket" {
   type        = string
   default     = "toxtransformer-data"
 }
+
+variable "iap_client_id" {
+  description = "OAuth 2.0 client ID for IAP"
+  type        = string
+  sensitive   = true
+}
+
+variable "iap_client_secret" {
+  description = "OAuth 2.0 client secret for IAP"
+  type        = string
+  sensitive   = true
+}
