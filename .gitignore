@@ -19,3 +19,4 @@ notes.md
 *.log
 *.pem
 .aws/secrets/*
+pdaa/cache/
