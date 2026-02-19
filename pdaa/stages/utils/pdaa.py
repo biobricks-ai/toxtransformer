@@ -114,10 +114,8 @@ def predict_all_properties_with_sqlite_cache(inchi_list):
     
     # Get predictions for missing InChIs from API
     for inchi in missing_inchi:
-        try:
-            preds.extend(chemprop.chemprop_predict_all(inchi))
-        except Exception as e:
-            raise Exception(f"unable to open database file")  # Match original error for now
+        api_preds = chemprop.chemprop_predict_all(inchi)
+        preds.extend(api_preds)
     
     # Convert to format for database
     preds_db = [(fullpred['inchi'], int(fullpred['property_token']), fullpred['value']) for fullpred in preds]

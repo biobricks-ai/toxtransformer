@@ -5,30 +5,14 @@ import stages.utils.simple_cache as simple_cache
 import pathlib
 import pandas as pd
 import json
-import os
 dotenv.load_dotenv()
 
 cache_dir = pathlib.Path('cache/util/openai') / 'cache'
 cache_dir.mkdir(parents=True, exist_ok=True)
 
-# Lazy client initialization - only create when actually needed
-_client = None
-
-def _get_client():
-    global _client
-    if _client is None:
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            raise ValueError(
-                "OpenAI API key not set. Set OPENAI_API_KEY environment variable "
-                "to use semantic search features."
-            )
-        _client = openai.OpenAI(api_key=api_key)
-    return _client
-
+client = openai.OpenAI()
 @simple_cache.simple_cache(cache_dir / 'embed')
 def embed(text):
-    client = _get_client()
     return client.embeddings.create(input=text, model="text-embedding-3-large").data[0].embedding
 
 @simple_cache.simple_cache(cache_dir / 'rerank')
@@ -71,7 +55,6 @@ For each item, assign a strength score from 1-10 where:
 Items to evaluate:
 {chr(10).join(values)}"""
 
-    client = _get_client()
     response = client.chat.completions.create(
         model="gpt-4o-2024-08-06",
         response_format={
@@ -137,7 +120,6 @@ Available Assays:
 
 For each assay, rate how well it measures this MIE and explain your reasoning."""
 
-    client = _get_client()
     response = client.chat.completions.create(
         model="gpt-4",
         response_format={
