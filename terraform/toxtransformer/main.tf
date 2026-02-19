@@ -410,7 +410,7 @@ resource "google_compute_backend_service" "api" {
     group = google_compute_instance_group.api.id
   }
 
-  health_check = [google_compute_health_check.api.id]
+  health_checks = [google_compute_health_check.api.id]
 
   iap {
     oauth2_client_id     = var.iap_client_id
