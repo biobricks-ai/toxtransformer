@@ -1,0 +1,40 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.pdaa.txt .
+RUN pip install --no-cache-dir -r requirements.pdaa.txt
+
+# Copy PDAA application code
+COPY pdaa/stages /app/stages
+COPY pdaa/streamlit /app/streamlit
+
+# Copy all necessary cache directories
+RUN mkdir -p /app/cache/notebooks/pdaa /app/cache/util/pdaa /app/cache/associate_properties_with_aopwiki
+
+# Prediction cache (329MB)
+COPY pdaa/cache/notebooks/pdaa /app/cache/notebooks/pdaa
+
+# FAISS index and ontology data (203MB)
+COPY pdaa/cache/associate_properties_with_aopwiki /app/cache/associate_properties_with_aopwiki
+
+# Cached SPARQL queries (412KB)
+COPY pdaa/cache/util/pdaa/pdaa_graph /app/cache/util/pdaa/pdaa_graph
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Set API URL
+ENV TOXTRANSFORMER_API_URL=https://toxtransformer.toxindex.com
+
+# Expose port
+EXPOSE 8080
+
+# Run Streamlit
+CMD ["streamlit", "run", "streamlit/streamlit-app.py", "--server.port=8080", "--server.address=0.0.0.0", "--server.enableCORS=false", "--server.enableXsrfProtection=false", "--server.baseUrlPath=/pdaa"]

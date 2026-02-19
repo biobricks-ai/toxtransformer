@@ -1,0 +1,64 @@
+{
+    "examples": [
+      {
+        "title": "Common Phthalates - Endocrine Disruption",
+        "description": "Compare endocrine disrupting effects across major phthalate plasticizers",
+        "chemicals": "DEHP:bis(2-ethylhexyl) phthalate\nDIUP:diisoundecyl phthalate\nDTDP:ditridecyl phthalate\nDIDP:diisodecyl phthalate\nDINP:diisononyl phthalate",
+        "prompt": "endocrine disruption"
+      },
+      {
+        "title": "Common Food Additives - Metabolic Effects",
+        "description": "Examine metabolic impacts of common food preservatives and sweeteners",
+        "chemicals": "sucrose\naspartame\nsorbitol\nsodium benzoate\npotassium sorbate",
+        "prompt": "metabolic disorder"
+      },
+      {
+        "title": "Industrial Solvents - Neurotoxicity",
+        "description": "Compare neurotoxic potential of common industrial solvents",
+        "chemicals": "toluene\nbenzene\nxylene\nethylbenzene\ntrichloroethylene",
+        "prompt": "neurotoxicity"
+      },
+      {
+        "title": "Heavy Metals - Developmental Effects",
+        "description": "Assess developmental toxicity of common heavy metals",
+        "chemicals": "lead acetate\nmercuric chloride\ncadmium chloride\narsenic trioxide\nchromium trioxide",
+        "prompt": "developmental toxicity"
+      },
+      {
+        "title": "Pesticides - Reproductive Effects",
+        "description": "Compare reproductive toxicity of different pesticide classes",
+        "chemicals": "DDT\natrazine\nglyphosate\nchlorpyrifos\nmalathion",
+        "prompt": "reproductive toxicity"
+      },
+      {
+        "title": "Flame Retardants - Thyroid Effects",
+        "description": "Examine thyroid disruption by common flame retardants",
+        "chemicals": "TBBPA:tetrabromobisphenol A\nTCEP:tris(2-chloroethyl) phosphate\nTDCPP:tris(1,3-dichloro-2-propyl) phosphate\nHBCD:1,2,5,6,9,10-Hexabromocyclododecane\nPBDE 209:Decabromodiphenyl oxide",
+        "prompt": "thyroid disruption"
+      },
+      {
+        "title": "Cosmetic Preservatives - Skin Sensitization",
+        "description": "Evaluate skin sensitization potential of common cosmetic preservatives",
+        "chemicals": "methylparaben\npropylparaben\nformaldehyde\nphenoxyethanol\nmethylisothiazolinone",
+        "prompt": "skin sensitization"
+      },
+      {
+        "title": "Air Pollutants - Respiratory Effects",
+        "description": "Compare respiratory toxicity of common air pollutants",
+        "chemicals": "nitrogen dioxide\nsulfur dioxide\nformaldehyde\ncarbon monoxide\nhydrogen cyanide",
+        "prompt": "respiratory toxicity"
+      },
+      {
+        "title": "Plasticizers - Liver Toxicity",
+        "description": "Assess hepatotoxic potential of various plasticizers",
+        "chemicals": "BPA:bisphenol A\nDEHP:bis(2-ethylhexyl) phthalate\nDEHA:bis(2-ethylhexyl) adipate\nBBP:benzyl butyl phthalate\nDINP:diisononyl phthalate",
+        "prompt": "liver toxicity"
+      },
+      {
+        "title": "Household Chemicals - Acute Toxicity",
+        "description": "Examine acute toxicity of common household chemicals",
+        "chemicals": "sodium hypochlorite\nammonia\nhydrogen peroxide\nethylene glycol\nisopropyl alcohol",
+        "prompt": "acute toxicity"
+      }
+    ]
+  }
