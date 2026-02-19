@@ -1,0 +1,852 @@
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_ahr_cis_up (AUC=0.95) ===
+|--- token_1920 <= 0.130
+|   |--- class: 0
+|--- token_1920 >  0.130
+|   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_vdre_cis_up (AUC=0.8) ===
+|--- token_1967 <= 0.500
+|   |--- class: 0
+|--- token_1967 >  0.500
+|   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/tox21_ar_luc_mdakb2_antagonist (AUC=0.7) ===
+|--- token_1494 <= 0.298
+|   |--- class: 0
+|--- token_1494 >  0.298
+|   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/mortality (AUC=0.8) ===
+|--- token_3455 <= 0.090
+|   |--- class: 0
+|--- token_3455 >  0.090
+|   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/activity_score (AUC=0.936) ===
+|--- token_3418 <= 0.124
+|   |--- class: 0
+|--- token_3418 >  0.124
+|   |--- token_3418 <= 0.835
+|   |   |--- class: 1
+|   |--- token_3418 >  0.835
+|   |   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/jaw (AUC=0.92) ===
+|--- token_3492 <= 0.136
+|   |--- class: 0
+|--- token_3492 >  0.136
+|   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/yolk_sac_edema (AUC=0.92) ===
+|--- token_3487 <= 0.563
+|   |--- class: 0
+|--- token_3487 >  0.563
+|   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/pericardial_edema (AUC=0.95) ===
+|--- token_3489 <= 0.352
+|   |--- class: 0
+|--- token_3489 >  0.352
+|   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/axis (AUC=0.855) ===
+|--- token_3490 <= 0.120
+|   |--- class: 0
+|--- token_3490 >  0.120
+|   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/pectoral_fin (AUC=0.8667) ===
+|--- token_3492 <= 0.117
+|   |--- class: 0
+|--- token_3492 >  0.117
+|   |--- token_3492 <= 0.621
+|   |   |--- class: 1
+|   |--- token_3492 >  0.621
+|   |   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/snout (AUC=0.855) ===
+|--- token_3492 <= 0.552
+|   |--- class: 0
+|--- token_3492 >  0.552
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp2d6_testing/label (AUC=0.9) ===
+|--- token_1869 <= 0.307
+|   |--- class: 0
+|--- token_1869 >  0.307
+|   |--- token_2295 <= 0.262
+|   |   |--- class: 0
+|   |--- token_2295 >  0.262
+|   |   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/caudal_fin (AUC=0.85) ===
+|--- token_3490 <= 0.103
+|   |--- class: 0
+|--- token_3490 >  0.103
+|   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/somite (AUC=0.8167) ===
+|--- token_3490 <= 0.118
+|   |--- class: 0
+|--- token_3490 >  0.118
+|   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/tox21_tr_luc_gh3_antagonist (AUC=0.85) ===
+|--- token_1416 <= 0.568
+|   |--- token_1673 <= 0.431
+|   |   |--- class: 0
+|   |--- token_1673 >  0.431
+|   |   |--- class: 0
+|--- token_1416 >  0.568
+|   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/tox21_aromatase_inhibition (AUC=0.6) ===
+|--- token_1254 <= 0.844
+|   |--- token_2549 <= 0.085
+|   |   |--- class: 0
+|   |--- token_2549 >  0.085
+|   |   |--- class: 0
+|--- token_1254 >  0.844
+|   |--- class: 1
+
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/touch_response (AUC=0.8667) ===
+|--- token_3418 <= 0.201
+|   |--- class: 0
+|--- token_3418 >  0.201
+|   |--- token_3487 <= 0.531
+|   |   |--- class: 0
+|   |--- token_3487 >  0.531
+|   |   |--- token_3418 <= 0.923
+|   |   |   |--- class: 1
+|   |   |--- token_3418 >  0.923
+|   |   |   |--- class: 1
+
+
+=== pharmabench||pharmabench/pharmabench_bbb_penetration/value (AUC=0.8312) ===
+|--- token_2517 <= 0.244
+|   |--- class: 0
+|--- token_2517 >  0.244
+|   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/ototoxicity_confident_ternary_rating_0_1 (AUC=0.7) ===
+|--- token_2922 <= 0.889
+|   |--- class: 0
+|--- token_2922 >  0.889
+|   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_ap_1_cis_up (AUC=0.8) ===
+|--- token_1936 <= 0.207
+|   |--- class: 0
+|--- token_1936 >  0.207
+|   |--- token_1359 <= 0.094
+|   |   |--- class: 1
+|   |--- token_1359 >  0.094
+|   |   |--- class: 1
+
+
+=== tdc-dili||tdc-dili/dili/dili_positive (AUC=0.7) ===
+|--- token_2926 <= 0.806
+|   |--- class: 0
+|--- token_2926 >  0.806
+|   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_pxr_trans_up (AUC=0.75) ===
+|--- token_1956 <= 0.371
+|   |--- class: 0
+|--- token_1956 >  0.371
+|   |--- token_1956 <= 0.918
+|   |   |--- class: 1
+|   |--- token_1956 >  0.918
+|   |   |--- class: 1
+
+
+=== admet-huggingface||admet-huggingface/admet/DILI (AUC=0.6333) ===
+|--- token_2926 <= 0.806
+|   |--- class: 0
+|--- token_2926 >  0.806
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp2d6_combined/label (AUC=0.808) ===
+|--- token_1585 <= 0.234
+|   |--- token_1585 <= 0.187
+|   |   |--- token_1869 <= 0.104
+|   |   |   |--- class: 0
+|   |   |--- token_1869 >  0.104
+|   |   |   |--- class: 0
+|   |--- token_1585 >  0.187
+|   |   |--- class: 0
+|--- token_1585 >  0.234
+|   |--- token_1869 <= 0.558
+|   |   |--- token_1869 <= 0.253
+|   |   |   |--- class: 1
+|   |   |--- token_1869 >  0.253
+|   |   |   |--- class: 1
+|   |--- token_1869 >  0.558
+|   |   |--- token_1869 <= 0.779
+|   |   |   |--- class: 1
+|   |   |--- token_1869 >  0.779
+|   |   |   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_ere_cis_up (AUC=0.45) ===
+|--- token_1910 <= 0.111
+|   |--- class: 0
+|--- token_1910 >  0.111
+|   |--- token_1910 <= 0.188
+|   |   |--- class: 1
+|   |--- token_1910 >  0.188
+|   |   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_hse_cis_up (AUC=0.6) ===
+|--- token_2454 <= 0.090
+|   |--- class: 0
+|--- token_2454 >  0.090
+|   |--- token_2454 <= 0.347
+|   |   |--- class: 0
+|   |--- token_2454 >  0.347
+|   |   |--- class: 1
+
+
+=== ames-benchmark||ames-benchmark/ames_compounds/ames_class (AUC=0.801) ===
+|--- token_1799 <= 0.338
+|   |--- token_2863 <= 0.147
+|   |   |--- token_1799 <= 0.138
+|   |   |   |--- class: 0
+|   |   |--- token_1799 >  0.138
+|   |   |   |--- class: 0
+|   |--- token_2863 >  0.147
+|   |   |--- class: 0
+|--- token_1799 >  0.338
+|   |--- token_3830 <= 0.686
+|   |   |--- token_1799 <= 0.697
+|   |   |   |--- class: 0
+|   |   |--- token_1799 >  0.697
+|   |   |   |--- class: 1
+|   |--- token_3830 >  0.686
+|   |   |--- token_2508 <= 0.886
+|   |   |   |--- class: 1
+|   |   |--- token_2508 >  0.886
+|   |   |   |--- class: 1
+
+
+=== admet-huggingface||admet-huggingface/admet/AMES (AUC=0.7739) ===
+|--- token_2863 <= 0.135
+|   |--- token_1799 <= 0.191
+|   |   |--- token_2508 <= 0.564
+|   |   |   |--- class: 0
+|   |   |--- token_2508 >  0.564
+|   |   |   |--- class: 0
+|   |--- token_1799 >  0.191
+|   |   |--- class: 0
+|--- token_2863 >  0.135
+|   |--- token_1799 <= 0.622
+|   |   |--- token_3830 <= 0.719
+|   |   |   |--- class: 0
+|   |   |--- token_3830 >  0.719
+|   |   |   |--- class: 1
+|   |--- token_1799 >  0.622
+|   |   |--- token_2863 <= 0.883
+|   |   |   |--- class: 1
+|   |   |--- token_2863 >  0.883
+|   |   |   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp1a2_training/label (AUC=0.7937) ===
+|--- token_1270 <= 0.434
+|   |--- token_1270 <= 0.164
+|   |   |--- token_1270 <= 0.090
+|   |   |   |--- class: 0
+|   |   |--- token_1270 >  0.090
+|   |   |   |--- class: 0
+|   |--- token_1270 >  0.164
+|   |   |--- token_5815 <= 0.225
+|   |   |   |--- class: 1
+|   |   |--- token_5815 >  0.225
+|   |   |   |--- class: 0
+|--- token_1270 >  0.434
+|   |--- token_5808 <= 0.102
+|   |   |--- class: 1
+|   |--- token_5808 >  0.102
+|   |   |--- token_5808 <= 0.444
+|   |   |   |--- class: 1
+|   |   |--- token_5808 >  0.444
+|   |   |   |--- class: 1
+
+
+=== carcinogens-lagunin||carcinogens-lagunin/carcinogens_lagunin/label (AUC=0.6444) ===
+|--- token_3128 <= 0.492
+|   |--- token_3128 <= 0.089
+|   |   |--- class: 0
+|   |--- token_3128 >  0.089
+|   |   |--- token_3574 <= 0.197
+|   |   |   |--- class: 1
+|   |   |--- token_3574 >  0.197
+|   |   |   |--- class: 0
+|--- token_3128 >  0.492
+|   |--- token_3574 <= 0.866
+|   |   |--- class: 1
+|   |--- token_3574 >  0.866
+|   |   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/tdc_carcinogens_lagunin/label (AUC=0.6444) ===
+|--- token_3128 <= 0.492
+|   |--- token_3128 <= 0.089
+|   |   |--- class: 0
+|   |--- token_3128 >  0.089
+|   |   |--- token_3574 <= 0.197
+|   |   |   |--- class: 1
+|   |   |--- token_3574 >  0.197
+|   |   |   |--- class: 0
+|--- token_3128 >  0.492
+|   |--- token_3574 <= 0.866
+|   |   |--- class: 1
+|   |--- token_3574 >  0.866
+|   |   |--- class: 1
+
+
+=== admet-huggingface||admet-huggingface/admet/hERG (AUC=0.7358) ===
+|--- token_1866 <= 0.220
+|   |--- token_2105 <= 0.461
+|   |   |--- token_1866 <= 0.082
+|   |   |   |--- class: 0
+|   |   |--- token_1866 >  0.082
+|   |   |   |--- class: 0
+|   |--- token_2105 >  0.461
+|   |   |--- class: 1
+|--- token_1866 >  0.220
+|   |--- token_1866 <= 0.556
+|   |   |--- class: 1
+|   |--- token_1866 >  0.556
+|   |   |--- token_2105 <= 0.886
+|   |   |   |--- class: 1
+|   |   |--- token_2105 >  0.886
+|   |   |   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/tdc_ames/label (AUC=0.7468) ===
+|--- token_1799 <= 0.267
+|   |--- token_3830 <= 0.213
+|   |   |--- token_1799 <= 0.123
+|   |   |   |--- class: 0
+|   |   |--- token_1799 >  0.123
+|   |   |   |--- class: 0
+|   |--- token_3830 >  0.213
+|   |   |--- class: 0
+|--- token_1799 >  0.267
+|   |--- token_1799 <= 0.623
+|   |   |--- token_3830 <= 0.456
+|   |   |   |--- class: 0
+|   |   |--- token_3830 >  0.456
+|   |   |   |--- class: 1
+|   |--- token_1799 >  0.623
+|   |   |--- token_2863 <= 0.850
+|   |   |   |--- class: 1
+|   |   |--- token_2863 >  0.850
+|   |   |   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp2d6_training/label (AUC=0.7394) ===
+|--- token_1585 <= 0.182
+|   |--- token_1869 <= 0.091
+|   |   |--- class: 0
+|   |--- token_1869 >  0.091
+|   |   |--- token_2295 <= 0.188
+|   |   |   |--- class: 0
+|   |   |--- token_2295 >  0.188
+|   |   |   |--- class: 0
+|--- token_1585 >  0.182
+|   |--- token_1869 <= 0.538
+|   |   |--- token_1869 <= 0.181
+|   |   |   |--- class: 0
+|   |   |--- token_1869 >  0.181
+|   |   |   |--- class: 1
+|   |--- token_1869 >  0.538
+|   |   |--- token_1869 <= 0.747
+|   |   |   |--- class: 1
+|   |   |--- token_1869 >  0.747
+|   |   |   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_era_trans_up (AUC=0.55) ===
+|--- token_1910 <= 0.116
+|   |--- class: 0
+|--- token_1910 >  0.116
+|   |--- token_1933 <= 0.425
+|   |   |--- class: 1
+|   |--- token_1933 >  0.425
+|   |   |--- class: 0
+
+
+=== admet-huggingface||admet-huggingface/admet/HIA_Hou (AUC=0.6956) ===
+|--- token_2504 <= 0.646
+|   |--- class: 0
+|--- token_2504 >  0.646
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp1a2_combined/label (AUC=0.7817) ===
+|--- token_1270 <= 0.172
+|   |--- token_5411 <= 0.277
+|   |   |--- class: 0
+|   |--- token_5411 >  0.277
+|   |   |--- class: 0
+|--- token_1270 >  0.172
+|   |--- token_1270 <= 0.406
+|   |   |--- token_1270 <= 0.227
+|   |   |   |--- class: 1
+|   |   |--- token_1270 >  0.227
+|   |   |   |--- class: 0
+|   |--- token_1270 >  0.406
+|   |   |--- token_5815 <= 0.131
+|   |   |   |--- class: 1
+|   |   |--- token_5815 >  0.131
+|   |   |   |--- class: 1
+
+
+=== pharmabench||pharmabench/pharmabench_ames_toxicity/value (AUC=0.7477) ===
+|--- token_1799 <= 0.528
+|   |--- token_3830 <= 0.181
+|   |   |--- token_2863 <= 0.124
+|   |   |   |--- class: 0
+|   |   |--- token_2863 >  0.124
+|   |   |   |--- class: 0
+|   |--- token_3830 >  0.181
+|   |   |--- token_2863 <= 0.181
+|   |   |   |--- class: 0
+|   |   |--- token_2863 >  0.181
+|   |   |   |--- class: 1
+|--- token_1799 >  0.528
+|   |--- token_3830 <= 0.671
+|   |   |--- class: 1
+|   |--- token_3830 >  0.671
+|   |   |--- class: 1
+
+
+=== ames-benchmark||ames-benchmark/ames_cv_splits/ames_class (AUC=0.7402) ===
+|--- token_2863 <= 0.147
+|   |--- token_1799 <= 0.254
+|   |   |--- token_1799 <= 0.136
+|   |   |   |--- class: 0
+|   |   |--- token_1799 >  0.136
+|   |   |   |--- class: 0
+|   |--- token_1799 >  0.254
+|   |   |--- class: 0
+|--- token_2863 >  0.147
+|   |--- token_3830 <= 0.342
+|   |   |--- class: 0
+|   |--- token_3830 >  0.342
+|   |   |--- token_2508 <= 0.880
+|   |   |   |--- class: 1
+|   |   |--- token_2508 >  0.880
+|   |   |   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp3a4_combined/label (AUC=0.7249) ===
+|--- token_1521 <= 0.188
+|   |--- token_1521 <= 0.117
+|   |   |--- class: 0
+|   |--- token_1521 >  0.117
+|   |   |--- class: 0
+|--- token_1521 >  0.188
+|   |--- token_2138 <= 0.771
+|   |   |--- token_1148 <= 0.277
+|   |   |   |--- class: 0
+|   |   |--- token_1148 >  0.277
+|   |   |   |--- class: 1
+|   |--- token_2138 >  0.771
+|   |   |--- token_1521 <= 0.717
+|   |   |   |--- class: 1
+|   |   |--- token_1521 >  0.717
+|   |   |   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp2c19_combined/label (AUC=0.7033) ===
+|--- token_702 <= 0.185
+|   |--- token_2290 <= 0.443
+|   |   |--- token_1576 <= 0.255
+|   |   |   |--- class: 0
+|   |   |--- token_1576 >  0.255
+|   |   |   |--- class: 0
+|   |--- token_2290 >  0.443
+|   |   |--- token_702 <= 0.133
+|   |   |   |--- class: 0
+|   |   |--- token_702 >  0.133
+|   |   |   |--- class: 1
+|--- token_702 >  0.185
+|   |--- token_1576 <= 0.712
+|   |   |--- token_2290 <= 0.746
+|   |   |   |--- class: 0
+|   |   |--- token_2290 >  0.746
+|   |   |   |--- class: 1
+|   |--- token_1576 >  0.712
+|   |   |--- token_2290 <= 0.867
+|   |   |   |--- class: 1
+|   |   |--- token_2290 >  0.867
+|   |   |   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp2c19_training/label (AUC=0.7448) ===
+|--- token_702 <= 0.234
+|   |--- token_2290 <= 0.343
+|   |   |--- token_1576 <= 0.269
+|   |   |   |--- class: 0
+|   |   |--- token_1576 >  0.269
+|   |   |   |--- class: 0
+|   |--- token_2290 >  0.343
+|   |   |--- token_702 <= 0.135
+|   |   |   |--- class: 0
+|   |   |--- token_702 >  0.135
+|   |   |   |--- class: 1
+|--- token_702 >  0.234
+|   |--- token_702 <= 0.334
+|   |   |--- class: 1
+|   |--- token_702 >  0.334
+|   |   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/tdc_pgp_broccatelli/label (AUC=0.6944) ===
+|--- token_4437 <= 0.342
+|   |--- token_4437 <= 0.118
+|   |   |--- class: 0
+|   |--- token_4437 >  0.118
+|   |   |--- class: 0
+|--- token_4437 >  0.342
+|   |--- token_2857 <= 0.248
+|   |   |--- class: 1
+|   |--- token_2857 >  0.248
+|   |   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/liver_toxicity_confident_ternary_rating_0_1 (AUC=0.6816) ===
+|--- token_2926 <= 0.218
+|   |--- class: 0
+|--- token_2926 >  0.218
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp3a4_training/label (AUC=0.7231) ===
+|--- token_1521 <= 0.322
+|   |--- token_1521 <= 0.147
+|   |   |--- token_2138 <= 0.208
+|   |   |   |--- class: 0
+|   |   |--- token_2138 >  0.208
+|   |   |   |--- class: 0
+|   |--- token_1521 >  0.147
+|   |   |--- token_2138 <= 0.507
+|   |   |   |--- class: 0
+|   |   |--- token_2138 >  0.507
+|   |   |   |--- class: 1
+|--- token_1521 >  0.322
+|   |--- token_2138 <= 0.829
+|   |   |--- token_1864 <= 0.780
+|   |   |   |--- class: 1
+|   |   |--- token_1864 >  0.780
+|   |   |   |--- class: 0
+|   |--- token_2138 >  0.829
+|   |   |--- token_2138 <= 0.917
+|   |   |   |--- class: 1
+|   |   |--- token_2138 >  0.917
+|   |   |   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_nrf2_are_cis_up (AUC=0.6) ===
+|--- token_1614 <= 0.105
+|   |--- class: 0
+|--- token_1614 >  0.105
+|   |--- token_2509 <= 0.643
+|   |   |--- class: 1
+|   |--- token_2509 >  0.643
+|   |   |--- class: 1
+
+
+=== admet-huggingface||admet-huggingface/admet/Pgp_Broccatelli (AUC=0.6966) ===
+|--- token_4437 <= 0.342
+|   |--- token_1247 <= 0.107
+|   |   |--- class: 0
+|   |--- token_1247 >  0.107
+|   |   |--- class: 0
+|--- token_4437 >  0.342
+|   |--- token_1247 <= 0.106
+|   |   |--- class: 0
+|   |--- token_1247 >  0.106
+|   |   |--- class: 1
+
+
+=== admet-huggingface||admet-huggingface/admet/Carcinogens_Lagunin (AUC=0.6556) ===
+|--- token_3191 <= 0.145
+|   |--- token_2881 <= 0.089
+|   |   |--- class: 0
+|   |--- token_2881 >  0.089
+|   |   |--- token_3291 <= 0.095
+|   |   |   |--- class: 1
+|   |   |--- token_3291 >  0.095
+|   |   |   |--- class: 0
+|--- token_3191 >  0.145
+|   |--- token_3574 <= 0.734
+|   |   |--- class: 1
+|   |--- token_3574 >  0.734
+|   |   |--- token_3291 <= 0.901
+|   |   |   |--- class: 0
+|   |   |--- token_3291 >  0.901
+|   |   |   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/tdc_hia_hou/label (AUC=0.6422) ===
+|--- token_2504 <= 0.204
+|   |--- class: 0
+|--- token_2504 >  0.204
+|   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/liver_toxicity_binary_rating_0_1 (AUC=0.6369) ===
+|--- token_2926 <= 0.688
+|   |--- class: 0
+|--- token_2926 >  0.688
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp1a2_testing/label (AUC=0.6) ===
+|--- token_5815 <= 0.744
+|   |--- token_1270 <= 0.177
+|   |   |--- class: 0
+|   |--- token_1270 >  0.177
+|   |   |--- token_5808 <= 0.299
+|   |   |   |--- class: 1
+|   |   |--- token_5808 >  0.299
+|   |   |   |--- class: 0
+|--- token_5815 >  0.744
+|   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/hematological_confident_ternary_rating_0_1 (AUC=0.6146) ===
+|--- token_2909 <= 0.712
+|   |--- class: 0
+|--- token_2909 >  0.712
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp3a4_testing/label (AUC=0.6129) ===
+|--- token_1148 <= 0.413
+|   |--- token_2138 <= 0.747
+|   |   |--- token_1864 <= 0.194
+|   |   |   |--- class: 0
+|   |   |--- token_1864 >  0.194
+|   |   |   |--- class: 0
+|   |--- token_2138 >  0.747
+|   |   |--- token_1148 <= 0.164
+|   |   |   |--- class: 0
+|   |   |--- token_1148 >  0.164
+|   |   |   |--- class: 1
+|--- token_1148 >  0.413
+|   |--- token_1148 <= 0.687
+|   |   |--- class: 1
+|   |--- token_1148 >  0.687
+|   |   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/hematological_binary_rating_0_1 (AUC=0.6038) ===
+|--- token_2909 <= 0.476
+|   |--- class: 0
+|--- token_2909 >  0.476
+|   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/ototoxicity_binary_rating_0_1 (AUC=0.585) ===
+|--- token_2922 <= 0.894
+|   |--- class: 0
+|--- token_2922 >  0.894
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp2c19_testing/label (AUC=0.725) ===
+|--- token_702 <= 0.159
+|   |--- class: 0
+|--- token_702 >  0.159
+|   |--- token_702 <= 0.305
+|   |   |--- class: 1
+|   |--- token_702 >  0.305
+|   |   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/renal_toxicity_binary_rating_0_1 (AUC=0.5528) ===
+|--- token_2930 <= 0.458
+|   |--- class: 0
+|--- token_2930 >  0.458
+|   |--- class: 1
+
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_pxre_cis_up (AUC=0.4083) ===
+|--- token_1907 <= 0.153
+|   |--- token_1956 <= 0.081
+|   |   |--- token_2511 <= 0.076
+|   |   |   |--- class: 0
+|   |   |--- token_2511 >  0.076
+|   |   |   |--- class: 1
+|   |--- token_1956 >  0.081
+|   |   |--- class: 0
+|--- token_1907 >  0.153
+|   |--- token_1907 <= 0.925
+|   |   |--- token_1956 <= 0.280
+|   |   |   |--- class: 1
+|   |   |--- token_1956 >  0.280
+|   |   |   |--- class: 1
+|   |--- token_1907 >  0.925
+|   |   |--- class: 0
+
+
+=== unitox||unitox/unitox_small_molecules/renal_toxicity_confident_ternary_rating_0_1 (AUC=0.6) ===
+|--- token_2930 <= 0.924
+|   |--- class: 0
+|--- token_2930 >  0.924
+|   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/cardio_toxicity_confident_ternary_rating_0_1 (AUC=0.5269) ===
+|--- token_2913 <= 0.903
+|   |--- class: 0
+|--- token_2913 >  0.903
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp2c9_testing/label (AUC=0.425) ===
+|--- token_701 <= 0.309
+|   |--- token_1854 <= 0.210
+|   |   |--- class: 1
+|   |--- token_1854 >  0.210
+|   |   |--- class: 0
+|--- token_701 >  0.309
+|   |--- token_2219 <= 0.924
+|   |   |--- class: 1
+|   |--- token_2219 >  0.924
+|   |   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/pulmonary_toxicity_confident_ternary_rating_0_1 (AUC=0.5997) ===
+|--- token_2927 <= 0.903
+|   |--- class: 0
+|--- token_2927 >  0.903
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp2c9_combined/label (AUC=0.6763) ===
+|--- token_701 <= 0.225
+|   |--- token_2219 <= 0.839
+|   |   |--- token_2219 <= 0.255
+|   |   |   |--- class: 0
+|   |   |--- token_2219 >  0.255
+|   |   |   |--- class: 0
+|   |--- token_2219 >  0.839
+|   |   |--- class: 0
+|--- token_701 >  0.225
+|   |--- token_1582 <= 0.617
+|   |   |--- token_1854 <= 0.407
+|   |   |   |--- class: 1
+|   |   |--- token_1854 >  0.407
+|   |   |   |--- class: 1
+|   |--- token_1582 >  0.617
+|   |   |--- token_1582 <= 0.765
+|   |   |   |--- class: 0
+|   |   |--- token_1582 >  0.765
+|   |   |   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/pulmonary_toxicity_binary_rating_0_1 (AUC=0.537) ===
+|--- token_2927 <= 0.911
+|   |--- class: 0
+|--- token_2927 >  0.911
+|   |--- class: 1
+
+
+=== cyp450||cyp450/cyp450_cyp2c9_training/label (AUC=0.6353) ===
+|--- token_701 <= 0.226
+|   |--- token_1854 <= 0.601
+|   |   |--- token_1854 <= 0.239
+|   |   |   |--- class: 0
+|   |   |--- token_1854 >  0.239
+|   |   |   |--- class: 0
+|   |--- token_1854 >  0.601
+|   |   |--- class: 1
+|--- token_701 >  0.226
+|   |--- token_1582 <= 0.570
+|   |   |--- token_1582 <= 0.431
+|   |   |   |--- class: 1
+|   |   |--- token_1582 >  0.431
+|   |   |   |--- class: 1
+|   |--- token_1582 >  0.570
+|   |   |--- token_1582 <= 0.853
+|   |   |   |--- class: 0
+|   |   |--- token_1582 >  0.853
+|   |   |   |--- class: 1
+
+
+=== skin-sens-multiassay||skin-sens-multiassay/skin_sensitization_multiassay/keratinosens_positive (AUC=0.585) ===
+|--- token_2928 <= 0.875
+|   |--- class: 0
+|--- token_2928 >  0.875
+|   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/dermatological_toxicity_confident_ternary_rating_0_1 (AUC=0.5946) ===
+|--- token_2928 <= 0.923
+|   |--- class: 0
+|--- token_2928 >  0.923
+|   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/cardio_toxicity_binary_rating_0_1 (AUC=0.5314) ===
+|--- token_2913 <= 0.554
+|   |--- class: 0
+|--- token_2913 >  0.554
+|   |--- class: 1
+
+
+=== unitox||unitox/unitox_small_molecules/dermatological_toxicity_binary_rating_0_1 (AUC=0.5014) ===
+|--- token_2928 <= 0.923
+|   |--- class: 0
+|--- token_2928 >  0.923
+|   |--- class: 1
+
+
+=== admet-huggingface||admet-huggingface/admet/Skin_Reaction (AUC=0.503) ===
+|--- token_2928 <= 0.925
+|   |--- class: 1
+|--- token_2928 >  0.925
+|   |--- class: 0
+
+
+=== chempile-tox||chempile-tox/tdc_skin_reaction/label (AUC=0.5765) ===
+|--- token_2928 <= 0.924
+|   |--- class: 1
+|--- token_2928 >  0.924
+|   |--- class: 0
+
+
+=== skin-reaction||skin-reaction/skin_reaction/label (AUC=0.5765) ===
+|--- token_2928 <= 0.924
+|   |--- class: 1
+|--- token_2928 >  0.924
+|   |--- class: 0
+
+

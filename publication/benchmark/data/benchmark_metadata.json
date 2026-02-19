@@ -1,0 +1,2452 @@
+{
+  "created": "2026-01-17T03:30:39.013257",
+  "total_compounds": 42260,
+  "total_properties": 838,
+  "binary_classification": {
+    "n_records": 93475,
+    "n_compounds": 11012,
+    "n_properties": 699,
+    "sources": [
+      "tdc-dili",
+      "tdc-herg-central",
+      "chempile-tox",
+      "unitox",
+      "skin-reaction",
+      "skin-sens-multiassay",
+      "ames-benchmark",
+      "carcinogens-lagunin",
+      "admet-huggingface",
+      "bioavailability-ma",
+      "smiles-adr",
+      "aquatic-moa-ecotox",
+      "comptox-zebrafish",
+      "pharmabench",
+      "cyp450"
+    ]
+  },
+  "continuous_regression": {
+    "n_records": 147119,
+    "n_compounds": 31248,
+    "n_properties": 139,
+    "sources": [
+      "tdc-herg-central",
+      "tdc-clearance-hepatocyte",
+      "tdc-clearance-microsome",
+      "tdc-half-life",
+      "chempile-tox",
+      "skin-sens-multiassay",
+      "qsar-aquatic-tox",
+      "ames-benchmark",
+      "admet-huggingface",
+      "computational-adme",
+      "solubility-aqsoldb",
+      "esol",
+      "withdrawn",
+      "adore-ecotox",
+      "aquatic-moa-ecotox",
+      "concawe-petrotox",
+      "pharmabench",
+      "cpdb"
+    ]
+  },
+  "property_mapping": {
+    "tdc-herg-central/herg_central/herg_inhibition_1uM_pct": [
+      [
+        1866,
+        "characterization of small molecule modulators on human herg channel function using qhts"
+      ],
+      [
+        2223,
+        "kcnq2 assay for identifying small-molecule protectors against herg block"
+      ],
+      [
+        396,
+        "screen for compounds mitigating herg channel blockade by proarrhythmic chemicals"
+      ],
+      [
+        2228,
+        "kcnq2-herg interaction counterassay for cardioprotective agents"
+      ],
+      [
+        5768,
+        "protective compounds screen for herg against proarrhythmia"
+      ]
+    ],
+    "tdc-herg-central/herg_central/herg_inhibition_10uM_pct": [
+      [
+        1866,
+        "characterization of small molecule modulators on human herg channel function using qhts"
+      ],
+      [
+        2223,
+        "kcnq2 assay for identifying small-molecule protectors against herg block"
+      ],
+      [
+        396,
+        "screen for compounds mitigating herg channel blockade by proarrhythmic chemicals"
+      ],
+      [
+        2228,
+        "kcnq2-herg interaction counterassay for cardioprotective agents"
+      ],
+      [
+        5768,
+        "protective compounds screen for herg against proarrhythmia"
+      ]
+    ],
+    "tdc-herg-central/herg_central/herg_inhibitor": [
+      [
+        1866,
+        "characterization of small molecule modulators on human herg channel function using qhts"
+      ],
+      [
+        2223,
+        "kcnq2 assay for identifying small-molecule protectors against herg block"
+      ],
+      [
+        396,
+        "screen for compounds mitigating herg channel blockade by proarrhythmic chemicals"
+      ],
+      [
+        2228,
+        "kcnq2-herg interaction counterassay for cardioprotective agents"
+      ],
+      [
+        5768,
+        "protective compounds screen for herg against proarrhythmia"
+      ]
+    ],
+    "chempile-tox/tdc_cyp2c9_veith/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/tdc_cyp2d6_veith/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/tdc_carcinogens_lagunin/label": [
+      [
+        3574,
+        "mouse carcinogenic potency assessment from dsstox cpdbas data"
+      ],
+      [
+        3128,
+        "comprehensive analysis of carcinogenic potential in small molecules"
+      ],
+      [
+        3291,
+        "carcinogenicity evaluation of small molecules via dsstox multi-cell analysis"
+      ],
+      [
+        2881,
+        "carcinogenic potency assessment from single cell analysis"
+      ],
+      [
+        3830,
+        "salmonella mutagenicity assessment from cpdb carcinogenic database"
+      ]
+    ],
+    "chempile-tox/tdc_solubility_aqsoldb/label": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/atg_xtt_cytotoxicity_up": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/bsk_sag_pbmccytotoxicity_down": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/bsk_sag_pbmccytotoxicity_up": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp1a1_24hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp1a1_48hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp1a1_6hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp1a2_24hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp1a2_48hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp1a2_6hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp2b6_24hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp2b6_48hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp2b6_6hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp3a4_24hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp3a4_48hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/cld_cyp3a4_6hr": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp19a1": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp2c19": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp2c9": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp2d6": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/nvs_adme_hcyp3a4": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/moleculenet_toxcast/nvs_ic_hkhergch": [
+      [
+        1866,
+        "characterization of small molecule modulators on human herg channel function using qhts"
+      ],
+      [
+        2223,
+        "kcnq2 assay for identifying small-molecule protectors against herg block"
+      ],
+      [
+        396,
+        "screen for compounds mitigating herg channel blockade by proarrhythmic chemicals"
+      ],
+      [
+        2228,
+        "kcnq2-herg interaction counterassay for cardioprotective agents"
+      ],
+      [
+        5768,
+        "protective compounds screen for herg against proarrhythmia"
+      ]
+    ],
+    "chempile-tox/tdc_cyp2c19_veith/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/tdc_cyp1a2_veith/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "chempile-tox/tdc_cyp3a4_veith/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "unitox/unitox_small_molecules/cardio_toxicity_confident_ternary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/cardio_toxicity_binary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/dermatological_toxicity_confident_ternary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/dermatological_toxicity_binary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/liver_toxicity_confident_ternary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/liver_toxicity_binary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/ototoxicity_confident_ternary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/ototoxicity_binary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/pulmonary_toxicity_confident_ternary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/pulmonary_toxicity_binary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/renal_toxicity_confident_ternary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "unitox/unitox_small_molecules/renal_toxicity_binary_rating_0_1": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "qsar-aquatic-tox/aquatic_toxicity/mol_weight": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "qsar-aquatic-tox/aquatic_toxicity/molecular_weight": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "qsar-aquatic-tox/aquatic_toxicity/pec50_daphnia": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "qsar-aquatic-tox/aquatic_toxicity/plc50_fish": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "qsar-aquatic-tox/aquatic_toxicity/mgl_daphnia": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "qsar-aquatic-tox/aquatic_toxicity/mgl_fish": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "qsar-aquatic-tox/aquatic_toxicity/pec50_algae": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "qsar-aquatic-tox/aquatic_toxicity/mgl_algae": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "carcinogens-lagunin/carcinogens_lagunin/label": [
+      [
+        3574,
+        "mouse carcinogenic potency assessment from dsstox cpdbas data"
+      ],
+      [
+        3128,
+        "comprehensive analysis of carcinogenic potential in small molecules"
+      ],
+      [
+        3291,
+        "carcinogenicity evaluation of small molecules via dsstox multi-cell analysis"
+      ],
+      [
+        2881,
+        "carcinogenic potency assessment from single cell analysis"
+      ],
+      [
+        3830,
+        "salmonella mutagenicity assessment from cpdb carcinogenic database"
+      ]
+    ],
+    "admet-huggingface/admet/CYP1A2_Veith": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "admet-huggingface/admet/CYP2C19_Veith": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "admet-huggingface/admet/CYP2C9_Substrate_CarbonMangels": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "admet-huggingface/admet/CYP2C9_Veith": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "admet-huggingface/admet/CYP2D6_Substrate_CarbonMangels": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "admet-huggingface/admet/CYP2D6_Veith": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "admet-huggingface/admet/CYP3A4_Substrate_CarbonMangels": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "admet-huggingface/admet/CYP3A4_Veith": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "admet-huggingface/admet/Carcinogens_Lagunin": [
+      [
+        3574,
+        "mouse carcinogenic potency assessment from dsstox cpdbas data"
+      ],
+      [
+        3128,
+        "comprehensive analysis of carcinogenic potential in small molecules"
+      ],
+      [
+        3291,
+        "carcinogenicity evaluation of small molecules via dsstox multi-cell analysis"
+      ],
+      [
+        2881,
+        "carcinogenic potency assessment from single cell analysis"
+      ],
+      [
+        3830,
+        "salmonella mutagenicity assessment from cpdb carcinogenic database"
+      ]
+    ],
+    "admet-huggingface/admet/Solubility_AqSolDB": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "admet-huggingface/admet/hERG": [
+      [
+        1866,
+        "characterization of small molecule modulators on human herg channel function using qhts"
+      ],
+      [
+        2223,
+        "kcnq2 assay for identifying small-molecule protectors against herg block"
+      ],
+      [
+        396,
+        "screen for compounds mitigating herg channel blockade by proarrhythmic chemicals"
+      ],
+      [
+        2228,
+        "kcnq2-herg interaction counterassay for cardioprotective agents"
+      ],
+      [
+        5768,
+        "protective compounds screen for herg against proarrhythmia"
+      ]
+    ],
+    "computational-adme/adme/log_solubility_ph68": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "solubility-aqsoldb/solubility_aqsoldb/label": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "esol/esol_solubility/measured_logsolubility_mol/l": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "esol/esol_solubility/esol_predicted_logsolubility_mol/l": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "adore-ecotox/ecotox_fish/water_solubility": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "adore-ecotox/ecotox_algae/water_solubility": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "adore-ecotox/ecotox_crustacean/water_solubility": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "adore-ecotox/ecotox_mortality/water_solubility": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/axis": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/activity_score": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/brain": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/caudal_fin": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/circulation": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/eye": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/jaw": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/mortality": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/notochord": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/otic": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/pericardial_edema": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/pectoral_fin": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/pigmentation": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/snout": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/somite": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/swim_bladder": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/trunk": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/touch_response": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "comptox-zebrafish/zebrafish_toxicity/yolk_sac_edema": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "pharmabench/pharmabench_cyp_2d6/value": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "pharmabench/pharmabench_cyp_3a4/value": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "pharmabench/pharmabench_cyp_2c9/value": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "pharmabench/pharmabench_ames_toxicity/value": [
+      [
+        1537,
+        "quantitative assessment of small-molecule toxicity in hek293 cells using 40-hour real-time viability assay"
+      ],
+      [
+        768,
+        "small-molecule cytotoxicity screening on uacc-62 lung cancer cells (nci-60)"
+      ],
+      [
+        760,
+        "nci-60 ovcar-5 cell line cytotoxicity assay (single dose)"
+      ],
+      [
+        3110,
+        "neuro-2a cell viability assessment for small-molecule toxicity"
+      ],
+      [
+        1545,
+        "genotoxic compounds cytotoxicity in rev3 dt40 variant - qhts analysis"
+      ]
+    ],
+    "pharmabench/pharmabench_water_solubility/value": [
+      [
+        872,
+        "evaluation of aqueous solubility from mlsmr stocks for small-molecule analysis"
+      ],
+      [
+        2184,
+        "kinetic solubility assessment in translational research"
+      ],
+      [
+        4827,
+        "ec50 determination for ligands of soluble guanylate cyclase alpha-1/beta-1 at 25\u00b0c"
+      ]
+    ],
+    "cyp450/cyp450_cyp2e1_training/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2c19_testing/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2c9_combined/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp3a4_training/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp3a4_combined/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp1a2_combined/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2c19_training/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp3a4_testing/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2e1_testing/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp1a2_training/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2d6_testing/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2c19_combined/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2d6_combined/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2d6_training/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2c9_training/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2c9_testing/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp1a2_testing/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ],
+    "cyp450/cyp450_cyp2e1_combined/label": [
+      [
+        2384,
+        "cyp3a4 induction via human pxr by small-molecule interaction in qhts format"
+      ],
+      [
+        1864,
+        "evaluation of cyp3a4 inhibition by small molecule antagonists using luciferase qhts assay"
+      ],
+      [
+        1585,
+        "assessment of cyp2d6 inhibition via small-molecule interference using luciferase reporter assay"
+      ],
+      [
+        1521,
+        "assessment of cyp3a4 inhibition by small molecules using luciferase reporter assay"
+      ],
+      [
+        1854,
+        "evaluation of cyp2c9 inhibition by small molecules using a luciferase-based cell assay"
+      ]
+    ]
+  }
+}

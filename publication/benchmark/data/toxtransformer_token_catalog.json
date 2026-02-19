@@ -1,0 +1,254 @@
+{
+  "total_tokens": 8,
+  "tokens": {
+    "0": {
+      "title": "identification of small-molecule activators for gpr151 receptor in human cell-based assay",
+      "categories": [
+        {
+          "category": "neurotoxicity",
+          "reason": "The assay is aimed at identifying activators of GPR151, a gene that is predominantly expressed in the central nervous system. Therefore, it could be deduced that the assay is related to the study of potential neurotoxic effects initiated through this pathway.",
+          "strength": 7.0
+        }
+      ],
+      "metadata": {
+        "BioAssay Group": "GPR151_PHUNTER",
+        "BioAssay Name": "Cell-based high throughput primary assay to identify activators of GPR151",
+        "BioAssay Types": "Cell-based",
+        "Deposit Date": 20200731.0,
+        "Gene IDs": "134391",
+        "Modify Date": 20200731.0,
+        "Outcome Type": "Screening",
+        "Project Category": "Other",
+        "Protein Accessions": "Q8TDV0",
+        "Source ID": "GPR151_PHUNTER_AG_LUMI_1536_1X%ACT",
+        "Source Name": "The Scripps Research Institute Molecular Screening Center",
+        "Substance Type": "small-molecule",
+        "Taxonomy IDs": "9606",
+        "UniProts IDs": "Q8TDV0",
+        "aid": 1508602.0
+      }
+    },
+    "1": {
+      "title": "high-throughput biochemical assay for mitf inhibition detection",
+      "categories": [
+        {
+          "category": "other",
+          "reason": "The assay is primarily for the purpose of identifying inhibitors of the microphthalmia-associated transcription factor (MITF). This assay does not directly align with any toxicological endpoints.",
+          "strength": 1.0
+        }
+      ],
+      "metadata": {
+        "BioAssay Group": "MITF_INH_ALPHA_1536",
+        "BioAssay Name": "AlphaScreen-based biochemical high throughput primary assay to identify inhibitors of microphthalmia-associated transcription factor (MITF)",
+        "BioAssay Types": "Biochemical",
+        "Deposit Date": 20180220.0,
+        "Gene IDs": "4286",
+        "Modify Date": 20180220.0,
+        "Outcome Type": "Screening",
+        "Project Category": "Other",
+        "Protein Accessions": "NP_001341533",
+        "Source ID": "MITF_INH_Alpha_1536_1X%INH PRUN",
+        "Source Name": "The Scripps Research Institute Molecular Screening Center",
+        "Substance Type": "small-molecule",
+        "Taxonomy IDs": "9606",
+        "aid": 1259374.0
+      }
+    },
+    "2": {
+      "title": "identification of e3 ligase activators via alphascreen biochemical assay",
+      "categories": [
+        {
+          "category": "kinetics (pharmacokinetics, toxicokinetics, adme, cmax, auc, etc)",
+          "reason": "The assay is identified as a biochemical high throughput primary assay designed to identify activators of the E3 ligase (FBW7). This suggests that substances are being screened for their ability to interact with this enzyme, which is key to many biological processes including protein degradation, cell cycle regulation, and signal transduction. These are fundamental aspects of toxicokinetics and pharmacokinetics, which involve the study of how substances are absorbed, distributed, metabolized, and excreted in the body.",
+          "strength": 4.0
+        }
+      ],
+      "metadata": {
+        "BioAssay Name": "AlphaScreen-based biochemical high throughput primary assay to identify activators of the E3 ligase (FBW7).",
+        "BioAssay Types": "Biochemical",
+        "Deposit Date": 20170417.0,
+        "Modify Date": 20170417.0,
+        "Outcome Type": "Screening",
+        "Project Category": "Other",
+        "Source ID": "FBW7_ACT_ALPHA_1536_1X%ACT PRUN",
+        "Source Name": "The Scripps Research Institute Molecular Screening Center",
+        "Substance Type": "small-molecule",
+        "Taxonomy IDs": "9606",
+        "aid": 1259310.0
+      }
+    },
+    "3": {
+      "title": "inhibition assay of tead-yap interaction using luminescent cell-based screening",
+      "categories": [
+        {
+          "category": "other",
+          "reason": "The assay is evaluating the ability of small-molecule substances to inhibit the TEAD-YAP protein interaction, which is known to play a key role in cell growth and tissue development but does not directly link to any specific type of toxicity. Therefore, it does not fit neatly into any of the given categories.",
+          "strength": 1.0
+        }
+      ],
+      "metadata": {
+        "BioAssay Group": "TEAD-YAP",
+        "BioAssay Name": "Luminescence cell-based high throughput primary assay to identify inhibitors of TEAD-YAP interaction.",
+        "BioAssay Types": "Cell-based",
+        "Deposit Date": 20180731.0,
+        "Gene IDs": "10413",
+        "Modify Date": 20180731.0,
+        "Outcome Type": "Screening",
+        "Project Category": "Other",
+        "Protein Accessions": "NP_001123617",
+        "Source ID": "TEAD-YAP_INH_LUMI_1536_1X%INH PRUN",
+        "Source Name": "The Scripps Research Institute Molecular Screening Center",
+        "Substance Type": "small-molecule",
+        "Taxonomy IDs": "9606",
+        "UniProts IDs": "P46937",
+        "aid": 1259422.0
+      }
+    },
+    "4": {
+      "title": "evaluation of small-molecule inhibitors of human 12s-lipoxygenase (alox12) from ncats",
+      "categories": [
+        {
+          "category": "metabolic toxicity",
+          "reason": "Arachidonate 12S-lipoxygenase (ALOX12) is involved in the metabolism of arachidonic acid, a key process in cell signaling. Hence, substances tested in this assay may have impacts on metabolic processes.",
+          "strength": 5.0
+        },
+        {
+          "category": "neurotoxicity",
+          "reason": "The assay is for inhibitors of human arachidonate 12S-lipoxygenase (ALOX12), an enzyme involved in the metabolism of arachidonic acid, a key factor in neuronal inflammation and neurodegenerative diseases. Hence, the assay could indirectly indicate a substance's potential for neurotoxicity.",
+          "strength": 4.0
+        }
+      ],
+      "metadata": {
+        "BioAssay Group": "ETB-ALOX12-Holman",
+        "BioAssay Name": "Primary qHTS assay for inhibitors of human arachidonate 12S-lipoxygenase (ALOX12): Round 2",
+        "Deposit Date": 20210818.0,
+        "Gene IDs": "239|239",
+        "Modify Date": 20210818.0,
+        "Outcome Type": "Confirmatory",
+        "Project Category": "MLSCN Assay Provider",
+        "Protein Accessions": "P18054",
+        "Source ID": "12hLO-p-round2",
+        "Source Name": "National Center for Advancing Translational Sciences (NCATS)",
+        "Substance Type": "small-molecule",
+        "Taxonomy IDs": "9606",
+        "UniProts IDs": "P18054",
+        "aid": 1671190.0
+      }
+    },
+    "5": {
+      "title": "assay for ldha inhibition in human enzyme targets using small molecules",
+      "categories": [
+        {
+          "category": "metabolic toxicity",
+          "reason": "The assay is testing for inhibitors of human lactate dehydrogenase, a crucial enzyme involved in metabolism, specifically the conversion of lactate to pyruvate. Therefore, chemicals that inhibit this enzyme could potentially cause metabolic toxicity.",
+          "strength": 8.0
+        }
+      ],
+      "metadata": {
+        "BioAssay Name": "qHTS assay for inhibitors of human lactate dehydrogenase",
+        "Deposit Date": 20190417.0,
+        "Modify Date": 20190417.0,
+        "Outcome Type": "Screening",
+        "Project Category": "Molecular Libraries Probe Production Centers Network",
+        "Source ID": "LDHA",
+        "Source Name": "National Center for Advancing Translational Sciences (NCATS)",
+        "Substance Type": "small-molecule",
+        "aid": 1347041.0
+      }
+    },
+    "6": {
+      "title": "high-throughput alphascreen assay for identifying small-molecule inhibitors of ssb-pria in antibiotic resistance",
+      "categories": [
+        {
+          "category": "chemical physical property",
+          "reason": "The assay is being used to measure the interaction between a small molecule and the SSB-PriA antibiotic resistant target, which is a physical interaction.",
+          "strength": 8.0
+        }
+      ],
+      "metadata": {
+        "BioAssay Group": "SSB-PriA antibiotic resistant target",
+        "BioAssay Name": "SSB-PriA antibiotic resistant target AlphaScreen",
+        "Deposit Date": 20180905.0,
+        "Modify Date": 20230822.0,
+        "Outcome Type": "Screening",
+        "Project Category": "Literature Author",
+        "Protein Accessions": "CDO16358|CDO16711",
+        "Source ID": "SSB-PriA AlphaScreen",
+        "Source Name": "Small Molecule Screening Facility, UW Madison",
+        "Substance Type": "small-molecule",
+        "Taxonomy IDs": "573",
+        "aid": 1272365.0
+      }
+    },
+    "1872": {
+      "title": "discovery of small-molecule inhibitors targeting zika virus ns2b-ns3 protease via gu rhodamine qhts",
+      "categories": [
+        {
+          "category": "other",
+          "reason": "The assay is for identifying inhibitors of the Zika virus, and does not relate directly to any of the predefined toxicity categories.",
+          "strength": 1.0
+        }
+      ],
+      "metadata": {
+        "BioAssay Group": "ETB-Zika-Nath-Padmanabhan",
+        "BioAssay Name": "Primary screen GU Rhodamine qHTS for Zika virus inhibitors: Unlinked NS2B-NS3 protease assay",
+        "Deposit Date": 20191203.0,
+        "Modify Date": 20201229.0,
+        "Outcome Type": "Confirmatory",
+        "Project Category": "MLSCN Assay Provider",
+        "Source ID": "zika-ns2b-ns3-rhodamine-p1-NPACT-GU",
+        "Source Name": "National Center for Advancing Translational Sciences (NCATS)",
+        "Substance Type": "small-molecule",
+        "aid": 1347159.0
+      }
+    }
+  },
+  "categories": {
+    "other": [
+      [
+        0,
+        "identification of small-molecule activators for gpr151 receptor in human cell-based assay"
+      ],
+      [
+        1,
+        "high-throughput biochemical assay for mitf inhibition detection"
+      ],
+      [
+        2,
+        "identification of e3 ligase activators via alphascreen biochemical assay"
+      ],
+      [
+        3,
+        "inhibition assay of tead-yap interaction using luminescent cell-based screening"
+      ],
+      [
+        4,
+        "evaluation of small-molecule inhibitors of human 12s-lipoxygenase (alox12) from ncats"
+      ],
+      [
+        5,
+        "assay for ldha inhibition in human enzyme targets using small molecules"
+      ],
+      [
+        6,
+        "high-throughput alphascreen assay for identifying small-molecule inhibitors of ssb-pria in antibiotic resistance"
+      ],
+      [
+        1872,
+        "discovery of small-molecule inhibitors targeting zika virus ns2b-ns3 protease via gu rhodamine qhts"
+      ]
+    ]
+  },
+  "token_frequencies": {
+    "0": 5,
+    "1": 5,
+    "2": 5,
+    "3": 5,
+    "4": 5,
+    "5": 5,
+    "6": 5,
+    "7": 5,
+    "1872": 4,
+    "3053": 4
+  }
+}

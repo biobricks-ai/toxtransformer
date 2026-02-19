@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-01-17T19:37:00.040781",
+  "total_compounds_evaluated": 3688,
+  "total_compounds_failed": 451,
+  "evaluation_time_minutes": 368.0155312776566,
+  "binary_classification": {
+    "n_evaluations": 65,
+    "total_samples": 8099,
+    "mean_accuracy": 0.6736855363294324,
+    "mean_f1": 0.14491651407162826,
+    "mean_auc": 0.564268999565113
+  },
+  "continuous_regression": {
+    "n_evaluations": 29,
+    "total_samples": 5434,
+    "mean_rmse": 146.90117153035064,
+    "mean_r2": -2.159545606534253,
+    "mean_pearson_r": -0.10276966915021854
+  }
+}

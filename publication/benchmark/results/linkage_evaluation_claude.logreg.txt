@@ -1,0 +1,216 @@
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_ahr_cis_up (AUC=1.0) ===
+intercept=-0.717 | token_1920: +1.318 | token_2459: +1.137
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_vdre_cis_up (AUC=1.0) ===
+intercept=-0.899 | token_1967: +1.123 | token_2513: +0.796
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/tox21_ar_luc_mdakb2_antagonist (AUC=1.0) ===
+intercept=-1.211 | token_1660: +0.924 | token_1494: +1.095 | token_1190: +0.346 | token_2417: +0.418
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/mortality (AUC=1.0) ===
+intercept=-0.767 | token_3455: +1.894
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/activity_score (AUC=0.992) ===
+intercept=-2.302 | token_3418: +2.179 | token_3455: +1.125 | token_3487: +0.960 | token_3489: +1.087 | token_3488: +0.810 | token_3490: +0.269 | token_3492: +0.566
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/jaw (AUC=0.984) ===
+intercept=-1.355 | token_3492: +3.118
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/yolk_sac_edema (AUC=0.968) ===
+intercept=-1.490 | token_3487: +3.294
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/pericardial_edema (AUC=0.9625) ===
+intercept=-1.216 | token_3489: +2.866
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/axis (AUC=0.97) ===
+intercept=-1.128 | token_3490: +2.810
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/pectoral_fin (AUC=1.0) ===
+intercept=-2.434 | token_3489: +1.137 | token_3490: +1.029 | token_3492: +1.596 | token_4075: +0.802 | token_4719: +0.428
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/snout (AUC=0.985) ===
+intercept=-1.243 | token_3492: +2.805
+
+=== cyp450||cyp450/cyp450_cyp2d6_testing/label (AUC=0.9611) ===
+intercept=-1.767 | token_2295: +0.940 | token_1585: +1.308 | token_1869: +1.732
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/caudal_fin (AUC=0.95) ===
+intercept=-0.659 | token_3490: +1.706
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/somite (AUC=0.95) ===
+intercept=-0.982 | token_3490: +1.967
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/tox21_tr_luc_gh3_antagonist (AUC=1.0) ===
+intercept=-1.909 | token_1673: +1.145 | token_1238: +1.052 | token_1416: +1.375 | token_2421: +0.115
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/tox21_aromatase_inhibition (AUC=0.9) ===
+intercept=-0.901 | token_1254: +0.941 | token_1187: +1.103 | token_2549: +0.273
+
+=== comptox-zebrafish||comptox-zebrafish/zebrafish_toxicity/touch_response (AUC=0.9111) ===
+intercept=-1.620 | token_3488: +1.138 | token_3487: +1.180 | token_3418: +1.089
+
+=== pharmabench||pharmabench/pharmabench_bbb_penetration/value (AUC=0.9077) ===
+intercept=-2.342 | token_2517: +4.715
+
+=== unitox||unitox/unitox_small_molecules/ototoxicity_confident_ternary_rating_0_1 (AUC=0.85) ===
+intercept=-0.653 | token_2922: +1.222
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_ap_1_cis_up (AUC=1.0) ===
+intercept=-0.763 | token_1936: +0.854 | token_1359: -0.114 | token_2500: +0.798 | token_1516: +0.137 | token_2148: +0.151
+
+=== tdc-dili||tdc-dili/dili/dili_positive (AUC=0.8889) ===
+intercept=-0.663 | token_2926: +1.359
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_pxr_trans_up (AUC=0.9) ===
+intercept=-1.023 | token_4677: +0.116 | token_1956: +0.954 | token_1347: +0.422 | token_1558: +0.417 | token_1534: +0.285
+
+=== admet-huggingface||admet-huggingface/admet/DILI (AUC=0.8) ===
+intercept=-0.634 | token_2926: +1.319
+
+=== cyp450||cyp450/cyp450_cyp2d6_combined/label (AUC=0.8202) ===
+intercept=-1.851 | token_2295: +0.952 | token_1585: +2.015 | token_1869: +1.886
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_ere_cis_up (AUC=0.7) ===
+intercept=-0.158 | token_2486: +0.258 | token_1910: +0.618
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_hse_cis_up (AUC=0.6) ===
+intercept=-0.451 | token_1946: +0.728 | token_1255: +0.078 | token_2454: +0.618
+
+=== ames-benchmark||ames-benchmark/ames_compounds/ames_class (AUC=0.8142) ===
+intercept=-1.997 | token_2508: +0.020 | token_3830: +1.687 | token_1799: +2.442 | token_2863: +0.444
+
+=== admet-huggingface||admet-huggingface/admet/AMES (AUC=0.8038) ===
+intercept=-1.735 | token_3830: +1.105 | token_1799: +1.570 | token_2863: +1.583 | token_2508: +0.027
+
+=== cyp450||cyp450/cyp450_cyp1a2_training/label (AUC=0.805) ===
+intercept=-1.739 | token_1270: +2.626 | token_5815: +0.194 | token_5808: +0.799 | token_1610: +0.939
+
+=== carcinogens-lagunin||carcinogens-lagunin/carcinogens_lagunin/label (AUC=0.8111) ===
+intercept=-1.252 | token_2881: +0.587 | token_3128: +1.031 | token_3291: +0.796 | token_3191: +0.125 | token_3574: -0.074
+
+=== chempile-tox||chempile-tox/tdc_carcinogens_lagunin/label (AUC=0.8111) ===
+intercept=-1.252 | token_2881: +0.587 | token_3128: +1.031 | token_3291: +0.796 | token_3191: +0.125 | token_3574: -0.074
+
+=== admet-huggingface||admet-huggingface/admet/hERG (AUC=0.7886) ===
+intercept=-1.368 | token_1866: +2.191 | token_2547: +0.466 | token_2105: +1.029 | token_1438: +0.021 | token_1252: -0.175 | token_5415: +0.108
+
+=== chempile-tox||chempile-tox/tdc_ames/label (AUC=0.7749) ===
+intercept=-1.709 | token_3830: +1.044 | token_1799: +2.002 | token_2863: +0.800 | token_2508: +0.124
+
+=== cyp450||cyp450/cyp450_cyp2d6_training/label (AUC=0.7592) ===
+intercept=-1.389 | token_2295: +0.597 | token_1585: +0.982 | token_1869: +1.902
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_era_trans_up (AUC=0.7) ===
+intercept=-0.223 | token_1933: -0.011 | token_1910: +0.507
+
+=== admet-huggingface||admet-huggingface/admet/HIA_Hou (AUC=0.7329) ===
+intercept=-1.148 | token_2504: +1.987
+
+=== cyp450||cyp450/cyp450_cyp1a2_combined/label (AUC=0.8135) ===
+intercept=-1.799 | token_1270: +2.969 | token_5815: +0.761 | token_5808: +0.830 | token_5411: -0.045
+
+=== pharmabench||pharmabench/pharmabench_ames_toxicity/value (AUC=0.7604) ===
+intercept=-1.689 | token_2863: +0.627 | token_3830: +1.160 | token_1799: +2.101 | token_2508: +0.138
+
+=== ames-benchmark||ames-benchmark/ames_cv_splits/ames_class (AUC=0.7507) ===
+intercept=-1.389 | token_2508: -0.166 | token_1799: +1.735 | token_3830: +1.157 | token_2863: +0.772
+
+=== cyp450||cyp450/cyp450_cyp3a4_combined/label (AUC=0.7552) ===
+intercept=-1.601 | token_1148: +1.008 | token_1864: -0.332 | token_1521: +1.646 | token_2138: +1.595
+
+=== cyp450||cyp450/cyp450_cyp2c19_combined/label (AUC=0.7329) ===
+intercept=-1.718 | token_702: +1.724 | token_1576: +0.703 | token_2290: +1.751
+
+=== cyp450||cyp450/cyp450_cyp2c19_training/label (AUC=0.7468) ===
+intercept=-1.620 | token_702: +2.105 | token_1576: +0.444 | token_2290: +1.678
+
+=== chempile-tox||chempile-tox/tdc_pgp_broccatelli/label (AUC=0.7275) ===
+intercept=-1.415 | token_4437: +2.035 | token_2857: +1.702
+
+=== unitox||unitox/unitox_small_molecules/liver_toxicity_confident_ternary_rating_0_1 (AUC=0.72) ===
+intercept=-0.872 | token_2926: +2.062
+
+=== cyp450||cyp450/cyp450_cyp3a4_training/label (AUC=0.7384) ===
+intercept=-1.499 | token_1148: +0.172 | token_1864: -0.300 | token_2138: +1.705 | token_1521: +1.832
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_nrf2_are_cis_up (AUC=0.55) ===
+intercept=-0.463 | token_1477: +0.375 | token_1962: +0.667 | token_2509: +0.521 | token_2902: -0.262 | token_1614: +0.351 | token_5598: +0.003
+
+=== admet-huggingface||admet-huggingface/admet/Pgp_Broccatelli (AUC=0.7114) ===
+intercept=-1.252 | token_4437: +2.001 | token_1247: +1.009
+
+=== admet-huggingface||admet-huggingface/admet/Carcinogens_Lagunin (AUC=0.7111) ===
+intercept=-0.628 | token_3128: +0.336 | token_2881: +0.476 | token_3291: +0.501 | token_3191: +0.618 | token_3574: -0.473
+
+=== chempile-tox||chempile-tox/tdc_hia_hou/label (AUC=0.7184) ===
+intercept=-0.813 | token_2504: +1.514
+
+=== unitox||unitox/unitox_small_molecules/liver_toxicity_binary_rating_0_1 (AUC=0.6982) ===
+intercept=-0.854 | token_2926: +1.888
+
+=== cyp450||cyp450/cyp450_cyp1a2_testing/label (AUC=0.75) ===
+intercept=-0.743 | token_1270: +0.974 | token_5815: +0.389 | token_5808: +0.346 | token_1610: +0.024
+
+=== unitox||unitox/unitox_small_molecules/hematological_confident_ternary_rating_0_1 (AUC=0.6853) ===
+intercept=-0.917 | token_2909: +1.691
+
+=== cyp450||cyp450/cyp450_cyp3a4_testing/label (AUC=0.7286) ===
+intercept=-0.944 | token_1521: +0.179 | token_2138: +0.792 | token_1864: +0.041 | token_1148: +1.555
+
+=== unitox||unitox/unitox_small_molecules/hematological_binary_rating_0_1 (AUC=0.6797) ===
+intercept=-0.934 | token_2909: +1.740
+
+=== unitox||unitox/unitox_small_molecules/ototoxicity_binary_rating_0_1 (AUC=0.68) ===
+intercept=-0.453 | token_2922: +0.899
+
+=== cyp450||cyp450/cyp450_cyp2c19_testing/label (AUC=0.8167) ===
+intercept=-0.313 | token_702: +0.800 | token_1576: +0.231
+
+=== unitox||unitox/unitox_small_molecules/renal_toxicity_binary_rating_0_1 (AUC=0.648) ===
+intercept=-0.999 | token_2930: +1.422
+
+=== chempile-tox||chempile-tox/moleculenet_toxcast/atg_pxre_cis_up (AUC=0.3833) ===
+intercept=-0.054 | token_1907: +0.222 | token_2511: +0.080 | token_1956: +0.344
+
+=== unitox||unitox/unitox_small_molecules/renal_toxicity_confident_ternary_rating_0_1 (AUC=0.6515) ===
+intercept=-0.823 | token_2930: +1.215
+
+=== unitox||unitox/unitox_small_molecules/cardio_toxicity_confident_ternary_rating_0_1 (AUC=0.6267) ===
+intercept=-0.792 | token_2913: +1.149
+
+=== cyp450||cyp450/cyp450_cyp2c9_testing/label (AUC=0.65) ===
+intercept=-0.558 | token_701: +0.310 | token_1582: -0.064 | token_1854: +0.156 | token_2219: +0.667
+
+=== unitox||unitox/unitox_small_molecules/pulmonary_toxicity_confident_ternary_rating_0_1 (AUC=0.619) ===
+intercept=-0.904 | token_2927: +1.230
+
+=== cyp450||cyp450/cyp450_cyp2c9_combined/label (AUC=0.6232) ===
+intercept=-0.798 | token_701: +1.127 | token_1582: -0.299 | token_1854: +0.706 | token_2219: +0.461
+
+=== unitox||unitox/unitox_small_molecules/pulmonary_toxicity_binary_rating_0_1 (AUC=0.6044) ===
+intercept=-1.053 | token_2927: +1.375
+
+=== cyp450||cyp450/cyp450_cyp2c9_training/label (AUC=0.603) ===
+intercept=-0.523 | token_701: +0.968 | token_1582: -0.624 | token_1854: +0.946 | token_2219: +0.177
+
+=== skin-sens-multiassay||skin-sens-multiassay/skin_sensitization_multiassay/keratinosens_positive (AUC=0.5725) ===
+intercept=-0.383 | token_2928: +0.539
+
+=== unitox||unitox/unitox_small_molecules/dermatological_toxicity_confident_ternary_rating_0_1 (AUC=0.5536) ===
+intercept=-0.499 | token_2928: +0.540
+
+=== unitox||unitox/unitox_small_molecules/cardio_toxicity_binary_rating_0_1 (AUC=0.5593) ===
+intercept=-0.554 | token_2913: +0.775
+
+=== unitox||unitox/unitox_small_molecules/dermatological_toxicity_binary_rating_0_1 (AUC=0.4991) ===
+intercept=-0.507 | token_2928: +0.524
+
+=== admet-huggingface||admet-huggingface/admet/Skin_Reaction (AUC=0.6495) ===
+intercept=0.771 | token_2928: -0.893
+
+=== chempile-tox||chempile-tox/tdc_skin_reaction/label (AUC=0.6442) ===
+intercept=1.044 | token_2928: -1.225
+
+=== skin-reaction||skin-reaction/skin_reaction/label (AUC=0.6442) ===
+intercept=1.044 | token_2928: -1.225
+
