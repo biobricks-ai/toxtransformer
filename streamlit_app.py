@@ -72,34 +72,140 @@ st.markdown("---")
 # Benchmarks section
 st.header("📊 Benchmarks", anchor="benchmarks")
 
-st.subheader("Internal Test Set Performance")
+st.markdown("### 🏆 State-of-the-Art Results")
+
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("Tox21", "0.957", "+11.0 vs SOTA")
+with col2:
+    st.metric("SIDER", "0.762", "+7.2 vs SOTA")
+with col3:
+    st.metric("BBBP", "0.866", "+14.2 vs SOTA")
+with col4:
+    st.metric("Properties", "6,647", "1 model")
+
+st.markdown("---")
+
+st.subheader("1. Internal Holdout Validation")
 st.markdown("""
-**Dataset**: 6,378 properties with ≥32 molecules
-**Median AUC-ROC**: 0.847 (holdout test set)
-**Coverage**: 6,647 total properties including rare endpoints
+**6,378 out-of-sample properties** | **Median AUC: 0.847** | All test compounds unseen during training
+""")
+
+internal_data = {
+    "Source": ["Tox21", "ICE", "ToxCast", "BindingDB", "ChEMBL", "PubChem", "SIDER"],
+    "Properties": ["118", "543", "605", "1,782", "560", "2,664", "26"],
+    "Median AUC": ["0.965", "0.934", "0.916", "0.861", "0.840", "0.781", "0.762"],
+    "≥ 0.8": ["98%", "87%", "83%", "78%", "66%", "45%", "23%"],
+    "≥ 0.7": ["99%", "95%", "95%", "96%", "87%", "72%", "85%"],
+}
+df_internal = pd.DataFrame(internal_data)
+st.dataframe(df_internal, hide_index=True)
+
+st.markdown("**Overall**: 85% of properties exceed AUC 0.70 | 64% exceed AUC 0.80")
+
+st.markdown("---")
+
+st.subheader("2. Published Benchmark Comparison")
+st.markdown("**vs MoLFormer-XL (2022)** — Multi-property benchmarks")
+
+published_data = {
+    "Dataset": ["Tox21", "SIDER", "BBBP", "BACE", "ClinTox"],
+    "Tasks": ["8", "26", "1", "1", "2"],
+    "ToxTransformer": ["**0.957**", "**0.762**", "**0.866**", "0.827", "0.786"],
+    "Best Published": ["0.847", "0.690", "0.724", "**0.882**", "**0.948**"],
+    "Δ": ["**+11.0**", "**+7.2**", "**+14.2**", "-5.5", "-16.2"],
+}
+df_published = pd.DataFrame(published_data)
+st.dataframe(df_published, hide_index=True)
+
+st.markdown("**Wins 3/5** — Largest margins on multi-property benchmarks where multitask architecture excels")
+
+st.markdown("---")
+
+st.subheader("3. External Transfer (Zero-Shot)")
+st.markdown("""
+**30 curated toxicity endpoints** | **Median AUC: 0.976** | Zero training labels via semantic token matching
 """)
 
 col1, col2 = st.columns(2)
 with col1:
-    st.metric("Properties Tested", "6,378")
-    st.metric("Median AUC-ROC", "0.847")
+    st.metric("TT Linked-Token Adapter", "0.976", "median AUC")
+    st.metric("Head-to-Head Wins", "15 / 17", "vs Morgan FP")
 with col2:
-    st.metric("Total Properties", "6,647")
-    st.metric("Model Type", "Decoder-only Transformer")
+    st.metric("Morgan FP (2048 features)", "0.688", "median AUC")
+    st.metric("Δ TT vs FP", "+28.8", "AUC points")
 
-st.subheader("External Test Set Comparison")
+st.markdown("**Perfect Scores (AUC 1.000)**:")
+transfer_perfect = {
+    "Endpoint": [
+        "Zebrafish mortality",
+        "Ototoxicity (confident)",
+        "ToxCast VDR element",
+        "ToxCast AhR activation",
+        "Tox21 AR antagonist v2",
+        "ToxCast HSE activation",
+    ],
+    "N": ["20", "20", "10", "18", "12", "10"],
+    "FP": ["0.450", "0.800", "—", "—", "—", "—"],
+}
+df_perfect = pd.DataFrame(transfer_perfect)
+st.dataframe(df_perfect, hide_index=True)
+
+st.markdown("**Selected Highlights**:")
+transfer_highlights = {
+    "Endpoint": [
+        "Zebrafish pericardial edema",
+        "Zebrafish snout",
+        "DILI (drug-induced liver injury)",
+        "Ames mutagenicity",
+    ],
+    "N": ["38", "42", "30", "500"],
+    "TT": ["0.988", "0.958", "0.867", "0.803"],
+    "FP": ["0.308", "0.360", "0.689", "0.797"],
+    "Δ": ["+0.679", "+0.598", "+0.178", "+0.006"],
+}
+df_highlights = pd.DataFrame(transfer_highlights)
+st.dataframe(df_highlights, hide_index=True)
+
+st.markdown("---")
+
+st.subheader("4. ADME Performance (Full-Feature Adapter)")
 st.markdown("""
-ToxTransformer shows competitive or superior performance compared to baseline models across multiple benchmark datasets.
+**6,647 TT predictions as features** | Logistic regression with nested CV
 """)
 
-# External benchmarks table
-external_data = {
-    "Dataset": ["Tox21", "ToxCast", "ClinTox", "SIDER"],
-    "ToxTransformer": ["0.823", "0.751", "0.887", "0.634"],
-    "Simple FP Baseline": ["0.789", "0.724", "0.845", "0.612"],
+adme_data = {
+    "Endpoint": ["CYP1A2", "CYP2C19", "CYP2D6", "CYP3A4", "BBB", "CYP2C9"],
+    "N": ["212", "170", "288", "500", "500", "182"],
+    "Full TT": ["**0.881**", "**0.871**", "0.916", "0.887", "0.901", "0.827"],
+    "Morgan FP": ["0.864", "0.813", "**0.919**", "**0.898**", "**0.915**", "**0.899**"],
+    "TT+FP": ["0.891", "0.871", "**0.927**", "0.897", "**0.923**", "0.897"],
+    "Winner": ["**TT**", "**TT**", "TT+FP", "FP", "TT+FP", "FP"],
 }
-df_external = pd.DataFrame(external_data)
-st.dataframe(df_external, hide_index=True)
+df_adme = pd.DataFrame(adme_data)
+st.dataframe(df_adme, hide_index=True)
+
+st.markdown("**TT beats FP** on CYP1A2 (+1.7) and CYP2C19 (+5.8) | **Combined TT+FP** best on 3/6 endpoints")
+
+st.markdown("---")
+
+st.subheader("5. Context Conditioning")
+st.markdown("""
+**When you provide known test results, predictions improve monotonically**
+Bootstrap (in-sample), 2,227 properties across 11 sources
+""")
+
+context_data = {
+    "Context Properties": ["0", "5", "10", "20"],
+    "Median AUC": ["0.862", "0.879", "0.910", "**0.936**"],
+    "Δ vs No Context": ["—", "+1.7", "+4.8", "**+7.4**"],
+}
+df_context = pd.DataFrame(context_data)
+st.dataframe(df_context, hide_index=True)
+
+st.markdown("""
+**Confirmed out-of-sample**: Matched holdout set (1,012 properties) improves from 0.942 → 0.964, with 60% of properties gaining.
+""")
 
 st.markdown("---")
 
