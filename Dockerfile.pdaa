@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.pdaa.txt
 COPY pdaa/stages /app/stages
 COPY pdaa/streamlit /app/streamlit
 
+# Ensure correct openai.py is in place (overwrite any cached version)
+COPY pdaa/stages/utils/openai.py /app/stages/utils/openai.py
+
 # Copy all necessary cache directories
 RUN mkdir -p /app/cache/notebooks/pdaa /app/cache/util/pdaa /app/cache/associate_properties_with_aopwiki
 
