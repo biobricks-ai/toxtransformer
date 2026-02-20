@@ -213,6 +213,53 @@ def list_jobs():
     return jsonify(stats)
 
 
+@app.route('/properties', methods=['GET'])
+def get_properties():
+    """
+    Get property definitions.
+
+    Optional query parameters:
+        - property_token: Get specific property by token (int)
+        - search: Search properties by title (string)
+        - limit: Maximum number of results (default 100)
+
+    Response:
+        [
+            {
+                "property_token": 123,
+                "title": "Estrogen Receptor Alpha Binding",
+                "source": "ToxCast",
+                "categories": [...]
+            },
+            ...
+        ]
+    """
+    property_token = request.args.get('property_token', type=int)
+    search = request.args.get('search', type=str)
+    limit = request.args.get('limit', type=int, default=100)
+
+    # Get all properties
+    properties = []
+    for token, prop in predictor.property_map.items():
+        if property_token is not None and token != property_token:
+            continue
+        if search and search.lower() not in prop.title.lower():
+            continue
+
+        properties.append({
+            "property_token": token,
+            "title": prop.title,
+            "source": prop.source,
+            "metadata": prop.metadata,
+            "categories": [dataclasses.asdict(cat) for cat in prop.categories]
+        })
+
+        if len(properties) >= limit:
+            break
+
+    return jsonify(properties)
+
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Quick health check that returns immediately."""
