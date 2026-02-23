@@ -111,11 +111,17 @@ def predict_all_properties_with_sqlite_cache(inchi_list):
     """Get predictions, using SQLite cache if available, otherwise API only."""
     missing_inchi = is_missing(inchi_list)
     preds = []
-    
-    # Get predictions for missing InChIs from API
-    for inchi in missing_inchi:
-        api_preds = chemprop.chemprop_predict_all(inchi)
-        preds.extend(api_preds)
+
+    # Get predictions for missing InChIs from API using async endpoint to avoid lock contention
+    import asyncio
+    async def get_all_predictions():
+        tasks = [chemprop.chemprop_predict_all_async(inchi) for inchi in missing_inchi]
+        return await asyncio.gather(*tasks)
+
+    if missing_inchi:
+        results = asyncio.run(get_all_predictions())
+        for api_preds in results:
+            preds.extend(api_preds)
     
     # Convert to format for database
     preds_db = [(fullpred['inchi'], int(fullpred['property_token']), fullpred['value']) for fullpred in preds]

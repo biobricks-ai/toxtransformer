@@ -11,7 +11,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # GCP endpoint for toxtransformer
-CHEMPROP_BASE_URL = "http://136.111.102.10:6515"
+import os
+CHEMPROP_BASE_URL = os.environ.get("TOXTRANSFORMER_API_URL", "http://136.111.102.10:6515")
 
 def make_safe(func):
     @wraps(func)
