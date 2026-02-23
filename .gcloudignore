@@ -1,0 +1,33 @@
+# Exclude large model and cache files - these are mounted from GCS at runtime
+brick/
+cache/
+
+# Exclude git history
+.git/
+.gitignore
+
+# Exclude temporary files
+tmp/
+*.pyc
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# Exclude terraform state
+terraform/
+*.tfstate
+*.tfstate.backup
+
+# Exclude environment files
+.env
+venv/
+.venv/
+env/
+
+# Exclude documentation
+publication/
+README.md
+LICENSE
+
+# Exclude PDAA app
+pdaa/
