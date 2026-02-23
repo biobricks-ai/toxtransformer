@@ -1,0 +1,111 @@
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "ToxTransformer",
+  "description": "Decoder-only transformer model for predicting 6,647 toxicology and bioactivity properties from chemical structure",
+  "url": "https://github.com/biobricks-ai/toxtransformer",
+  "citation": "Multitask property prediction using context-aware molecular representations",
+  "license": "MIT",
+  "toxindex": {
+    "implementationCompleteness": "complete",
+    "sourceValidated": true,
+    "deployment": {
+      "type": "terraform",
+      "platform": "compute-engine-gpu",
+      "minimumWrapping": true,
+      "fidelityGuarantees": [
+        "Original ToxTransformer model weights from training",
+        "CUDA-accelerated tensor operations (100x speedup)",
+        "Exact PyTorch 2.8.0, RDKit for SMILES conversion",
+        "Mutual information-based property contextualization"
+      ],
+      "notes": [
+        "Wraps multitask encoder transformer via REST API",
+        "CUDA kernel for parallel tensor building",
+        "T4 GPU required for optimal performance (~3s per compound)",
+        "Prediction cache with 84M pre-computed predictions",
+        "Supports both InChI and SMILES input"
+      ]
+    },
+    "capabilities": {
+      "toxicity_prediction": true,
+      "bioactivity_prediction": true,
+      "adme_prediction": true,
+      "environmental_toxicity": true,
+      "multi_property_prediction": true,
+      "context_aware_prediction": true,
+      "uncertainty_quantification": false
+    },
+    "approach": {
+      "type": "deep-learning",
+      "algorithm": "Decoder-only Transformer",
+      "architecture": "Multitask Encoder with MI-based contextualization",
+      "features": {
+        "selfies_encoding": "Chemical structure as sequence",
+        "property_tokens": 6647,
+        "context_properties": "Top-k by mutual information",
+        "embedding_dim": 512
+      },
+      "context": "Uses mutual information to select relevant property context for each prediction"
+    },
+    "performance": {
+      "properties_predicted": 6647,
+      "prediction_time_gpu": "~3 seconds (T4)",
+      "prediction_time_cached": "<0.1 seconds",
+      "throughput": "~2,200 properties/second",
+      "note": "CUDA optimization provides 100x speedup over CPU implementation"
+    },
+    "hardware": {
+      "gpu_required": true,
+      "gpu_type": "NVIDIA T4 or better",
+      "gpu_memory_gb": 16,
+      "cpu_cores": 4,
+      "memory_required_gb": 16,
+      "disk_required_gb": 100
+    },
+    "training_data": {
+      "properties": 6647,
+      "compounds_training": "~500,000",
+      "data_sources": [
+        "ToxCast/Tox21",
+        "ChEMBL bioactivity",
+        "PubChem BioAssay",
+        "EPA CompTox",
+        "Custom aggregated datasets"
+      ]
+    },
+    "properties": {
+      "toxicity": [
+        "Ames mutagenicity",
+        "hERG cardiotoxicity",
+        "Hepatotoxicity",
+        "Carcinogenicity",
+        "Developmental toxicity"
+      ],
+      "adme": [
+        "Blood-brain barrier penetration",
+        "CYP450 inhibition",
+        "Plasma protein binding",
+        "Bioavailability",
+        "Clearance"
+      ],
+      "bioactivity": [
+        "Receptor binding",
+        "Enzyme inhibition",
+        "Pathway modulation",
+        "Cellular assays"
+      ],
+      "environmental": [
+        "Aquatic toxicity",
+        "Bioaccumulation",
+        "Persistence",
+        "Ecological hazard"
+      ]
+    },
+    "validation": {
+      "method": "Hold-out test set",
+      "benchmark": "State-of-the-art multitask models",
+      "note": "Mutual information contextualization improves prediction accuracy"
+    }
+  }
+}

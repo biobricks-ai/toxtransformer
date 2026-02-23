@@ -49,30 +49,141 @@ def predict_all():
     finally:
         predict_lock.release()
 
-@app.route('/predict', methods=['GET'])
+@app.route('/predict', methods=['GET', 'POST'])
 def predict():
-    """Synchronous predict - blocks until complete."""
-    logging.info(f"Predicting property for inchi: {request.args.get('inchi')} and property token: {request.args.get('property_token')}")
-    inchi = request.args.get('inchi')
-    property_token = request.args.get('property_token', None)
-    if inchi is None or property_token is None:
-        return jsonify({'error': 'inchi and property token parameters are required'}), 400
+    """
+    Predict properties for chemical structures.
 
-    if not predict_lock.acquire(timeout=LOCK_TIMEOUT):
-        return jsonify({'error': 'Server busy - try again later or use async /jobs endpoint'}), 503
+    GET (legacy): Single property prediction with ?inchi=...&property_token=...
+    POST (tool registry): All properties prediction with {"smiles": [...]} or {"inchi": [...]}
 
-    try:
-        prediction : Prediction = predictor.predict_property(inchi, int(property_token))
-        if prediction is None:
-            return jsonify({'error': 'Prediction failed - invalid property token or molecule'}), 400
-        return jsonify(dataclasses.asdict(prediction))
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-    except Exception as e:
-        logging.exception(f"Prediction error: {e}")
-        return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
-    finally:
-        predict_lock.release()
+    POST Request:
+    {
+        "smiles": ["CCO", "CC(C)Cc1ccc(cc1)C(C)C(=O)O"],  # SMILES strings
+        // OR
+        "inchi": ["InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3"]   # InChI strings
+    }
+
+    POST Response:
+    {
+        "predictions": [
+            {
+                "input": "CCO",
+                "inchi": "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
+                "properties": [
+                    {
+                        "property_token": 0,
+                        "property": {...},
+                        "value": 0.123
+                    },
+                    ...
+                ]
+            }
+        ],
+        "count": 1,
+        "total_properties": 6647
+    }
+    """
+    if request.method == 'POST':
+        # New POST endpoint for tool registry
+        data = request.json
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+
+        # Accept either SMILES or InChI
+        smiles_input = data.get('smiles', [])
+        inchi_input = data.get('inchi', [])
+
+        if not smiles_input and not inchi_input:
+            return jsonify({"error": "No SMILES or InChI provided"}), 400
+
+        # Normalize to list
+        if isinstance(smiles_input, str):
+            smiles_input = [smiles_input]
+        if isinstance(inchi_input, str):
+            inchi_input = [inchi_input]
+
+        # Convert SMILES to InChI if needed
+        try:
+            from rdkit import Chem
+            from rdkit.Chem import inchi as rdkit_inchi
+
+            inchi_list = []
+            input_list = []
+
+            for smiles in smiles_input:
+                mol = Chem.MolFromSmiles(smiles)
+                if mol is None:
+                    return jsonify({"error": f"Invalid SMILES: {smiles}"}), 400
+                inchi_str = rdkit_inchi.MolToInchi(mol)
+                if not inchi_str:
+                    return jsonify({"error": f"Could not convert SMILES to InChI: {smiles}"}), 400
+                inchi_list.append(inchi_str)
+                input_list.append(smiles)
+
+            for inchi_str in inchi_input:
+                inchi_list.append(inchi_str)
+                input_list.append(inchi_str)
+
+        except Exception as e:
+            logging.exception("SMILES/InChI conversion error")
+            return jsonify({"error": f"Conversion error: {str(e)}"}), 500
+
+        if not predict_lock.acquire(timeout=LOCK_TIMEOUT):
+            return jsonify({'error': 'Server busy - try again later or use async /jobs endpoint'}), 503
+
+        try:
+            predictions = []
+
+            for input_str, inchi_str in zip(input_list, inchi_list):
+                logging.info(f"Predicting all properties for: {input_str}")
+
+                property_predictions = predictor.predict_all_properties(inchi_str)
+
+                predictions.append({
+                    "input": input_str,
+                    "inchi": inchi_str,
+                    "properties": [dataclasses.asdict(p) for p in property_predictions]
+                })
+
+            return jsonify({
+                "predictions": predictions,
+                "count": len(predictions),
+                "total_properties": len(property_predictions) if property_predictions else 0
+            })
+
+        except Exception as e:
+            logging.exception("Prediction error")
+            return jsonify({
+                "error": str(e),
+                "message": "Prediction failed"
+            }), 500
+        finally:
+            predict_lock.release()
+
+    else:
+        # GET (legacy endpoint for single property)
+        logging.info(f"Predicting property for inchi: {request.args.get('inchi')} and property token: {request.args.get('property_token')}")
+        inchi = request.args.get('inchi')
+        property_token = request.args.get('property_token', None)
+        if inchi is None or property_token is None:
+            return jsonify({'error': 'inchi and property token parameters are required'}), 400
+
+        if not predict_lock.acquire(timeout=LOCK_TIMEOUT):
+            return jsonify({'error': 'Server busy - try again later or use async /jobs endpoint'}), 503
+
+        try:
+            prediction : Prediction = predictor.predict_property(inchi, int(property_token))
+            if prediction is None:
+                return jsonify({'error': 'Prediction failed - invalid property token or molecule'}), 400
+            return jsonify(dataclasses.asdict(prediction))
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+        except Exception as e:
+            logging.exception(f"Prediction error: {e}")
+            return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
+        finally:
+            predict_lock.release()
 
 # ============== Async Job Endpoints (new) ==============
 
@@ -264,6 +375,49 @@ def get_properties():
 def health_check():
     """Quick health check that returns immediately."""
     return jsonify({"status": "ok"}), 200
+
+
+@app.route('/info', methods=['GET'])
+def info():
+    """Model information endpoint for tool registry"""
+    return jsonify({
+        "model": "ToxTransformer",
+        "version": "2.1",
+        "source": "https://github.com/biobricks-ai/toxtransformer",
+        "description": "Decoder-only transformer for predicting 6,647 toxicology and bioactivity properties",
+        "algorithm": "Multitask Encoder with MI-based contextualization",
+        "properties_count": len(predictor.all_property_tokens),
+        "capabilities": {
+            "toxicity_prediction": True,
+            "bioactivity_prediction": True,
+            "adme_prediction": True,
+            "environmental_toxicity": True,
+            "multi_property_prediction": True,
+            "context_aware_prediction": True
+        },
+        "input_formats": ["SMILES", "InChI"],
+        "performance": {
+            "prediction_time_gpu": "~3 seconds (T4)",
+            "prediction_time_cached": "<0.1 seconds",
+            "throughput_gpu": "~2,200 properties/second",
+            "cuda_acceleration": True
+        },
+        "hardware": {
+            "gpu_required": True,
+            "gpu_type": "NVIDIA T4 or better",
+            "gpu_memory_gb": 16
+        },
+        "endpoints": {
+            "/predict (POST)": "Predict all properties - accepts SMILES or InChI",
+            "/predict_all (GET)": "Predict all properties - accepts InChI",
+            "/predict (GET)": "Predict single property - accepts InChI + property_token",
+            "/properties": "List available properties",
+            "/jobs (POST)": "Submit async prediction job",
+            "/jobs/<job_id> (GET)": "Get job status and results",
+            "/health": "Health check",
+            "/info": "This endpoint"
+        }
+    })
 
 
 if __name__ == '__main__':

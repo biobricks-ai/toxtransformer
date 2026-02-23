@@ -1,0 +1,33 @@
+# Cloud Build configuration for ToxTransformer
+# Builds and pushes Docker image to Artifact Registry
+
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/toxindex/toxtransformer:${_TAG}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/toxindex/toxtransformer:latest'
+      - '.'
+
+  # Push the image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/toxindex/toxtransformer'
+
+# Substitutions
+substitutions:
+  _REGION: us-central1
+  _TAG: latest
+
+# Options
+options:
+  machineType: 'E2_HIGHCPU_32'
+  logging: CLOUD_LOGGING_ONLY
+
+# Timeout - longer for CUDA compilation
+timeout: 3600s  # 60 minutes
