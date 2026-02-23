@@ -142,7 +142,7 @@ resource "google_compute_instance" "toxtransformer" {
 
   guest_accelerator {
     type  = var.gpu_type
-    count = 1
+    count = var.gpu_count
   }
 
   scheduling {
@@ -266,6 +266,15 @@ resource "google_compute_instance" "toxtransformer" {
       -e GITHUB_REPO="${var.github_repo}" \
       -e GIT_COMMIT="${var.git_commit}" \
       $IMAGE
+
+    # Set up daily Docker cleanup to prevent disk bloat
+    echo "Setting up automatic Docker cleanup..."
+    cat > /etc/cron.daily/docker-cleanup << 'CRONEOF'
+#!/bin/bash
+# Clean up old Docker images and build cache daily
+docker system prune -af --filter "until=24h" --volumes
+CRONEOF
+    chmod +x /etc/cron.daily/docker-cleanup
 
     echo "=== Startup script completed at $(date) ==="
   EOF
