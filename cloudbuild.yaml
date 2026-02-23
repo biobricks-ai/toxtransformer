@@ -7,9 +7,9 @@ steps:
     args:
       - 'build'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/toxindex/toxtransformer:${_TAG}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/toxindex-backend/toxtransformer:${_TAG}'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/toxindex/toxtransformer:latest'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/toxindex-backend/toxtransformer:latest'
       - '.'
 
   # Push the image to Artifact Registry
@@ -17,11 +17,11 @@ steps:
     args:
       - 'push'
       - '--all-tags'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/toxindex/toxtransformer'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/toxindex-backend/toxtransformer'
 
 # Substitutions
 substitutions:
-  _REGION: us-central1
+  _REGION: us
   _TAG: latest
 
 # Options
