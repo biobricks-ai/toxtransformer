@@ -23,7 +23,7 @@ app = Flask(__name__)
 app.config['TIMEOUT'] = 300  # 5 minutes in seconds
 
 predict_lock = threading.Lock()
-LOCK_TIMEOUT = 120  # seconds - prevent deadlock if request times out
+LOCK_TIMEOUT = 600  # seconds - increased to handle multiple sequential PDAA requests
 predictor = Predictor()
 
 # Initialize job queue and worker
@@ -35,12 +35,13 @@ job_worker.start()
 
 @app.route('/predict_all', methods=['GET'])
 def predict_all():
-    """Synchronous predict_all - blocks until complete."""
+    """Synchronous predict_all - blocks until complete.
+
+    Note: Removed global lock to allow concurrent requests.
+    The underlying GPU operations are thread-safe with gunicorn's gthread worker.
+    """
     logging.info(f"Predicting all properties for inchi: {request.args.get('inchi')}")
     inchi = request.args.get('inchi')
-
-    if not predict_lock.acquire(timeout=LOCK_TIMEOUT):
-        return jsonify({'error': 'Server busy - try again later or use async /jobs endpoint'}), 503
 
     try:
         property_predictions : list[Prediction] = predictor.predict_all_properties(inchi)
@@ -51,8 +52,6 @@ def predict_all():
         error_msg = str(e)
         logging.error(f"InChI conversion error: {error_msg}")
         return jsonify({'error': error_msg, 'inchi': inchi}), 400
-    finally:
-        predict_lock.release()
 
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
