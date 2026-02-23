@@ -46,6 +46,11 @@ def predict_all():
         property_predictions : list[Prediction] = predictor.predict_all_properties(inchi)
         json_predictions = [dataclasses.asdict(p) for p in property_predictions]
         return jsonify(json_predictions)
+    except ValueError as e:
+        # Handle RDKit conversion errors gracefully
+        error_msg = str(e)
+        logging.error(f"InChI conversion error: {error_msg}")
+        return jsonify({'error': error_msg, 'inchi': inchi}), 400
     finally:
         predict_lock.release()
 
@@ -152,6 +157,13 @@ def predict():
                 "total_properties": len(property_predictions) if property_predictions else 0
             })
 
+        except ValueError as e:
+            # Handle RDKit conversion errors gracefully (invalid InChI/SMILES)
+            logging.error(f"InChI conversion error: {str(e)}")
+            return jsonify({
+                "error": str(e),
+                "message": "Invalid chemical structure - could not convert to SELFIES"
+            }), 400
         except Exception as e:
             logging.exception("Prediction error")
             return jsonify({
