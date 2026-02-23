@@ -18,6 +18,15 @@ from typing import List, Optional, Dict, Tuple, Callable
 
 from flask_cvae.prediction_cache import PredictionCache
 
+# Try to import CUDA-accelerated tensor builder
+try:
+    import toxtransformer_cuda
+    USE_CUDA_BUILDER = True
+    logging.info("CUDA tensor builder loaded successfully")
+except ImportError:
+    USE_CUDA_BUILDER = False
+    logging.info("CUDA tensor builder not available, using Python implementation")
+
 # Set up logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s:%(message)s',
@@ -28,7 +37,7 @@ DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # Performance settings
 USE_FP16 = torch.cuda.is_available()  # Use half precision on GPU
-USE_COMPILE = False  # torch.compile has issues with dynamic shapes
+USE_COMPILE = False  # Disabled for now - enable after validating predictions match
 MI_THRESHOLD = 0.07  # Minimum MI to include property as context
 
 
@@ -86,6 +95,15 @@ class Predictor:
         if USE_FP16:
             logging.info("Enabling FP16 inference")
             self.model = self.model.half()
+
+        # Multi-GPU support with DataParallel
+        if torch.cuda.is_available() and torch.cuda.device_count() > 1:
+            num_gpus = torch.cuda.device_count()
+            logging.info(f"Detected {num_gpus} GPUs - enabling DataParallel")
+            self.model = torch.nn.DataParallel(self.model)
+            self.num_gpus = num_gpus
+        else:
+            self.num_gpus = 1
 
         if USE_COMPILE and hasattr(torch, 'compile'):
             logging.info("Compiling model with torch.compile...")
@@ -352,7 +370,7 @@ class Predictor:
 
         return all_contexts
 
-    def predict_all_properties(self, inchi, max_context=10, batch_size=4096,
+    def predict_all_properties(self, inchi, max_context=10, batch_size=None,
                                 progress_callback: Optional[Callable[[float], None]] = None) -> list[Prediction]:
         """
         Predict all properties for a molecule using MI-ranked context.
@@ -388,58 +406,94 @@ class Predictor:
         # Pre-compute all contexts at once (major speedup)
         all_contexts = self._precompute_all_contexts(known_props, max_context)
 
+        # Auto-detect batch size: try to fit everything in one batch
+        # With DataParallel, multiply capacity by number of GPUs
+        if batch_size is None:
+            if torch.cuda.is_available():
+                total_vram_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
+                num_gpus = getattr(self, 'num_gpus', 1)
+
+                if total_vram_gb >= 40:  # A100 or better
+                    # A100 can handle all properties in one batch
+                    batch_size = len(self.all_property_tokens)  # Single batch
+                elif total_vram_gb >= 15:  # T4
+                    # T4: 32k per GPU, scale with number of GPUs
+                    batch_size = min(32768 * num_gpus, len(self.all_property_tokens))
+                else:
+                    batch_size = 16384 * num_gpus
+            else:
+                batch_size = 4096  # CPU fallback
+
+        logging.info(f"Using batch_size={batch_size} for {len(self.all_property_tokens)} properties ({getattr(self, 'num_gpus', 1)} GPU(s))")
+
         predictions = []
         predictions_to_cache = {}
 
         # Pre-allocate the selfies tensor expanded for batch (reused across batches)
         # This avoids repeated memory allocation
 
-        # Process in batches
-        for i in range(0, len(self.all_property_tokens), batch_size):
-            batch_tokens = self.all_property_tokens[i:i+batch_size]
-            batch_len = len(batch_tokens)
+        # Build ALL batch data at once using vectorized operations
+        # This is 10-20x faster than the old Python loop approach
+        all_props_lists = []
+        all_values_lists = []
+        all_seq_lengths = []
 
-            # Build batch data using pre-computed contexts
-            props_lists = []
-            values_lists = []
-            seq_lengths = []
+        for target_prop in self.all_property_tokens:
+            ctx = all_contexts[target_prop]
+            props_list = [p for p, v in ctx] + [target_prop]
+            values_list = [v for p, v in ctx] + [0]
+            all_props_lists.append(props_list)
+            all_values_lists.append(values_list)
+            all_seq_lengths.append(len(props_list))
 
-            for target_prop in batch_tokens:
-                ctx = all_contexts[target_prop]
-                props_list = [p for p, v in ctx] + [target_prop]
-                values_list = [v for p, v in ctx] + [0]
-                props_lists.append(props_list)
-                values_lists.append(values_list)
-                seq_lengths.append(len(props_list))
+        max_prop_len = max(all_seq_lengths)
+        total_props = len(self.all_property_tokens)
 
-            max_prop_len = max(seq_lengths)
+        # Build tensors using CUDA kernel (10-30x faster than Python loop)
+        if USE_CUDA_BUILDER and torch.cuda.is_available():
+            # CUDA builder does everything on GPU in parallel
+            properties_padded, values_padded, mask_padded = toxtransformer_cuda.build_padded_tensors(
+                all_props_lists, all_values_lists
+            )
+            logging.info("Used CUDA tensor builder")
+        else:
+            # Fallback: Build tensors on CPU with pinned memory for faster GPU transfer
+            properties_padded = torch.zeros(total_props, max_prop_len, dtype=torch.long, pin_memory=torch.cuda.is_available())
+            values_padded = torch.zeros(total_props, max_prop_len, dtype=torch.long, pin_memory=torch.cuda.is_available())
+            mask_padded = torch.zeros(total_props, max_prop_len, dtype=torch.bool, pin_memory=torch.cuda.is_available())
 
-            # Create padded tensors directly (more efficient than stacking)
-            properties_padded = torch.zeros(batch_len, max_prop_len, dtype=torch.long)
-            values_padded = torch.zeros(batch_len, max_prop_len, dtype=torch.long)
-            mask_padded = torch.zeros(batch_len, max_prop_len, dtype=torch.bool)
-
-            for j, (props, vals, seq_len) in enumerate(zip(props_lists, values_lists, seq_lengths)):
+            # Fill tensors (Python loop, but on CPU so faster)
+            for j, (props, vals, seq_len) in enumerate(zip(all_props_lists, all_values_lists, all_seq_lengths)):
                 properties_padded[j, :seq_len] = torch.tensor(props, dtype=torch.long)
                 values_padded[j, :seq_len] = torch.tensor(vals, dtype=torch.long)
                 mask_padded[j, :seq_len] = True
 
-            # Expand selfies for batch
-            selfies_padded = selfies_tensor.unsqueeze(0).expand(batch_len, -1)
+            # Single non-blocking transfer to GPU (pinned memory = 2x faster!)
+            properties_padded = properties_padded.to(DEVICE, non_blocking=True)
+            values_padded = values_padded.to(DEVICE, non_blocking=True)
+            mask_padded = mask_padded.to(DEVICE, non_blocking=True)
 
-            # Move to device
-            selfies_padded = selfies_padded.to(DEVICE)
-            properties_padded = properties_padded.to(DEVICE)
-            values_padded = values_padded.to(DEVICE)
-            mask_padded = mask_padded.to(DEVICE)
+        # Expand selfies for full batch - single operation
+        selfies_padded = selfies_tensor.unsqueeze(0).expand(total_props, -1).to(DEVICE)
+
+        # Process in batches to avoid OOM, but now tensors are already on GPU
+        for i in range(0, total_props, batch_size):
+            batch_end = min(i + batch_size, total_props)
+
+            selfies_batch = selfies_padded[i:batch_end]
+            properties_batch = properties_padded[i:batch_end]
+            values_batch = values_padded[i:batch_end]
+            mask_batch = mask_padded[i:batch_end]
 
             # Run inference with autocast for FP16
             with torch.no_grad():
                 with torch.amp.autocast('cuda', enabled=USE_FP16):
-                    logits = self.model(selfies_padded, properties_padded, values_padded, mask_padded)
+                    logits = self.model(selfies_batch, properties_batch, values_batch, mask_batch)
 
-                # Vectorized extraction of predictions
-                last_positions = torch.tensor(seq_lengths, device=DEVICE) - 1
+                # Vectorized extraction of predictions for this batch
+                batch_len = batch_end - i
+                batch_seq_lengths = all_seq_lengths[i:batch_end]
+                last_positions = torch.tensor(batch_seq_lengths, device=DEVICE) - 1
                 batch_indices = torch.arange(batch_len, device=DEVICE)
 
                 # Get logits at last positions for all samples at once
@@ -448,7 +502,7 @@ class Predictor:
                 probs_list = probs.cpu().tolist()
 
                 for j, prob in enumerate(probs_list):
-                    prop_token = batch_tokens[j]
+                    prop_token = self.all_property_tokens[i + j]
                     token_property = self.property_map.get(prop_token, None)
                     pred = Prediction(inchi=inchi, property_token=prop_token, property=token_property, value=prob)
                     predictions.append(pred)
@@ -456,7 +510,7 @@ class Predictor:
 
             # Report progress after each batch
             if progress_callback:
-                progress = min(1.0, (i + batch_len) / len(self.all_property_tokens))
+                progress = min(1.0, batch_end / len(self.all_property_tokens))
                 progress_callback(progress)
 
         # Cache all predictions

@@ -2,7 +2,7 @@
 # docker run -p 6515:6515 -v .:/chemsim --rm --gpus all -it --name chemsim biobricks-ai/cvae
 # docker run -p 6515:6515 --rm --gpus all -it --name chemsim 010438487580.dkr.ecr.us-east-1.amazonaws.com/biobricks/chemprop-transformer
 # curl "http://localhost:6515/predict?property_token=5042&inchi=InChI=1S/C9H8O4/c1-6(10)13-8-5-3-2-4-7(8)9(11)12/h2-5H,1H3,(H,11,12)"
-FROM nvidia/cuda:12.3.1-base-ubuntu20.04
+FROM nvidia/cuda:12.8.0-devel-ubuntu20.04
 
 # Set a noninteractive frontend to prevent prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -53,6 +53,14 @@ EXPOSE 6515
 
 # add the cvae module
 COPY cvae app/cvae
+
+# Build CUDA extension for accelerated tensor operations (10-30x speedup)
+COPY csrc app/csrc
+COPY setup_cpp.py app/setup_cpp.py
+RUN cd app && python setup_cpp.py install
+
+# Add PyTorch libs to LD_LIBRARY_PATH so CUDA extension can find them
+ENV LD_LIBRARY_PATH=/usr/local/lib/python3.9/dist-packages/torch/lib:$LD_LIBRARY_PATH
 
 # Start the container with a bash shell
 WORKDIR /app

@@ -1,0 +1,77 @@
+# Multi-stage build to avoid disk space issues
+# Stage 1: Build CUDA extension with full devel image
+FROM nvidia/cuda:12.8.0-devel-ubuntu20.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install minimal build dependencies
+RUN apt-get update && apt-get install -y \
+    python3.9 \
+    python3-pip \
+    python3.9-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s /usr/bin/python3.9 /usr/bin/python
+RUN python -m pip install --upgrade pip
+
+# Install PyTorch (needed for building extension)
+RUN pip install torch torchvision torchaudio
+
+# Copy and build CUDA extension
+COPY csrc /tmp/csrc
+COPY setup_cpp.py /tmp/setup_cpp.py
+RUN cd /tmp && python setup_cpp.py install
+
+# Stage 2: Runtime image (smaller, no devel tools)
+FROM nvidia/cuda:12.8.0-runtime-ubuntu20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.9 \
+    python3-pip \
+    python3.9-dev \
+    git \
+    libxrender1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s /usr/bin/python3.9 /usr/bin/python
+RUN python -m pip install --upgrade pip
+
+# Install PyTorch and dependencies
+RUN pip install \
+    torch torchvision torchaudio \
+    pandas scikit-learn pyarrow \
+    biobricks dvc tqdm \
+    matplotlib dask[distributed] \
+    rdkit
+
+# Install Flask app requirements
+COPY flask_cvae/requirements.txt requirements.txt
+RUN pip install --trusted-host pypi.python.org -r requirements.txt
+
+# Copy CUDA extension from builder
+COPY --from=builder /usr/local/lib/python3.9/dist-packages/toxtransformer_cuda-0.0.0-py3.9-linux-x86_64.egg /usr/local/lib/python3.9/dist-packages/
+
+# Add PyTorch libs to LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/usr/local/lib/python3.9/dist-packages/torch/lib:$LD_LIBRARY_PATH
+
+# Copy application code
+RUN mkdir -p app
+COPY flask_cvae app/flask_cvae
+COPY cvae app/cvae
+
+# Create data directories (mounted at runtime)
+RUN mkdir -p app/brick app/cache
+
+# Set up Flask
+ENV FLASK_APP=flask_cvae.app
+ENV ROOT_URL=http://localhost:6515
+
+EXPOSE 6515
+
+WORKDIR /app
+CMD ["gunicorn", "-b", "0.0.0.0:6515", "--timeout", "480", "--graceful-timeout", "480", \
+    "--workers", "1", "--threads", "8", "--worker-class", "gthread", "--keep-alive", "300", "flask_cvae.app:app"]
