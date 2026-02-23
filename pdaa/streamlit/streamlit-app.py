@@ -9,11 +9,14 @@ import stages.utils.pdaa as pdaa
 import stages.utils.pubchem as pubchem
 import stages.utils.sparql as sparql
 import stages.utils.simple_cache as simple_cache
+import stages.utils.openai as openai_utils
 import rdflib
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Optional
 import requests
+import traceback
+import sys
 
 # Setup
 cachedir = pathlib.Path("cache") / "notebooks" / "pdaa"
@@ -330,8 +333,8 @@ def get_property_predictions(predictions, prompt, top_n=20):
         quoted_words = prompt.split('"')[1::2]
         uri_candidates = uri_candidates[uri_candidates['title'].str.lower().apply(lambda x: any(word.lower() in x for word in quoted_words))]
 
-    prompt_property = pdaa.get_prompt_similars(prompt, uri_candidates['uri'].unique(), top_k_to_search=20000)
-    prompt_property = prompt_property.sort_values('similarity', ascending=False).head(top_n)
+    # Use Gemini Flash to rank properties by relevance (replaces FAISS embedding search)
+    prompt_property = openai_utils.rank_properties_gemini(prompt, uri_candidates[['uri', 'title']], top_n=30)
 
     res = predictions[['property_token_id_uri','chemical_name','prediction']].drop_duplicates()
     res = res[res['property_token_id_uri'].isin(prompt_property['uri'])]
@@ -352,18 +355,48 @@ def get_mie_predictions(predictions, prompt, top_n=20):
         quoted_words = prompt.split('"')[1::2]
         candidate_ao = candidate_ao[candidate_ao['mie_title'].str.lower().apply(lambda x: any(word.lower() in x for word in quoted_words))]
 
-    prompt_aop = pdaa.get_prompt_similars(prompt, candidate_ao['aop'].unique(), top_k_to_search=10000)
-    prompt_aop = prompt_aop.query('similarity > 0.2')
+    # Rank AOPs using Gemini (needs AOP title - we'll use MIE title as proxy since AOP doesn't have separate title)
+    aop_df = candidate_ao[['aop', 'mie_title']].drop_duplicates().rename(columns={'aop': 'uri', 'mie_title': 'title'})
+    prompt_aop = openai_utils.rank_uris_gemini(prompt, aop_df, uri_col='uri', title_col='title', top_k=10000)
+    prompt_aop = prompt_aop.query('similarity > 0.05')  # Lower threshold
     prompt_aop = all_ao.merge(prompt_aop, left_on='aop', right_on='uri')[['mie','mie_title','similarity']]
 
-    prompt_ao = pdaa.get_prompt_similars(prompt, candidate_ao['ao'].unique(), top_k_to_search=10000)
-    prompt_ao = prompt_ao.query('similarity > 0.2')
+    # Rank AOs using Gemini
+    ao_df = candidate_ao[['ao', 'ao_title']].drop_duplicates().rename(columns={'ao': 'uri', 'ao_title': 'title'})
+    prompt_ao = openai_utils.rank_uris_gemini(prompt, ao_df, uri_col='uri', title_col='title', top_k=10000)
+    prompt_ao = prompt_ao.query('similarity > 0.05')  # Lower threshold
     prompt_ao = all_ao.merge(prompt_ao, left_on='ao', right_on='uri')[['mie','mie_title','similarity']]
 
-    prompt_mie = pdaa.get_prompt_similars(prompt, candidate_ao['mie'].unique(), top_k_to_search=10000)
-    prompt_mie = prompt_mie.query('similarity > 0.2')
-    prompt_mie = all_ao.merge(prompt_mie, left_on='mie', right_on='uri')[['mie','mie_title','similarity']]
-    prompt_mie = prompt_mie.merge(prompt_ao, on='mie').merge(prompt_aop, on='mie')
+    # Rank MIEs using Gemini - this is the primary signal
+    mie_df = candidate_ao[['mie', 'mie_title']].drop_duplicates().rename(columns={'mie': 'uri', 'mie_title': 'title'})
+    prompt_mie = openai_utils.rank_uris_gemini(prompt, mie_df, uri_col='uri', title_col='title', top_k=10000)
+
+    # Use MIE scores directly, but boost if AOP or AO also match
+    if len(prompt_aop) > 0 or len(prompt_ao) > 0:
+        # Merge with AO and AOP scores if available
+        prompt_mie_with_context = all_ao.merge(prompt_mie, left_on='mie', right_on='uri', how='inner')[['mie','mie_title','similarity']]
+
+        if len(prompt_ao) > 0:
+            prompt_mie_with_context = prompt_mie_with_context.merge(
+                prompt_ao.rename(columns={'similarity': 'ao_similarity'}),
+                on='mie', how='left'
+            )
+            prompt_mie_with_context['ao_similarity'] = prompt_mie_with_context['ao_similarity'].fillna(0)
+            prompt_mie_with_context['similarity'] = prompt_mie_with_context[['similarity', 'ao_similarity']].max(axis=1)
+
+        if len(prompt_aop) > 0:
+            prompt_mie_with_context = prompt_mie_with_context.merge(
+                prompt_aop.rename(columns={'similarity': 'aop_similarity'}),
+                on='mie', how='left'
+            )
+            prompt_mie_with_context['aop_similarity'] = prompt_mie_with_context['aop_similarity'].fillna(0)
+            prompt_mie_with_context['similarity'] = prompt_mie_with_context[['similarity', 'aop_similarity']].max(axis=1)
+
+        prompt_mie = prompt_mie_with_context[['mie', 'mie_title', 'similarity']]
+    else:
+        # Just use MIE scores directly
+        prompt_mie = all_ao.merge(prompt_mie, left_on='mie', right_on='uri')[['mie','mie_title','similarity']]
+
     prompt_mie = prompt_mie.groupby(['mie','mie_title']).agg({'similarity':'max'}).reset_index()
 
     pred_mie = all_pred_df['mie'].unique()
@@ -532,8 +565,16 @@ with main_col:
                 st.error("No predictions were obtained. Check the status log for details.")
 
         except Exception as e:
+            error_msg = f"Fatal error: {type(e).__name__}: {str(e)}"
+            full_traceback = traceback.format_exc()
+
+            # Log to stderr for Cloud Logging
+            print(f"ERROR: {error_msg}", file=sys.stderr)
+            print(f"Full traceback:\n{full_traceback}", file=sys.stderr)
+
+            # Show in UI
             st.error(f"Error: {str(e)}")
-            st.session_state.logger.error(f"Fatal error: {str(e)}")
+            st.session_state.logger.error(error_msg)
 
         st.session_state.updating_charts = False
 
