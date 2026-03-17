@@ -204,8 +204,8 @@ class Predictor:
             cursor.execute("""
                 SELECT p.property_token, p.title, p.data as metadata, s.source, c.category, pc.reason, pc.strength
                 FROM property p
-                INNER JOIN property_category pc ON p.property_id = pc.property_id
-                INNER JOIN category c ON pc.category_id = c.category_id
+                LEFT JOIN property_category pc ON p.property_id = pc.property_id
+                LEFT JOIN category c ON pc.category_id = c.category_id
                 INNER JOIN source s ON p.source_id = s.source_id
             """)
             res = cursor.fetchall()
@@ -215,11 +215,16 @@ class Predictor:
             for property_token, group in itertools.groupby(res, key=lambda x: x['property_token']):
                 group_list = list(group)
                 categories = [Category(category=r['category'], reason=r['reason'], strength=r['strength'])
-                            for r in group_list]
+                            for r in group_list if r['category'] is not None]
+                if not categories:
+                    categories = [Category(category='uncategorized', reason='', strength='')]
+
+                metadata = json.loads(group_list[0]['metadata'])
+                title = group_list[0]['title'] or metadata.get('BioAssay Name', '')
 
                 property = Property(property_token=int(property_token),
-                                  title=group_list[0]['title'],
-                                  metadata=json.loads(group_list[0]['metadata']),
+                                  title=title,
+                                  metadata=metadata,
                                   source=group_list[0]['source'],
                                   categories=categories)
 

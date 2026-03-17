@@ -53,6 +53,12 @@ def predict_all():
         logging.error(f"InChI conversion error: {error_msg}")
         return jsonify({'error': error_msg, 'inchi': inchi}), 400
 
+@app.route('/run', methods=['POST'])
+def run():
+    """Alias for POST /predict — used by the toxserver job queue."""
+    return predict()
+
+
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
     """
