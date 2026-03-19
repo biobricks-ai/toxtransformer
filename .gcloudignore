@@ -1,6 +1,6 @@
 # Exclude large model and cache files - these are mounted from GCS at runtime
 brick/
-cache/
+/cache/
 
 # Exclude git history
 .git/
@@ -29,5 +29,7 @@ publication/
 README.md
 LICENSE
 
-# Exclude PDAA app
-pdaa/
+# Exclude PDAA: skip large/unused subdirs, keep app code and required caches
+pdaa/.venv/
+pdaa/pdaa/
+pdaa/cache/notebooks/pdaa/get_all_predictions/

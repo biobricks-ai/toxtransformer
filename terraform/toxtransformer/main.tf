@@ -18,7 +18,6 @@ provider "google" {
 }
 
 locals {
-  # Common labels for all resources
   common_labels = {
     managed_by  = "terraform"
     github_repo = replace(var.github_repo, "/", "_")
@@ -27,9 +26,9 @@ locals {
     service     = "toxtransformer"
   }
 
-  # Use existing toxindex-backend registry in us region
   image_uri = "us-docker.pkg.dev/${var.project_id}/toxindex-backend/toxtransformer:${var.image_tag}"
 }
+
 
 # GCS bucket for brick/ data (cvae.sqlite, models, tokenizer) - read-only via GCS FUSE
 resource "google_storage_bucket" "data" {
@@ -73,7 +72,7 @@ resource "google_compute_firewall" "toxtransformer" {
 
   allow {
     protocol = "tcp"
-    ports    = ["80", "443", "6515"]
+    ports    = ["80", "443", "6515", "8080"]
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -287,6 +286,23 @@ CRONEOF
 }
 
 # ---------------------------------------------------------------------------
+# PDAA Service Account
+# ---------------------------------------------------------------------------
+
+resource "google_service_account" "pdaa" {
+  account_id   = "pdaa-service"
+  display_name = "PDAA Service Account"
+  description  = "Service account for PDAA Cloud Run service"
+  project      = var.project_id
+}
+
+resource "google_project_iam_member" "pdaa_aiplatform" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.pdaa.email}"
+}
+
+# ---------------------------------------------------------------------------
 # Streamlit UI - Cloud Run
 # ---------------------------------------------------------------------------
 
@@ -359,6 +375,66 @@ resource "google_cloud_run_service_iam_member" "streamlit_invoker" {
 }
 
 # ---------------------------------------------------------------------------
+# PDAA - Cloud Run
+# ---------------------------------------------------------------------------
+
+resource "google_cloud_run_service" "pdaa" {
+  name     = "pdaa"
+  location = var.region
+
+  template {
+    spec {
+      service_account_name = google_service_account.pdaa.email
+
+      containers {
+        image = "gcr.io/${var.project_id}/toxtransformer-pdaa:${var.pdaa_image_tag}"
+
+        env {
+          name  = "TOXTRANSFORMER_API_URL"
+          value = "https://jobs.toxindex.com"
+        }
+
+        env {
+          name  = "TOXTRANSFORMER_IAP_CLIENT_ID"
+          value = "873471276793-e3eevjds5n12d2dnci00ln3bpnjlb8j6.apps.googleusercontent.com"
+        }
+
+        resources {
+          limits = {
+            cpu    = "2"
+            memory = "4Gi"
+          }
+        }
+      }
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+
+}
+
+
+resource "google_cloud_run_service_iam_member" "pdaa_invoker" {
+  service  = google_cloud_run_service.pdaa.name
+  location = google_cloud_run_service.pdaa.location
+  role     = "roles/run.invoker"
+  member   = "allUsers"  # Restricted by IAP at load balancer level
+}
+
+resource "google_compute_region_network_endpoint_group" "pdaa" {
+  name                  = "pdaa-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+
+  cloud_run {
+    service = google_cloud_run_service.pdaa.name
+  }
+}
+
+# ---------------------------------------------------------------------------
 # Load Balancer with IAP
 # ---------------------------------------------------------------------------
 
@@ -367,12 +443,21 @@ resource "google_compute_global_address" "lb" {
   name = "toxtransformer-lb-ip"
 }
 
-# SSL certificate (using Google-managed cert)
+# SSL certificate for main UI
 resource "google_compute_managed_ssl_certificate" "default" {
   name = "toxtransformer-cert"
 
   managed {
     domains = ["toxtransformer.toxindex.com"]
+  }
+}
+
+# SSL certificate for jobs API
+resource "google_compute_managed_ssl_certificate" "jobs" {
+  name = "jobs-cert"
+
+  managed {
+    domains = ["jobs.toxindex.com"]
   }
 }
 
@@ -451,6 +536,31 @@ resource "google_compute_health_check" "api" {
   }
 }
 
+# Grant PDAA service account access to the IAP-protected API backend
+resource "google_iap_web_backend_service_iam_member" "pdaa_jobs_access" {
+  project             = var.project_id
+  web_backend_service = google_compute_backend_service.api.name
+  role                = "roles/iap.httpsResourceAccessor"
+  member              = "serviceAccount:${google_service_account.pdaa.email}"
+}
+
+# Backend service for PDAA (Cloud Run)
+resource "google_compute_backend_service" "pdaa" {
+  name                  = "pdaa-backend"
+  protocol              = "HTTP"
+  enable_cdn            = false
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+
+  backend {
+    group = google_compute_region_network_endpoint_group.pdaa.id
+  }
+
+  iap {
+    oauth2_client_id     = var.iap_client_id
+    oauth2_client_secret = var.iap_client_secret
+  }
+}
+
 # URL map for routing
 resource "google_compute_url_map" "default" {
   name            = "toxtransformer-lb"
@@ -461,6 +571,11 @@ resource "google_compute_url_map" "default" {
     path_matcher = "main"
   }
 
+  host_rule {
+    hosts        = ["jobs.toxindex.com"]
+    path_matcher = "jobs"
+  }
+
   path_matcher {
     name            = "main"
     default_service = google_compute_backend_service.streamlit.id
@@ -469,6 +584,16 @@ resource "google_compute_url_map" "default" {
       paths   = ["/api/*", "/predict_all", "/jobs", "/jobs/*", "/health"]
       service = google_compute_backend_service.api.id
     }
+
+    path_rule {
+      paths   = ["/pdaa", "/pdaa/*"]
+      service = google_compute_backend_service.pdaa.id
+    }
+  }
+
+  path_matcher {
+    name            = "jobs"
+    default_service = google_compute_backend_service.api.id
   }
 }
 
@@ -487,7 +612,10 @@ resource "google_compute_url_map" "https_redirect" {
 resource "google_compute_target_https_proxy" "default" {
   name             = "toxtransformer-https-proxy"
   url_map          = google_compute_url_map.default.id
-  ssl_certificates = [google_compute_managed_ssl_certificate.default.id]
+  ssl_certificates = [
+    google_compute_managed_ssl_certificate.default.id,
+    google_compute_managed_ssl_certificate.jobs.id,
+  ]
 }
 
 # Target HTTP proxy for redirect

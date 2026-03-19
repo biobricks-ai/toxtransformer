@@ -20,7 +20,7 @@ def rerank(prompt, values):
         project_id = os.getenv('GOOGLE_CLOUD_PROJECT', 'toxindex')
         vertexai.init(project=project_id, location='us-central1')
         
-        model = GenerativeModel("gemini-2.0-flash-exp")
+        model = GenerativeModel("gemini-2.0-flash")
         
         system_prompt = """You are a helpful assistant that evaluates how strongly items relate to a given topic.
 For each item, assign a strength score from 1-10 where:
@@ -56,7 +56,7 @@ def link_molecular_terms(assays, mie):
         project_id = os.getenv('GOOGLE_CLOUD_PROJECT', 'toxindex')
         vertexai.init(project=project_id, location='us-central1')
 
-        model = GenerativeModel("gemini-2.0-flash-exp")
+        model = GenerativeModel("gemini-2.0-flash")
 
         system_prompt = """You are a helpful assistant that evaluates how well different assays can measure a molecular initiating event (MIE).
 For each assay, determine how relevant it is for measuring the given MIE on a scale of 1-10:
@@ -95,19 +95,20 @@ def score_properties_batch(prompt, property_titles):
         project_id = os.getenv('GOOGLE_CLOUD_PROJECT', 'toxindex')
         vertexai.init(project=project_id, location='us-central1')
 
-        model = GenerativeModel("gemini-2.0-flash-exp")
+        model = GenerativeModel("gemini-2.0-flash")
 
         system_prompt = """You are a toxicology expert evaluating how well different biological assays/properties relate to a specific topic.
 
-For each property, assign a relevance score from 0-10 where:
+For each numbered property, assign a relevance score from 0-10 where:
 - 10: Extremely relevant, directly measures the concept
 - 7-9: Highly relevant, closely related
 - 4-6: Moderately relevant, indirect relationship
 - 1-3: Weakly relevant, tangential connection
 - 0: Not relevant
 
-Return ONLY valid JSON in this exact format:
-{"scores": [{"title": "property title", "score": 8}, ...]}"""
+Return ONLY valid JSON in this exact format (use the index number, not the title):
+{"scores": [{"index": 1, "score": 8}, {"index": 2, "score": 3}, ...]}
+You MUST include every index from 1 to N in your response."""
 
         # Format properties as numbered list
         property_list = "\n".join([f"{i+1}. {title}" for i, title in enumerate(property_titles)])
@@ -117,7 +118,7 @@ Return ONLY valid JSON in this exact format:
 Properties to evaluate:
 {property_list}
 
-Rate each property's relevance to the topic."""
+Rate each property's relevance to the topic. Return index numbers, not titles."""
 
         response = model.generate_content(
             [system_prompt, user_prompt],
@@ -127,8 +128,8 @@ Rate each property's relevance to the topic."""
         result = json.loads(response.text)
         return result.get("scores", [])
     except Exception as e:
-        # Fallback: return zero scores
-        return [{"title": title, "score": 0} for title in property_titles]
+        # Fallback: return zero scores by index
+        return [{"index": i + 1, "score": 0} for i in range(len(property_titles))]
 
 @simple_cache.simple_cache_df(cache_dir / 'rank_properties_gemini')
 def rank_properties_gemini(prompt, properties_df, top_n=30):
@@ -148,9 +149,9 @@ def rank_properties_gemini(prompt, properties_df, top_n=30):
     if len(properties_df) == 0:
         return pd.DataFrame(columns=['uri', 'relevance_score'])
 
-    # Split properties into 10 batches for parallel processing
+    # Split properties into batches of 100 for reliable Gemini JSON output
+    batch_size = 100
     num_workers = 10
-    batch_size = int(np.ceil(len(properties_df) / num_workers))
 
     batches = []
     for i in range(0, len(properties_df), batch_size):
@@ -166,17 +167,18 @@ def rank_properties_gemini(prompt, properties_df, top_n=30):
             futures.append((future, batch))
 
         for future, batch in futures:
-            scores = future.result()
-            # Match scores back to URIs
+            try:
+                scores = future.result(timeout=30)
+            except Exception:
+                scores = [{"index": i + 1, "score": 0} for i in range(len(batch))]
+            # Match scores back to URIs by index (not title string matching)
             for score_obj in scores:
-                title = score_obj.get('title', '')
+                idx = score_obj.get('index', 0) - 1  # convert to 0-based
                 score = score_obj.get('score', 0)
-                # Find matching URI
-                matching = batch[batch['title'] == title]
-                if len(matching) > 0:
+                if 0 <= idx < len(batch):
                     all_scores.append({
-                        'uri': matching.iloc[0]['uri'],
-                        'relevance_score': float(score) / 10.0  # Normalize to 0-1 like similarity
+                        'uri': batch.iloc[idx]['uri'],
+                        'relevance_score': float(score) / 10.0  # Normalize to 0-1
                     })
 
     # Sort by score and return top N
@@ -196,12 +198,9 @@ def _rank_uris_gemini_impl(prompt, uri_title_pairs, top_k=100):
     if len(uri_title_pairs) == 0:
         return []
 
-    # Split into batches for parallel processing
-    num_workers = min(10, len(uri_title_pairs))
-    if num_workers == 0:
-        return []
-
-    batch_size = int(np.ceil(len(uri_title_pairs) / num_workers))
+    # Split into batches of 100 for reliable Gemini JSON output
+    batch_size = 100
+    num_workers = 10
 
     batches = []
     for i in range(0, len(uri_title_pairs), batch_size):
@@ -218,19 +217,20 @@ def _rank_uris_gemini_impl(prompt, uri_title_pairs, top_k=100):
             futures.append((future, batch))
 
         for future, batch in futures:
-            scores = future.result()
-            # Match scores back to URIs
+            try:
+                scores = future.result(timeout=30)
+            except Exception:
+                scores = [{"index": i + 1, "score": 0} for i in range(len(batch))]
+            # Match scores back to URIs by index (not title string matching)
             for score_obj in scores:
-                title = score_obj.get('title', '')
+                idx = score_obj.get('index', 0) - 1  # convert to 0-based
                 score = score_obj.get('score', 0)
-                # Find matching URI
-                for uri, batch_title in batch:
-                    if batch_title == title:
-                        all_scores.append({
-                            'uri': uri,
-                            'similarity': float(score) / 10.0
-                        })
-                        break
+                if 0 <= idx < len(batch):
+                    uri, batch_title = batch[idx]
+                    all_scores.append({
+                        'uri': uri,
+                        'similarity': float(score) / 10.0
+                    })
 
     # Sort by score and return top k
     all_scores.sort(key=lambda x: x['similarity'], reverse=True)

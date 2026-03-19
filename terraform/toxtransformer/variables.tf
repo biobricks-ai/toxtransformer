@@ -28,6 +28,12 @@ variable "gpu_type" {
   default     = "nvidia-tesla-t4"
 }
 
+variable "gpu_count" {
+  description = "Number of GPUs"
+  type        = number
+  default     = 1
+}
+
 variable "github_repo" {
   description = "GitHub repository (org/repo format)"
   type        = string
@@ -64,7 +70,7 @@ variable "data_bucket" {
 }
 
 variable "iap_client_id" {
-  description = "OAuth 2.0 client ID for IAP"
+  description = "OAuth 2.0 client ID for IAP (protects the Streamlit UI)"
   type        = string
   sensitive   = true
 }
@@ -73,4 +79,10 @@ variable "iap_client_secret" {
   description = "OAuth 2.0 client secret for IAP"
   type        = string
   sensitive   = true
+}
+
+variable "pdaa_image_tag" {
+  description = "Docker image tag for the PDAA Cloud Run service"
+  type        = string
+  default     = "v18"
 }

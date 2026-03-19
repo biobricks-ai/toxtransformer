@@ -34,7 +34,14 @@ COPY pdaa/cache/util/pdaa/pdaa_graph /app/cache/util/pdaa/pdaa_graph
 ENV PYTHONPATH=/app
 
 # Set API URL
-ENV TOXTRANSFORMER_API_URL=https://toxtransformer.toxindex.com
+ENV TOXTRANSFORMER_API_URL=https://jobs.toxindex.com
+
+# IAP client ID for authenticating to the API backend (injected at deploy time)
+ENV TOXTRANSFORMER_IAP_CLIENT_ID=""
+
+# Build date - stamped at image build time
+ARG BUILD_DATE
+ENV BUILD_DATE=${BUILD_DATE}
 
 # Expose port
 EXPOSE 8080

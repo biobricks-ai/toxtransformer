@@ -3,6 +3,7 @@ import asyncio
 import requests
 import time
 import logging
+import os
 from tenacity import retry, stop_after_attempt, wait_exponential
 from functools import wraps
 
@@ -11,8 +12,42 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # GCP endpoint for toxtransformer
-import os
 CHEMPROP_BASE_URL = os.environ.get("TOXTRANSFORMER_API_URL", "http://136.111.102.10:6515")
+
+_iap_token_cache: dict = {"token": None, "expires_at": 0.0}
+
+def _get_iap_headers() -> dict:
+    """Return Authorization header with IAP ID token if IAP_CLIENT_ID is configured."""
+    client_id = os.environ.get("TOXTRANSFORMER_IAP_CLIENT_ID", "")
+    if not client_id:
+        return {}
+
+    now = time.time()
+    if _iap_token_cache["token"] and now < _iap_token_cache["expires_at"]:
+        return {"Authorization": f"Bearer {_iap_token_cache['token']}"}
+
+    try:
+        # Use GCP metadata server directly — reliable in Cloud Run
+        metadata_url = (
+            "http://metadata.google.internal/computeMetadata/v1/"
+            f"instance/service-accounts/default/identity"
+            f"?audience={client_id}&format=full"
+        )
+        resp = requests.get(
+            metadata_url,
+            headers={"Metadata-Flavor": "Google"},
+            timeout=5
+        )
+        resp.raise_for_status()
+        token = resp.text.strip()
+        logger.info(f"Fetched IAP token for audience {client_id[:20]}... (len={len(token)})")
+        # ID tokens are valid for 1 hour; refresh 5 minutes early
+        _iap_token_cache["token"] = token
+        _iap_token_cache["expires_at"] = now + 3300
+        return {"Authorization": f"Bearer {token}"}
+    except Exception as e:
+        logger.warning(f"Could not fetch IAP token from metadata server: {e}")
+        return {}
 
 def make_safe(func):
     @wraps(func)
@@ -29,7 +64,7 @@ def get_chemprop_prediction(inchi: str, property_token: str) -> dict:
     """Synchronous single property prediction."""
     base_url = f"{CHEMPROP_BASE_URL}/predict"
     params = {"property_token": property_token, "inchi": inchi}
-    response = requests.get(base_url, params=params)
+    response = requests.get(base_url, params=params, headers=_get_iap_headers())
     response.raise_for_status()
     return response.json()
 
@@ -53,7 +88,7 @@ def chemprop_predict_all(inchi: str, timeout: float = 120.0) -> list[dict]:
     params = {"inchi": inchi}
 
     logger.info(f"Requesting predictions for {inchi[:50]}...")
-    response = requests.get(url, params=params, timeout=timeout)
+    response = requests.get(url, params=params, headers=_get_iap_headers(), timeout=timeout)
     response.raise_for_status()
     results = response.json()
 
@@ -71,66 +106,55 @@ def chemprop_predict_all(inchi: str, timeout: float = 120.0) -> list[dict]:
     return predictions
 
 
-async def chemprop_predict_all_async(inchi: str, poll_interval: float = 2.0, timeout: float = 300.0) -> list[dict]:
+async def chemprop_predict_all_async(inchi: str, timeout: float = 1200.0) -> list[dict]:
     """
-    Async version: Predict all properties using the async job queue.
+    Predict all properties via jobs.toxindex.com /api/v1/run/toxtransformer.
+
+    Converts InChI to SMILES, posts to the synchronous jobs API, and parses
+    the response into the standard PDAA format.
 
     Args:
         inchi: InChI string of the molecule
-        poll_interval: Seconds between status polls (default 2.0)
-        timeout: Maximum seconds to wait for job completion (default 300.0)
+        timeout: Request timeout in seconds (default 1200.0)
 
     Returns:
-        List of prediction dicts with 'inchi', 'property_token', 'value' keys
+        List of dicts with 'inchi', 'property_token', 'value' keys
     """
-    jobs_url = f"{CHEMPROP_BASE_URL}/jobs"
+    from rdkit import Chem
+    from rdkit.Chem.inchi import MolFromInchi
 
-    async with aiohttp.ClientSession() as session:
-        # Submit job
-        job_data = {
-            "job_type": "predict_all",
-            "inchi": inchi
-        }
+    mol = MolFromInchi(inchi)
+    if mol is None:
+        raise ValueError(f"Cannot parse InChI: {inchi[:80]}")
+    smiles = Chem.MolToSmiles(mol)
 
-        async with session.post(jobs_url, json=job_data) as response:
+    url = f"{CHEMPROP_BASE_URL}/api/v1/run/toxtransformer"
+    iap_headers = _get_iap_headers()
+
+    logger.info(f"Submitting to jobs.toxindex.com for {smiles[:40]}...")
+    async with aiohttp.ClientSession(headers=iap_headers) as session:
+        async with session.post(
+            url,
+            json={"smiles": smiles},
+            timeout=aiohttp.ClientTimeout(total=timeout)
+        ) as response:
             response.raise_for_status()
-            job_info = await response.json()
+            data = await response.json()
 
-        job_id = job_info["job_id"]
-        logger.info(f"Submitted job {job_id} for {inchi[:50]}... (queue position: {job_info.get('queue_position', '?')})")
-
-        # Poll for completion
-        status_url = f"{jobs_url}/{job_id}"
-        start_time = time.time()
-
-        while True:
-            elapsed = time.time() - start_time
-            if elapsed > timeout:
-                raise TimeoutError(f"Job {job_id} timed out after {timeout}s")
-
-            async with session.get(status_url) as status_response:
-                status_response.raise_for_status()
-                status = await status_response.json()
-
-            job_status = status["status"]
-            progress = status.get("progress", 0)
-
-            if job_status == "completed":
-                logger.info(f"Job {job_id} completed in {elapsed:.1f}s")
-                return status["result"]
-
-            elif job_status == "failed":
-                error = status.get("error", "Unknown error")
-                raise RuntimeError(f"Job {job_id} failed: {error}")
-
-            elif job_status in ("pending", "processing"):
-                eta = status.get("estimated_seconds")
-                if eta:
-                    logger.debug(f"Job {job_id}: {job_status} ({progress*100:.0f}%), ETA: {eta:.0f}s")
-                await asyncio.sleep(poll_interval)
-
-            else:
-                raise RuntimeError(f"Unknown job status: {job_status}")
+    predictions = data.get("prediction", {}).get("predictions", [])
+    result = []
+    for pred in predictions:
+        response_inchi = pred.get("inchi", inchi)
+        for prop in pred.get("properties", []):
+            val = prop.get("value")
+            if val is not None:
+                result.append({
+                    "inchi": response_inchi,
+                    "property_token": prop["property_token"],
+                    "value": val,
+                })
+    logger.info(f"Got {len(result)} predictions for {smiles[:40]}")
+    return result
 
 
 def predict_all_simple(inchi: str, timeout: float = 120.0) -> list[tuple]:
@@ -147,7 +171,7 @@ def predict_all_simple(inchi: str, timeout: float = 120.0) -> list[tuple]:
     url = f"{CHEMPROP_BASE_URL}/predict_all"
     params = {"inchi": inchi}
 
-    response = requests.get(url, params=params, timeout=timeout)
+    response = requests.get(url, params=params, headers=_get_iap_headers(), timeout=timeout)
     response.raise_for_status()
     results = response.json()
 
@@ -184,7 +208,7 @@ async def get_chemprop_prediction_async(inchi: str, property_token: str, retries
         "inchi": inchi
     }
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=_get_iap_headers()) as session:
         for attempt in range(1, retries + 1):
             try:
                 async with session.get(base_url, params=params) as response:

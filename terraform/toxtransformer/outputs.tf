@@ -42,3 +42,18 @@ output "cloud_run_url" {
   description = "Direct Cloud Run URL (for debugging)"
   value       = google_cloud_run_service.streamlit.status[0].url
 }
+
+output "pdaa_service_account_email" {
+  description = "Service account email for the PDAA Cloud Run service"
+  value       = google_service_account.pdaa.email
+}
+
+output "pdaa_url" {
+  description = "PDAA UI URL"
+  value       = "https://toxtransformer.toxindex.com/pdaa"
+}
+
+output "jobs_url" {
+  description = "Public jobs API URL (no IAP - for PDAA and direct API access)"
+  value       = "https://jobs.toxindex.com"
+}
